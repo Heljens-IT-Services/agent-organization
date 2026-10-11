@@ -58,8 +58,9 @@ müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
 allein aktiviert den App-Hauptchat nicht automatisch. Der Teamleiter
 Softwareentwicklung ist nun implementiert und persönlich installiert; seine
-fünf operativen Spezialisierungen bleiben geplant. Andere Teamleiter und operative
-Agenten sind unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
+fünf operativen Spezialisierungen sind als Rollen implementiert und persönlich
+installiert. Andere Teamleiter sind unimplementiert. Die Repository-`AGENTS.md`
+ist auf Benutzerwunsch leer.
 
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
 Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,

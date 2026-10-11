@@ -12,8 +12,9 @@ bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML allein
 aktiviert den App-Hauptchat nicht automatisch. Der
 [Teamleiter Softwareentwicklung](teams/softwareentwicklung/teamleiter.toml) ist
 ebenfalls implementiert und persönlich installiert; sein
-[Teamindex](teams/softwareentwicklung/agenten.json) enthält fünf geplante Spezialisierungen.
-Die übrigen Teamleiter und operative Agenten sind noch nicht implementiert.
+[Teamindex](teams/softwareentwicklung/agenten.json) verweist auf fünf implementierte
+operative Rollen für Architektur, Frontend, Backend, Qualitätssicherung und
+Infrastruktur. Die übrigen Teamleiter sind noch nicht implementiert.
 
 Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
 Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster

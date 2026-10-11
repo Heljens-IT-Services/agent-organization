@@ -36,10 +36,10 @@ Es wird keine Unveränderbarkeitsgarantie zugesichert.
 begrifflich getrennt. Eigene Organisationsfelder dürfen nicht als native
 Codex-Konfigurationsschlüssel ausgegeben werden.
 
-[MUST] Der implementierte Scope umfasst Koordinator, Teamleiter Softwareentwicklung
-und ihre Lookupindizes mit bytegleichen persönlichen Kopien. Weitere Teamleiter,
-operative Agenten und Fensterautomatik werden nicht als implementiert oder
-aktiviert dargestellt.
+[MUST] Der implementierte Scope umfasst Koordinator, Teamleiter Softwareentwicklung,
+fünf operative Softwareagenten und ihre Lookupindizes mit bytegleichen persönlichen
+Kopien. Weitere Teamleiter und Fensterautomatik werden nicht als implementiert
+oder aktiviert dargestellt.
 
 [MUST] Die Repository-`AGENTS.md` bleibt auf ausdrücklichen Benutzerwunsch leer.
 Sie dient nicht der Installation oder Aktivierung des Koordinatorprofils.
