@@ -77,6 +77,9 @@ Teamübergreifende Anliegen werden über den Koordinator vermittelt. Diese
 Kontextregel ist keine technische Zugriffssperre und erfindet keine nativen
 Beziehungsfelder oder bereits verfügbaren Teamleiterprofile.
 
+[MUST] Übergaben enthalten nur den Auftrag und benötigten Kontext, keine
+vollständige Organisations-/Agentenliste und keinen ungefilterten Verlauf.
+
 ## Delegation und Kapazität
 
 Ein Auftrag geht vom Koordinator an einen passenden Teamleiter und von dort an
