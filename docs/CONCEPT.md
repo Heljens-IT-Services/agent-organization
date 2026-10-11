@@ -59,6 +59,13 @@ ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
 allein aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten
 bleiben unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
 
+Neue Rollen-TOMLs sollen standardmäßig die zehn wichtigen technischen Optionen
+als kommentierte Beispiele aufnehmen: Modell, Reasoning, Antwortlänge, Sandbox,
+Freigaben, Websuche, Tool-Ausgabelimit, Delegation, MCP-Aktivierung und
+`skills.config`. Die drei Pflichtfelder bleiben separat. Der strukturierte
+Skill-Eintrag mit `path` und `enabled` zählt als eine Option. Nur bewusst
+gewählte technische Einstellungen werden aktiviert.
+
 ## Delegation und Kapazität
 
 Ein Auftrag geht vom Koordinator an einen passenden Teamleiter und von dort an

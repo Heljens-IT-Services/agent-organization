@@ -25,3 +25,47 @@ Aufträge nicht still ohne sie. Der autorisierte Bootstrap ist keine allgemeine
 Ausnahme. Instruktionen sind keine technische Tool-Sperre; diese TOML allein
 aktiviert den App-Hauptchat nicht automatisch.
 '''
+
+# Zehn wichtige technische Optionen; Pr?fstand 2026-10-11.
+# Quelle: https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agent-file-schema
+# Referenz: https://learn.chatgpt.com/docs/config-file/config-reference
+# Unabh?ngige Beispiele, keine empfohlenen Defaults: alle Optionen bleiben kommentiert.
+# Nicht gesetzte Werte werden geerbt; Spawnwerte und Laufzeit-Overrides k?nnen vorgehen.
+# Die drei aktiven Pflichtfelder oberhalb z?hlen nicht zu diesen zehn Optionen.
+
+# 1. Modell: nur einen tats?chlich verf?gbaren Modellbezeichner einsetzen.
+# model = "<MODELL>"
+
+# 2. Reasoning: nur einen vom gew?hlten Modell unterst?tzten Wert einsetzen.
+# model_reasoning_effort = "<REASONING>"
+
+# 3. Antwortl?nge: low, medium oder high; abh?ngig vom Provider.
+# model_verbosity = "low"
+
+# 4. Dateisystem-Sandbox: technische Grenze f?r Befehle, keine Rollenpr?fung.
+# sandbox_mode = "read-only"
+
+# 5. Freigaben: on-request oder never; Sandbox und Freigaben getrennt w?hlen.
+# approval_policy = "on-request"
+
+# 6. Websuche: disabled, cached, indexed oder live laut aktueller Referenz.
+# web_search = "disabled"
+
+# 7. Tool-Ausgaben: Tokenlimit, Beispielwert ohne Aktivierung.
+# tool_output_token_limit = 2000
+
+# 8. Delegationswerkzeuge aktivieren; erzeugt keine Teamleiterprofile.
+# [agents]
+# enabled = true
+
+# 9. Einen vorhandenen MCP-Server aktivieren oder deaktivieren.
+# [mcp_servers.BEISPIEL_SERVER]
+# enabled = false
+
+# 10. skills.config: ein strukturierter Eintrag mit Pfad und Aktivierung.
+# [[skills.config]]
+# path = "<ABSOLUTER_SKILL_PFAD>"
+# enabled = false
+
+# Tabellen und Platzhalter nur gezielt ?bernehmen. Keine Credentials eintragen.
+# Instruktionen sind keine Tool-Sperre; diese Beispiele aktivieren keine App-Fenster.
