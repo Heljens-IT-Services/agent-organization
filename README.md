@@ -16,11 +16,10 @@ ebenfalls implementiert und persönlich installiert; sein
 operative Rollen für Architektur, Frontend, Backend, Qualitätssicherung und
 Infrastruktur. Die übrigen Teamleiter sind noch nicht implementiert.
 
-Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
-Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster
-mit seinem sichtbaren Auftragskontext öffnen und nach gesichertem Abschluss
-wieder schließen. Diese Fenstersteuerung ist unimplementiert; ihre technische
-Machbarkeit bleibt offen.
+[Fensterdelegation](docs/FENSTERDELEGATION.md) startet einen parametrischen Auftrag
+im eigenen sichtbaren PowerShell-Fenster, zeigt Kontext vor Arbeitsbeginn und
+schließt nach gesichertem Ergebnis. Der Ablauf wurde mit einer tatsächlichen
+QA-Aufgabe geprüft. Die automatische Anbindung sämtlicher Delegationen ist offen.
 
 Das [Konzept](docs/CONCEPT.md) beschreibt Hierarchie, Teams, Konfigurationsidee
 und offene Umsetzungspunkte. Die [Projektleitplanken](PROJECT.md) begrenzen den

@@ -142,60 +142,18 @@ größere parallele Hierarchie setzt andere Laufzeitgrenzen voraus.
 
 ## Sichtbarkeit je delegiertem Auftrag
 
-**Status: verbindliche Soll-Anforderung, unimplementiert.** Die aktuelle Sitzung
-erfüllt die automatische Fenstersteuerung bislang nicht. Ihre technische
-Machbarkeit ist offen.
+Das vereinbarte Ziel ist ein eigenes sichtbares CMD-/PowerShell-Fenster mit
+Codex-Auftrag und benötigtem Kontext. Die frühere Forderung nach einem separaten
+Desktop-App-Fenster wurde damit ersetzt. Der parametrische
+[Terminalstarter](FENSTERDELEGATION.md) prüft vor Arbeitsbeginn die Zuordnung von
+Auftrag, Runner und tatsächlichem Fenster und startet erst nach bestätigter
+Sichtbarkeit. Nach terminalem Ergebnis und Sicherung schließt nur das eigene
+Fenster; Historie bleibt erhalten. Warten und Rückfragen sind kein Abschluss.
 
-Jede neue Aufgabe an einen Agenten außer dem Koordinator soll automatisch ein
-eigenständiges Codex-App-Fenster öffnen. Das gilt für Teamleiter und Spezialisten
-sowie für jeden neuen Auftrag an einen wiederverwendeten Agenten. Das Fenster
-muss vor Arbeitsbeginn sichtbar sein und den zugehörigen sichtbaren
-Auftragskontext beziehungsweise Thread zum Mitlesen zeigen. Auftrag, Agent und
-Fenster müssen eindeutig einander zugeordnet sein.
-
-Scheitert das Öffnen des vorgesehenen Fensters, darf der Auftrag nicht
-unbemerkt starten. Der Koordinator muss das Hindernis melden. Eine Aktivierung
-dieses Ablaufs setzt einen erfolgreichen Funktionsnachweis voraus.
-
-Nach terminalem Aufgabenstatus und Sicherung des Ergebnisses soll ausschließlich
-das zugehörige Fenster automatisch geschlossen werden. Ein Wartezustand oder
-eine offene Rückfrage bedeutet keinen Abschluss. Historie und Ergebnisse müssen
-erhalten bleiben; Fenster schließen darf sie nicht löschen. Sichtbarer Kontext
-umfasst keine Authentifizierungsdaten, Secrets oder verborgenen Modellgedanken.
-
-Ein separates App-Fenster, ein Terminalfenster und eine Threadansicht sind
-unterschiedliche Oberflächen. Terminal, Threadliste, Link oder zusätzlicher Tab
-sind keine stillschweigende Ersatzlösung für die geforderte Fensterdarstellung.
-Ein Thread-Lifecycle-Ereignis ist kein Nachweis für ein geschlossenes App-Fenster.
-
-### Dokumentierter technischer Befund
-
-Prüfstand: 11. Oktober 2026, offizielle OpenAI Docs und lokale CLI-Hilfe.
-
-- Die [App-Kommandoreferenz](https://learn.chatgpt.com/docs/reference/commands#deep-links)
-  beschreibt `codex://threads/<thread-id>` zum Öffnen lokaler Chats und
-  Tastaturbefehle für einen neuen eigenständigen Chat sowie das Schließen des
-  aktuellen Tabs oder Fensters. Damit sind UI-Funktionen und Thread-Links belegt.
-  Eine automatische, eindeutige Zuordnung eines bestehenden Subagenten zu einem
-  neuen App-Fenster und dessen gezieltes Schließen ist damit nicht belegt.
-- Der [Codex App Server](https://learn.chatgpt.com/docs/app-server#api-overview)
-  dokumentiert Thread-Erstellung, Lesen, Ereignisse und Subagentfilter. Das sind
-  mögliche Integrationsbausteine für Auftragsbeobachtung, kein dokumentierter
-  Desktop-Fenstercontroller. `thread/closed` bezeichnet das Entladen eines
-  Threads nach fehlenden Abonnenten und Inaktivität; es bedeutet nicht, dass ein
-  App-Fenster geschlossen wurde. `thread/delete` löscht dagegen gespeicherte
-  Threads samt Nachkommen und ist für Fensterschließung ungeeignet.
-- Die lokal gelesenen Hilfen `codex --help` und `codex app --help` beschreiben
-  den App-Start mit einem Workspace-Pfad. Sie belegen keine Optionen für
-  auftragsspezifische Fenstererstellung, Fenster-IDs oder gezieltes Schließen.
-
-In diesen geprüften öffentlichen Quellen ist keine native Schnittstelle für
-den vollständigen geforderten Fensterablauf belegt. Das ist keine Behauptung,
-dass die Umsetzung grundsätzlich unmöglich ist. Vor Umsetzung sind ein
-unterstützter Integrationsweg, Zugriff auf delegierte Threads, verlässliche
-Fensteridentität sowie eine schadlose Abschlussbehandlung nachzuweisen. TOML
-allein aktiviert diesen Ablauf nicht; native Fensterschlüssel werden nicht
-angenommen.
+Dieser Ablauf wurde mit einer tatsächlichen QA-Aufgabe geprüft. Die automatische
+Kopplung sämtlicher nativer Delegationen bleibt offen; ein späteres
+`delegate_task`-MCP-Interface wäre eine gesonderte Umsetzung. Eine separate Sitzung
+ist kein Beweis für eine generelle Trennung oder Umgehung von Berechtigungsregeln.
 
 ## Nachvollziehbarkeit und nächste Schritte
 
