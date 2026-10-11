@@ -16,6 +16,11 @@ Rollen-TOMLs enthalten standardmäßig zehn wichtige technische Optionen als
 kommentierte Beispiele. Nur bewusst gewählte Einstellungen werden aktiviert;
 die drei Pflichtfelder werden separat geführt.
 
+Beim Koordinator sind Modell, Reasoning, Antwortlänge, vollständiger Zugriff,
+Freigabemodus, effiziente Websuche und Delegation bewusst gesetzt. Ein
+unbegrenztes Tool-Ausgabelimit ist nicht dokumentiert; das Feld bleibt ungesetzt
+und verwendet Vererbung beziehungsweise Laufzeitdefault.
+
 Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
 Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster
 mit seinem sichtbaren Auftragskontext öffnen und nach gesichertem Abschluss

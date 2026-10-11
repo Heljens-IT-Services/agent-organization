@@ -26,37 +26,41 @@ Ausnahme. Instruktionen sind keine technische Tool-Sperre; diese TOML allein
 aktiviert den App-Hauptchat nicht automatisch.
 '''
 
-# Zehn wichtige technische Optionen; Pr?fstand 2026-10-11.
+# Zehn wichtige technische Optionen; Prüfstand 2026-10-11.
 # Quelle: https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agent-file-schema
 # Referenz: https://learn.chatgpt.com/docs/config-file/config-reference
-# Unabh?ngige Beispiele, keine empfohlenen Defaults: alle Optionen bleiben kommentiert.
-# Nicht gesetzte Werte werden geerbt; Spawnwerte und Laufzeit-Overrides k?nnen vorgehen.
-# Die drei aktiven Pflichtfelder oberhalb z?hlen nicht zu diesen zehn Optionen.
+# Bewusst gewählte Defaults sind aktiv; MCP und Skills bleiben individuelle Beispiele.
+# Nicht gesetzte Werte werden geerbt; Spawnwerte und Laufzeit-Overrides können vorgehen.
+# Die drei Pflichtfelder oberhalb zählen nicht zu diesen zehn technischen Optionen.
 
-# 1. Modell: nur einen tats?chlich verf?gbaren Modellbezeichner einsetzen.
-# model = "<MODELL>"
+# 1. Modell: ausdrücklich gewählter Modellbezeichner.
+model = "gpt-6.1-sol"
 
-# 2. Reasoning: nur einen vom gew?hlten Modell unterst?tzten Wert einsetzen.
-# model_reasoning_effort = "<REASONING>"
+# 2. Reasoning: gewählte mittlere Tiefe.
+model_reasoning_effort = "medium"
 
-# 3. Antwortl?nge: low, medium oder high; abh?ngig vom Provider.
-# model_verbosity = "low"
+# 3. Antwortlänge: kurze Antworten; abhängig vom Provider.
+model_verbosity = "low"
 
-# 4. Dateisystem-Sandbox: technische Grenze f?r Befehle, keine Rollenpr?fung.
-# sandbox_mode = "read-only"
+# 4. Sandbox: ausdrücklich gewünschter vollständiger Zugriff.
+# Die Instruktion verbietet dem Koordinator weiterhin operative Arbeit.
+sandbox_mode = "danger-full-access"
 
-# 5. Freigaben: on-request oder never; Sandbox und Freigaben getrennt w?hlen.
-# approval_policy = "on-request"
+# 5. Freigaben: keine Laufzeit-Freigaben vor Toolausführung anfordern.
+approval_policy = "never"
 
-# 6. Websuche: disabled, cached, indexed oder live laut aktueller Referenz.
-# web_search = "disabled"
+# 6. Websuche: cached nutzt den Suchindex für effiziente Abfragen.
+# Für ausdrücklich aktuelle Recherche muss der beauftragte Agent live wählen.
+web_search = "cached"
 
-# 7. Tool-Ausgaben: Tokenlimit, Beispielwert ohne Aktivierung.
-# tool_output_token_limit = 2000
+# 7. Tool-Ausgaben: unbegrenzt ist in Referenz/Schema nicht dokumentiert.
+# Nicht gesetzt: geerbter Wert beziehungsweise Laufzeitdefault, NICHT unbegrenzt.
+# Schema: integer/uint, minimum 0; -1, null oder willkürlich hohe Werte sind kein Ersatz.
+# tool_output_token_limit = <EXPLIZITES_TOKENBUDGET>
 
 # 8. Delegationswerkzeuge aktivieren; erzeugt keine Teamleiterprofile.
-# [agents]
-# enabled = true
+[agents]
+enabled = true
 
 # 9. Einen vorhandenen MCP-Server aktivieren oder deaktivieren.
 # [mcp_servers.BEISPIEL_SERVER]
@@ -67,5 +71,5 @@ aktiviert den App-Hauptchat nicht automatisch.
 # path = "<ABSOLUTER_SKILL_PFAD>"
 # enabled = false
 
-# Tabellen und Platzhalter nur gezielt ?bernehmen. Keine Credentials eintragen.
+# Tabellen und Platzhalter nur gezielt übernehmen. Keine Credentials eintragen.
 # Instruktionen sind keine Tool-Sperre; diese Beispiele aktivieren keine App-Fenster.
