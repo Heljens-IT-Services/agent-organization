@@ -1,0 +1,67 @@
+{
+  "teams": [
+    {
+      "team_id": "softwareentwicklung",
+      "name": "Softwareentwicklung",
+      "description": "Technische Lösungen und Softwarequalität.",
+      "tasks": ["Softwareaufträge koordinieren", "Architektur und Umsetzung abstimmen", "Qualitätsnachweise bündeln"],
+      "leader_id": "teamleiter_softwareentwicklung",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "design",
+      "name": "Design",
+      "description": "Gestaltung und Nutzererlebnis.",
+      "tasks": ["Designaufträge koordinieren", "Gestaltungsentscheidungen abstimmen", "Designprüfungen bündeln"],
+      "leader_id": "teamleiter_design",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "marketing",
+      "name": "Marketing",
+      "description": "Positionierung und Kommunikation.",
+      "tasks": ["Marketingaufträge koordinieren", "Inhalte und Kampagnen abstimmen", "Auswertungen bündeln"],
+      "leader_id": "teamleiter_marketing",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "controlling",
+      "name": "Controlling",
+      "description": "Wirtschaftliche Planung und Steuerung.",
+      "tasks": ["Planungsaufträge koordinieren", "Kennzahlen und Budgets abstimmen", "Abweichungsanalysen bündeln"],
+      "leader_id": "teamleiter_controlling",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "buchhaltung",
+      "name": "Buchhaltung",
+      "description": "Belege und buchhalterische Abläufe.",
+      "tasks": ["Buchhaltungsaufträge koordinieren", "Belegaufbereitung und Abstimmung planen", "Auswertungen bündeln"],
+      "leader_id": "teamleiter_buchhaltung",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "geschaeftsfuehrung_assistenz",
+      "name": "Geschäftsführung und Assistenz",
+      "description": "Verträge, Outlook/E-Mail und Kundenkommunikation.",
+      "tasks": ["Vertragsaufträge koordinieren", "Outlook-/E-Mail-Assistenz abstimmen", "Kundenkommunikation koordinieren"],
+      "leader_id": "teamleiter_geschaeftsfuehrung_assistenz",
+      "status": "planned",
+      "role_file": null
+    },
+    {
+      "team_id": "hr",
+      "name": "HR",
+      "description": "Personalthemen.",
+      "tasks": ["Personaladministration koordinieren", "Recruiting abstimmen", "Personalentwicklung planen"],
+      "leader_id": "teamleiter_hr",
+      "status": "planned",
+      "role_file": null
+    }
+  ]
+}
