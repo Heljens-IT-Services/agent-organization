@@ -8,8 +8,8 @@ und persönlich installiert. Sie aktiviert den App-Hauptchat nicht automatisch.
 
 ## Versionsbasis
 
-- Dokumentationsstand: 11. Oktober 2026.
-- Formate: Markdown und TOML in UTF-8.
+- Dokumentationsstand: 12. Oktober 2026.
+- Formate: Markdown, TOML und JSON in UTF-8.
 - Zielplattform: Codex mit konfigurierbaren Agenten; konkrete Integration und
   unterstützte Konfigurationsfelder sind vor der Umsetzung zu prüfen.
 - Aktuelle Sitzung: vier gleichzeitig verfügbare Agentenplätze einschließlich
@@ -36,13 +36,15 @@ Es wird keine Unveränderbarkeitsgarantie zugesichert.
 begrifflich getrennt. Eigene Organisationsfelder dürfen nicht als native
 Codex-Konfigurationsschlüssel ausgegeben werden.
 
-[MUST] Der implementierte Scope umfasst Koordinator, Teamleiter Softwareentwicklung,
-fünf operative Softwareagenten und ihre Lookupindizes mit bytegleichen persönlichen
-Kopien. Weitere Teamleiter und Fensterautomatik werden nicht als implementiert
-oder aktiviert dargestellt.
+[MUST] Der implementierte Scope umfasst Koordinator, acht Teamleiter, 30 operative
+Agenten und ihre Lookupindizes mit bytegleichen persönlichen Kopien. Der sichtbare
+Terminalstarter ist implementiert; native Delegation besitzt keinen automatischen
+Fensterhook.
 
-[MUST] Die Repository-`AGENTS.md` bleibt auf ausdrücklichen Benutzerwunsch leer.
-Sie dient nicht der Installation oder Aktivierung des Koordinatorprofils.
+[MUST] Die Repository-`AGENTS.md` weist ohne ausdrückliche andere Rollenzuweisung
+die Hauptrolle Koordinator zu. Ausdrücklich zugewiesene Rollen bleiben operativ
+oder koordinierend gemäß ihrer TOML. Persönliche AGENTS und globale Konfiguration
+werden dadurch nicht geändert.
 
 [MUST] Änderungen müssen auf den jeweils ausdrücklich zugewiesenen Scope
 begrenzt bleiben; vorhandene fremde Arbeiten dürfen nicht überschrieben werden.

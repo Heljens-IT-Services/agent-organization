@@ -1,0 +1,32 @@
+{
+  "team_id": "controlling",
+  "leader_id": "teamleiter_controlling",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "controlling_budget",
+      "name": "Budget",
+      "description": "Erstellt und prüft Budgetplanungen.",
+      "role_file": "controlling_budget.toml"
+    },
+    {
+      "agent_id": "controlling_kennzahlen",
+      "name": "Kennzahlen",
+      "description": "Berechnet und prüft wirtschaftliche Kennzahlen.",
+      "role_file": "controlling_kennzahlen.toml"
+    },
+    {
+      "agent_id": "controlling_forecast",
+      "name": "Forecast",
+      "description": "Erstellt und bewertet Prognosen.",
+      "role_file": "controlling_forecast.toml"
+    },
+    {
+      "agent_id": "controlling_reporting",
+      "name": "Reporting",
+      "description": "Erstellt und prüft Controllingberichte.",
+      "role_file": "controlling_reporting.toml"
+    }
+  ]
+}

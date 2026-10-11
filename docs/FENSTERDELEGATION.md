@@ -12,6 +12,8 @@ lokale Anmeldung und eine installierte Rollen-TOML. Parameter: `Role`, `Task`,
 `ContextFile`, `WorkingDirectory`, `ResultPath`, `TimeoutSeconds` und
 `KeepWindowOpen`. Taskdaten werden als UTF-8-Jobdatei übergeben, nicht als
 Shellcode. Unterstützt wird die einfache Struktur der vorhandenen Rollen.
+Die Rollen-ID wird ausdrücklich in `developerInstructions` übergeben, damit
+die Repository-Hauptrollenregel zugewiesene operative Sitzungen nicht umdeutet.
 
 ```powershell
 .\scripts\Start-DelegatedCodexTask.ps1 -Role softwareentwicklung_qualitaetssicherung `
@@ -46,6 +48,13 @@ blieb nach Fensterschluss vorhanden. Der vorherige fehlgeschlagene Fenstertest
 startete keinen Modellturn: Windows Terminal liefert für `GetConsoleWindow()`
 einen Pseudohandle, weshalb der Controller nun den tatsächlichen neuen
 Hostrahmen anhand des eindeutigen Titels identifiziert.
+
+Die anschließende Rollenprobe aus dem Repository mit seiner neuen `AGENTS.md`
+lieferte `role: controlling_kennzahlen`, `sum: 5` und den erwarteten Marker.
+HWND `5901854`/Runner `8704` wurden vor Modellstart bestätigt; Thread
+`01a12d28-f2a1-7780-8a21-3c38c8e0a608` endete erfolgreich. Das Resultat wurde
+gesichert und nur das eigene Fenster geschlossen. Dies prüft eine zugewiesene
+operative Rolle, keine vollständige fachliche Abnahme aller Rollen.
 
 ## Grenzen
 

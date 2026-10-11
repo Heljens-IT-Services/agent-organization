@@ -1,0 +1,26 @@
+{
+  "team_id": "agent_ressources",
+  "leader_id": "teamleiter_agent_ressources",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "agent_ressources_bestandsanalyse",
+      "name": "Bestandsanalyse",
+      "description": "Prüft Wiederverwendung vorhandener Agenten anhand benötigter Fähigkeiten.",
+      "role_file": "agent_ressources_bestandsanalyse.toml"
+    },
+    {
+      "agent_id": "agent_ressources_rollenkonfiguration",
+      "name": "Rollenkonfiguration",
+      "description": "Bereitet begründete Rollen- und Teamkonfigurationen vor.",
+      "role_file": "agent_ressources_rollenkonfiguration.toml"
+    },
+    {
+      "agent_id": "agent_ressources_qualitaetspruefung",
+      "name": "Qualitätsprüfung",
+      "description": "Prüft Agentenrollen und Lookupkonfigurationen.",
+      "role_file": "agent_ressources_qualitaetspruefung.toml"
+    }
+  ]
+}

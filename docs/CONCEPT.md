@@ -15,29 +15,28 @@ analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
 ## Vorgesehene Teams
 
 Der vorgesehene Grundbestand umfasst acht Teams. Jeder Fachbereich wird
-konzeptionell durch einen Teamleiter koordiniert; die operative Arbeit liegt
-bei den vorgeschlagenen Spezialisten.
+durch einen installierten Teamleiter koordiniert; die operative Arbeit liegt
+bei den konfigurierten Spezialisten.
 
-| Team | Fachlicher Schwerpunkt | Mögliche operative Spezialisierungen |
+| Team | Fachlicher Schwerpunkt | Konfigurierte operative Spezialisierungen |
 |---|---|---|
 | Softwareentwicklung | Technische Lösungen und Softwarequalität | Architektur, Implementierung, Tests, Betrieb |
-| Design | Gestaltung und Nutzererlebnis | UX, UI, visuelle Gestaltung, Designprüfung |
-| Marketing | Positionierung und Kommunikation | Inhalte, Kampagnen, Kanalbetreuung, Auswertung |
-| Controlling | Wirtschaftliche Planung und Steuerung | Kennzahlen, Budgetplanung, Abweichungsanalyse |
-| Buchhaltung | Belege und buchhalterische Abläufe | Belegaufbereitung, Abstimmung, Auswertungen |
+| Design | Gestaltung und Nutzererlebnis | UX, UI, Grafik, 3D |
+| Marketing | Positionierung und Kommunikation | Strategie, Text, SEO, Kampagnen |
+| Controlling | Wirtschaftliche Planung und Steuerung | Budget, Kennzahlen, Forecast, Reporting |
+| Buchhaltung | Belege und buchhalterische Abläufe | Belege, Rechnungen, Kontierung, Abstimmung |
 | Geschäftsführung und Assistenz | Verträge, Outlook/E-Mail und Kundenkommunikation | Vertragskoordination, Outlook-/E-Mail-Assistenz, Kundenkommunikation |
 | HR | Personalthemen | Personaladministration, Recruiting, Personalentwicklung |
-| Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsprüfung, Wiederverwendung, Vorbereitung begründeter Neuanlagen |
+| Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsanalyse, Rollenkonfiguration, Qualitätsprüfung |
 
-Die Spezialisierungen sind Vorschläge für eine spätere Konfiguration. Sie sind
-keine bereits installierten oder freigegebenen Agentenprofile.
+Alle acht Teamleiter und 30 operative Rollen sind als TOMLs konfiguriert und
+persönlich installiert. Installation allein beweist keine produktive Fachleistung.
 
 Agent Ressources prüft zuerst Wiederverwendung und Erweiterung vorhandener
 Agenten, bevor es begründete Neuanlagen vorbereitet. Unterstützung anderer
 Teamleiter läuft ausschließlich über den Koordinator und benötigt nur passende
 Fähigkeitsauszüge der jeweiligen Leiter, keine globale Spezialistenliste oder
-direkten Kontakte zu anderen Teams. Für dieses Team ist nur der zentrale
-Lookupeintrag vorgesehen; seine Rollenreferenz bleibt `null`.
+direkten Kontakte zu anderen Teams.
 
 Vertragskoordination beschreibt einen vorgesehenen Aufgabenbereich und enthält
 keine Garantie rechtlicher Fachkompetenz. Das Versenden von E-Mails erfordert
@@ -60,15 +59,15 @@ Zwei Ebenen sind zu unterscheiden:
 Eine eigene Organisationsbeschreibung installiert oder lädt Codex nicht
 automatisch. Native Schlüssel wie `team` oder `leader` werden hier nicht
 behauptet. Dateistruktur, Schema, Validierung, Synchronisierung und Aktivierung
-müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
+sind durch die folgende eigene Lookupkonvention beschrieben.
 
 `koordinator/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
-allein aktiviert den App-Hauptchat nicht automatisch. Der Teamleiter
-Softwareentwicklung ist nun implementiert und persönlich installiert; seine
-fünf operativen Spezialisierungen sind als Rollen implementiert und persönlich
-installiert. Andere Teamleiter sind unimplementiert. Die Repository-`AGENTS.md`
-ist auf Benutzerwunsch leer.
+allein aktiviert den App-Hauptchat nicht automatisch. Neun koordinierende Rollen
+(Koordinator und acht Teamleiter) sowie 30 operative Rollen sind implementiert
+und persönlich installiert. Die Repository-`AGENTS.md` legt den Koordinator nur
+ohne ausdrückliche andere Rollenzuweisung als Hauptrolle fest; ausdrücklich
+zugewiesene Rollen führen ihre eigenen Instruktionen aus.
 
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
 Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,
@@ -76,7 +75,7 @@ Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,
 `name`, `description` und `developer_instructions` bleiben rollenspezifisch.
 [MUST] Rollenbeschreibungen bleiben ein kurzer Satz; Instruktionen enthalten
 nur die präzisen Zuständigkeiten, Übergaben und notwendigen Grenzen.
-`agents.enabled` ist beim Koordinator `true`, bei operativen Rollen ohne
+`agents.enabled` ist beim Koordinator und Teamleitern `true`, bei operativen Rollen ohne
 Delegationsberechtigung `false`. MCP und `skills.config` werden individuell
 konfiguriert. Die zehn Optionen bilden die Basis, keine Pflicht zu zehn
 Kommentarblöcken. `tool_output_token_limit` bleibt ungesetzt: Vererbung oder
@@ -89,7 +88,7 @@ Agent kennt ausschließlich seinen eigenen Teamleiter. Fachdetails und Besetzung
 liegen beim Teamleiter, Ergebnisse gehen über ihn an den Koordinator.
 Teamübergreifende Anliegen werden über den Koordinator vermittelt. Diese
 Kontextregel ist keine technische Zugriffssperre und erfindet keine nativen
-Beziehungsfelder oder bereits verfügbaren Teamleiterprofile.
+Beziehungsfelder.
 
 [MUST] Übergaben enthalten nur den Auftrag und benötigten Kontext, keine
 vollständige Organisations-/Agentenliste und keinen ungefilterten Verlauf.
@@ -106,10 +105,10 @@ eine Rollenreferenz muss auf eine tatsächlich vorhandene, geprüfte Datei zeige
 Der Index enthält keine Spezialistenliste.
 
 [MUST] Ein Teamleiter erhält nur seinen eigenen Teameintrag und Auftrag, nicht
-den vollständigen `koordinator/teams.json`-Index. `teams/softwareentwicklung/agenten.json` ist die eigene
-Kontaktquelle des Softwareteamleiters und wird bytegleich unter
-`$CODEX_HOME/agents/softwareentwicklung/agenten.json` installiert. Rollenreferenzen einschließlich
-`coordinator_role_file` sind relativ zu diesem Verzeichnis. Änderungen an eigener
+den vollständigen `koordinator/teams.json`-Index. `teams/<team_id>/agenten.json` ist die eigene
+Kontaktquelle des jeweiligen Teamleiters und wird bytegleich unter
+`$CODEX_HOME/agents/<team_id>/agenten.json` installiert. Rollenreferenzen einschließlich
+`coordinator_role_file` sind relativ zum persönlichen `agents`-Verzeichnis. Änderungen an eigener
 Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
 Änderungssatz. Fehlende operative Rollen haben `role_file: null`.
 
@@ -121,8 +120,9 @@ vorhandene Rollenreferenz oder `role_file: null` ausgedrückt; keine Ersatzflags
 |---|---|
 | `koordinator/koordinator.toml` | `agents/koordinator.toml` |
 | `koordinator/teams.json` | `agents/koordinator/teams.json` |
-| `teams/softwareentwicklung/teamleiter.toml` | `agents/teamleiter_softwareentwicklung.toml` |
-| `teams/softwareentwicklung/agenten.json` | `agents/softwareentwicklung/agenten.json` |
+| `teams/<team_id>/teamleiter.toml` | `agents/teamleiter_<team_id>.toml` |
+| `teams/<team_id>/agenten.json` | `agents/<team_id>/agenten.json` |
+| `teams/<team_id>/agenten/<rolle>.toml` | `agents/<name>.toml` |
 
 Die TOMLs bleiben für Codex-Discovery flach im persönlichen `agents`-Verzeichnis;
 Lookupdaten liegen in den zugehörigen Unterordnern. Es gibt keine Aliasdateien.
@@ -161,7 +161,7 @@ Git-Versionierung soll Änderungen an Organisation und Profilen nachvollziehbar
 machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
-Vor vollständiger Aktivierung sind Organisationsschema, weitere Agentenprofile, Integrationsweg,
-Rechte und eine prüfbare Pilotaufgabe festzulegen. Persönlich installiert sind
-Koordinator, Teamleiter Softwareentwicklung und ihre Indizes; GitHub Actions
-bleiben deaktiviert.
+Persönlich installiert sind 39 Rollen und neun Lookupindizes. Fachliche Pilotaufgaben
+und eine automatische Anbindung nativer Delegation bleiben gesonderte Schritte;
+GitHub Actions bleiben deaktiviert. Die vorhandenen großzügigen technischen
+Defaults sind keine durch die Instruktionen erzwungene Beschränkung.

@@ -4,7 +4,11 @@
       "team_id": "softwareentwicklung",
       "name": "Softwareentwicklung",
       "description": "Technische Lösungen und Softwarequalität.",
-      "tasks": ["Softwareaufträge koordinieren", "Architektur und Umsetzung abstimmen", "Qualitätsnachweise bündeln"],
+      "tasks": [
+        "Softwareaufträge koordinieren",
+        "Architektur und Umsetzung abstimmen",
+        "Qualitätsnachweise bündeln"
+      ],
       "leader_id": "teamleiter_softwareentwicklung",
       "role_file": "teamleiter_softwareentwicklung.toml"
     },
@@ -12,57 +16,85 @@
       "team_id": "design",
       "name": "Design",
       "description": "Gestaltung und Nutzererlebnis.",
-      "tasks": ["Designaufträge koordinieren", "Gestaltungsentscheidungen abstimmen", "Designprüfungen bündeln"],
+      "tasks": [
+        "Designaufträge koordinieren",
+        "Gestaltungsentscheidungen abstimmen",
+        "Designprüfungen bündeln"
+      ],
       "leader_id": "teamleiter_design",
-      "role_file": null
+      "role_file": "teamleiter_design.toml"
     },
     {
       "team_id": "marketing",
       "name": "Marketing",
       "description": "Positionierung und Kommunikation.",
-      "tasks": ["Marketingaufträge koordinieren", "Inhalte und Kampagnen abstimmen", "Auswertungen bündeln"],
+      "tasks": [
+        "Marketingaufträge koordinieren",
+        "Inhalte und Kampagnen abstimmen",
+        "Auswertungen bündeln"
+      ],
       "leader_id": "teamleiter_marketing",
-      "role_file": null
+      "role_file": "teamleiter_marketing.toml"
     },
     {
       "team_id": "controlling",
       "name": "Controlling",
       "description": "Wirtschaftliche Planung und Steuerung.",
-      "tasks": ["Planungsaufträge koordinieren", "Kennzahlen und Budgets abstimmen", "Abweichungsanalysen bündeln"],
+      "tasks": [
+        "Planungsaufträge koordinieren",
+        "Kennzahlen und Budgets abstimmen",
+        "Abweichungsanalysen bündeln"
+      ],
       "leader_id": "teamleiter_controlling",
-      "role_file": null
+      "role_file": "teamleiter_controlling.toml"
     },
     {
       "team_id": "buchhaltung",
       "name": "Buchhaltung",
       "description": "Belege und buchhalterische Abläufe.",
-      "tasks": ["Buchhaltungsaufträge koordinieren", "Belegaufbereitung und Abstimmung planen", "Auswertungen bündeln"],
+      "tasks": [
+        "Buchhaltungsaufträge koordinieren",
+        "Belegaufbereitung und Abstimmung planen",
+        "Auswertungen bündeln"
+      ],
       "leader_id": "teamleiter_buchhaltung",
-      "role_file": null
+      "role_file": "teamleiter_buchhaltung.toml"
     },
     {
       "team_id": "geschaeftsfuehrung_assistenz",
       "name": "Geschäftsführung und Assistenz",
       "description": "Verträge, Outlook/E-Mail und Kundenkommunikation.",
-      "tasks": ["Vertragsaufträge koordinieren", "Outlook-/E-Mail-Assistenz abstimmen", "Kundenkommunikation koordinieren"],
+      "tasks": [
+        "Vertragsaufträge koordinieren",
+        "Outlook-/E-Mail-Assistenz abstimmen",
+        "Kundenkommunikation koordinieren"
+      ],
       "leader_id": "teamleiter_geschaeftsfuehrung_assistenz",
-      "role_file": null
+      "role_file": "teamleiter_geschaeftsfuehrung_assistenz.toml"
     },
     {
       "team_id": "hr",
       "name": "HR",
       "description": "Personalthemen.",
-      "tasks": ["Personaladministration koordinieren", "Recruiting abstimmen", "Personalentwicklung planen"],
+      "tasks": [
+        "Personaladministration koordinieren",
+        "Recruiting abstimmen",
+        "Personalentwicklung planen"
+      ],
       "leader_id": "teamleiter_hr",
-      "role_file": null
+      "role_file": "teamleiter_hr.toml"
     },
     {
       "team_id": "agent_ressources",
       "name": "Agent Ressources",
       "description": "Prüft vorhandene Agenten und unterstützt die Erstellung von Teams und Agenten.",
-      "tasks": ["Bestand und Eignung vorhandener Agenten prüfen", "Wiederverwendung oder Erweiterung empfehlen", "Begründete Neuanlagen vorbereiten"],
+      "tasks": [
+        "Bestand und Eignung vorhandener Agenten prüfen",
+        "Wiederverwendung oder Erweiterung empfehlen",
+        "Begründete Neuanlagen vorbereiten"
+      ],
       "leader_id": "teamleiter_agent_ressources",
-      "role_file": null
+      "role_file": "teamleiter_agent_ressources.toml"
     }
   ]
 }

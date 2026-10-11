@@ -1,0 +1,32 @@
+{
+  "team_id": "design",
+  "leader_id": "teamleiter_design",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "design_ux",
+      "name": "UX",
+      "description": "Analysiert Nutzungsszenarien und entwirft Nutzerabläufe.",
+      "role_file": "design_ux.toml"
+    },
+    {
+      "agent_id": "design_ui",
+      "name": "UI",
+      "description": "Entwirft und prüft Oberflächen und Interaktionen.",
+      "role_file": "design_ui.toml"
+    },
+    {
+      "agent_id": "design_grafik",
+      "name": "Grafik",
+      "description": "Erstellt und prüft visuelle Kommunikationsmittel.",
+      "role_file": "design_grafik.toml"
+    },
+    {
+      "agent_id": "design_3d",
+      "name": "3D",
+      "description": "Erstellt und prüft beauftragte dreidimensionale Gestaltung.",
+      "role_file": "design_3d.toml"
+    }
+  ]
+}

@@ -56,7 +56,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $spec = @{
         task_id = [guid]::NewGuid().ToString('N'); role = $Role; task = $Task; context = $context
         cwd = $workdir; result_file = $resultFile; timeout_seconds = $TimeoutSeconds; keep_window_open = [bool]$KeepWindowOpen
-        developer_instructions = $instructions.Groups[1].Value; config = $config
+        developer_instructions = ('Explizit zugewiesene Rolle: ' + $Role + ".`n" + $instructions.Groups[1].Value); config = $config
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
         approval_policy = (Read-RoleString $roleText 'approval_policy')
     }

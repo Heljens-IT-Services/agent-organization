@@ -1,0 +1,26 @@
+{
+  "team_id": "geschaeftsfuehrung_assistenz",
+  "leader_id": "teamleiter_geschaeftsfuehrung_assistenz",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "geschaeftsfuehrung_assistenz_vertragskoordination",
+      "name": "Vertragskoordination",
+      "description": "Bereitet und strukturiert Vertragsunterlagen.",
+      "role_file": "geschaeftsfuehrung_assistenz_vertragskoordination.toml"
+    },
+    {
+      "agent_id": "geschaeftsfuehrung_assistenz_outlook_email",
+      "name": "Outlook/E-Mail",
+      "description": "Bereitet Outlook- und E-Mail-Aufträge vor.",
+      "role_file": "geschaeftsfuehrung_assistenz_outlook_email.toml"
+    },
+    {
+      "agent_id": "geschaeftsfuehrung_assistenz_kundenkommunikation",
+      "name": "Kundenkommunikation",
+      "description": "Bereitet Kundenkommunikation vor.",
+      "role_file": "geschaeftsfuehrung_assistenz_kundenkommunikation.toml"
+    }
+  ]
+}

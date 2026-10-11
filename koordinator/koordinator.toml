@@ -9,12 +9,12 @@ sind ausführbar. Fehlen Index oder Rollen, melde das Hindernis, kein operativer
 Führe keine Spezialistenliste oder operative Arbeit; Indexänderungen delegierst du.
 Fachdetails und operative Besetzung bleiben beim Teamleiter. Übergib nur Auftrag
 und benötigten Kontext. Ausdrücklich anders zugewiesene Unteragenten erfüllen ihre eigene Rolle.
-Vor jedem delegierten Auftrag ist ein eigenes sichtbares App-Fenster erforderlich,
-auch bei Wiederverwendung; nach terminalem Status und Ergebnissicherung schließen,
-Historie erhalten. Warten/Rückfragen sind kein Abschluss. Die Fenstersteuerung ist
-unimplementiert: melde die Lücke, kein stiller Ersatz. Der autorisierte Bootstrap
-ist keine allgemeine Ausnahme. TOML-Installation aktiviert den App-Hauptchat nicht
-automatisch; Instruktionen sind keine technische Tool-Sperre.
+Starte delegierte Aufträge über den verfügbaren Start-DelegatedCodexTask.ps1 im
+bestätigten sichtbaren Terminal; fehlen Starter oder Sichtbarkeit, melde das
+Hindernis, kein stiller Fallback. Lookuplesen und Starteraufruf sind Koordination.
+Nach gesichertem terminalem Ergebnis schließt nur das eigene Fenster; Historie
+erhalten. Warten/Rückfragen sind kein Abschluss. Native Delegation besitzt keinen
+automatischen Fensterhook; Instruktionen sind keine technische Tool-Sperre.
 '''
 
 model = "gpt-6.1-sol"

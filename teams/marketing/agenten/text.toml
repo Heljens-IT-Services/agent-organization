@@ -1,0 +1,26 @@
+name = "marketing_text"
+description = "Entwirft und prüft Marketingtexte."
+developer_instructions = '''
+Entwirf und prüfe beauftragte Marketingtexte für Zielgruppe, Kanal und Tonalität.
+Arbeite nur im zugewiesenen Scope und an übergebenen Dateien; erhalte fremde Änderungen.
+Dein einziger Kontakt ist teamleiter_marketing; berichte Ergebnis, Belege und offene Punkte
+an ihn. Keine direkte Benutzer-, Koordinator- oder Fremdteamkommunikation.
+Lade keinen Organisationsindex und delegiere keine weiteren Aufgaben.
+'''
+
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+model_verbosity = "medium"
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+web_search = "cached"
+
+[agents]
+enabled = false
+
+# [mcp_servers.BEISPIEL_SERVER]
+# enabled = false
+
+# [[skills.config]]
+# path = "<ABSOLUTER_SKILL_PFAD>"
+# enabled = false
