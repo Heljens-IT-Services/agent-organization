@@ -65,6 +65,8 @@ Agenten sind unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch 
 Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,
 `danger-full-access`, `never` und `cached`.
 `name`, `description` und `developer_instructions` bleiben rollenspezifisch.
+[MUST] Rollenbeschreibungen bleiben ein kurzer Satz; Instruktionen enthalten
+nur die präzisen Zuständigkeiten, Übergaben und notwendigen Grenzen.
 `agents.enabled` ist beim Koordinator `true`, bei operativen Rollen ohne
 Delegationsberechtigung `false`. MCP und `skills.config` werden individuell
 konfiguriert. Die zehn Optionen bilden die Basis, keine Pflicht zu zehn
