@@ -1,0 +1,38 @@
+{
+  "team_id": "softwareentwicklung",
+  "leader_id": "teamleiter_softwareentwicklung",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "softwareentwicklung_architektur",
+      "name": "Architektur",
+      "description": "Softwarearchitektur und technische Entwurfsentscheidungen.",
+      "role_file": "softwareentwicklung_architektur.toml"
+    },
+    {
+      "agent_id": "softwareentwicklung_frontend",
+      "name": "Frontend",
+      "description": "Benutzeroberflächen und clientseitige Implementierung.",
+      "role_file": "softwareentwicklung_frontend.toml"
+    },
+    {
+      "agent_id": "softwareentwicklung_backend",
+      "name": "Backend",
+      "description": "Serverseitige Implementierung und Schnittstellen.",
+      "role_file": "softwareentwicklung_backend.toml"
+    },
+    {
+      "agent_id": "softwareentwicklung_qualitaetssicherung",
+      "name": "Qualitätssicherung",
+      "description": "Tests und Verifikation von Softwareänderungen.",
+      "role_file": "softwareentwicklung_qualitaetssicherung.toml"
+    },
+    {
+      "agent_id": "softwareentwicklung_infrastruktur",
+      "name": "Infrastruktur",
+      "description": "Technischer Betrieb und Bereitstellung.",
+      "role_file": "softwareentwicklung_infrastruktur.toml"
+    }
+  ]
+}
