@@ -23,8 +23,9 @@ Konzept; er aktiviert keine Agentenorganisation.
 Aufgaben aus. Teamleiter koordinieren ihren Fachbereich und delegieren die
 operative Arbeit an Spezialisten.
 
-[MUST] Die Teams Softwareentwicklung, Design, Marketing, Controlling und
-Buchhaltung bilden den vorgesehenen Grundbestand.
+[MUST] Die sieben Teams Softwareentwicklung, Design, Marketing, Controlling,
+Buchhaltung, Geschäftsführung und Assistenz sowie HR bilden den vorgesehenen
+Grundbestand.
 
 [MUST] Revisionssicherheit bezeichnet hier versionierte Nachvollziehbarkeit.
 Es wird keine Unveränderbarkeitsgarantie zugesichert.

@@ -4,6 +4,9 @@ Versionierte Agentenorganisation für Heljens IT Services: Ein Koordinator nimmt
 Anfragen entgegen, Teamleiter koordinieren Fachbereiche und Spezialisten führen
 die operative Arbeit aus.
 
+Vorgesehen sind sieben Teams: Softwareentwicklung, Design, Marketing,
+Controlling, Buchhaltung, Geschäftsführung und Assistenz sowie HR.
+
 **Status:** Dokumentierter Erstentwurf. Es sind noch keine Agentenprofile,
 Installation oder Aktivierung enthalten.
 

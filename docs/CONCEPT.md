@@ -14,6 +14,10 @@ analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
 
 ## Vorgesehene Teams
 
+Der vorgesehene Grundbestand umfasst sieben Teams. Jeder Fachbereich wird
+konzeptionell durch einen Teamleiter koordiniert; die operative Arbeit liegt
+bei den vorgeschlagenen Spezialisten.
+
 | Team | Fachlicher Schwerpunkt | Mögliche operative Spezialisierungen |
 |---|---|---|
 | Softwareentwicklung | Technische Lösungen und Softwarequalität | Architektur, Implementierung, Tests, Betrieb |
@@ -21,9 +25,15 @@ analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
 | Marketing | Positionierung und Kommunikation | Inhalte, Kampagnen, Kanalbetreuung, Auswertung |
 | Controlling | Wirtschaftliche Planung und Steuerung | Kennzahlen, Budgetplanung, Abweichungsanalyse |
 | Buchhaltung | Belege und buchhalterische Abläufe | Belegaufbereitung, Abstimmung, Auswertungen |
+| Geschäftsführung und Assistenz | Verträge, Outlook/E-Mail und Kundenkommunikation | Vertragskoordination, Outlook-/E-Mail-Assistenz, Kundenkommunikation |
+| HR | Personalthemen | Personaladministration, Recruiting, Personalentwicklung |
 
 Die Spezialisierungen sind Vorschläge für eine spätere Konfiguration. Sie sind
 keine bereits installierten oder freigegebenen Agentenprofile.
+
+Vertragskoordination beschreibt einen vorgesehenen Aufgabenbereich und enthält
+keine Garantie rechtlicher Fachkompetenz. Das Versenden von E-Mails erfordert
+eine konkrete Autorisierung; die Konzeptänderung autorisiert keinen Versand.
 
 ## Konfiguration
 
