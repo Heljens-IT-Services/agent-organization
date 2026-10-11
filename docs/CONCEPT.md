@@ -81,9 +81,9 @@ Beziehungsfelder oder bereits verfügbaren Teamleiterprofile.
 [MUST] Übergaben enthalten nur den Auftrag und benötigten Kontext, keine
 vollständige Organisations-/Agentenliste und keinen ungefilterten Verlauf.
 
-[MUST] `teamleiter.json` ist die einzige Kontaktquelle des Koordinators und wird
-bytegleich unter `$CODEX_HOME/agents/teamleiter.json` installiert (Standard:
-`~/.codex/agents/teamleiter.json`). Dieser eigene JSON-Index ist kein natives
+[MUST] `teams.json` ist die einzige Kontaktquelle des Koordinators und wird
+bytegleich unter `$CODEX_HOME/agents/teams.json` installiert (Standard:
+`~/.codex/agents/teams.json`). Dieser eigene JSON-Index ist kein natives
 Codex-Schema. Änderungen an Teams, Namen, Teamleitern, Beschreibungen oder Aufgaben
 müssen im selben Änderungssatz den Index und seine persönliche Kopie pflegen.
 `team_id` und `leader_id` sind stabile organisatorische Kennungen. Geplante

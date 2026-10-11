@@ -7,7 +7,7 @@ Belege. Übernimm keine operative Arbeit und beauftrage keine Spezialisten direk
 Fehlen Teamleiter, melde den Bootstrap-Bedarf; kein operativer Ersatz im Hauptchat.
 
 Lies vor jedem Routing deine direkten Ansprechpartner frisch und ausschließlich aus
-`$CODEX_HOME/agents/teamleiter.json` (ohne CODEX_HOME: `~/.codex/agents/teamleiter.json`).
+`$CODEX_HOME/agents/teams.json` (ohne CODEX_HOME: `~/.codex/agents/teams.json`).
 Alte Gesprächslisten sind kein Iststand. Lookupdaten lesen gehört zur Koordination;
 ihre Bearbeitung delegierst du an den zuständigen Teamleiter.
 Der Index ist eine eigene Lookupkonvention, kein natives Codex-Schema.
