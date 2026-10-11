@@ -59,12 +59,14 @@ ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
 allein aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten
 bleiben unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
 
-Neue Rollen-TOMLs sollen standardmäßig die zehn wichtigen technischen Optionen
-als kommentierte Beispiele aufnehmen: Modell, Reasoning, Antwortlänge, Sandbox,
-Freigaben, Websuche, Tool-Ausgabelimit, Delegation, MCP-Aktivierung und
-`skills.config`. Die drei Pflichtfelder bleiben separat. Der strukturierte
-Skill-Eintrag mit `path` und `enabled` zählt als eine Option. Nur bewusst
-gewählte technische Einstellungen werden aktiviert.
+[MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
+Defaults `gpt-6.1-sol`, `medium`, `low`, `danger-full-access`, `never` und `cached`.
+`name`, `description` und `developer_instructions` bleiben rollenspezifisch.
+`agents.enabled` ist beim Koordinator `true`, bei operativen Rollen ohne
+Delegationsberechtigung `false`. MCP und `skills.config` werden individuell
+konfiguriert. Die zehn Optionen bilden die Basis, keine Pflicht zu zehn
+Kommentarblöcken. `tool_output_token_limit` bleibt ungesetzt: Vererbung oder
+Laufzeitdefault, kein behauptetes unbegrenztes Budget.
 
 ## Delegation und Kapazität
 
