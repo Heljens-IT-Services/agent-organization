@@ -54,7 +54,7 @@ automatisch. Native Schlüssel wie `team` oder `leader` werden hier nicht
 behauptet. Dateistruktur, Schema, Validierung, Synchronisierung und Aktivierung
 müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
 
-`roles/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
+`koordinator/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
 allein aktiviert den App-Hauptchat nicht automatisch. Der Teamleiter
 Softwareentwicklung ist nun implementiert und persönlich installiert; seine
@@ -85,9 +85,9 @@ Beziehungsfelder oder bereits verfügbaren Teamleiterprofile.
 [MUST] Übergaben enthalten nur den Auftrag und benötigten Kontext, keine
 vollständige Organisations-/Agentenliste und keinen ungefilterten Verlauf.
 
-[MUST] `teams.json` ist die einzige Kontaktquelle des Koordinators und wird
-bytegleich unter `$CODEX_HOME/agents/teams.json` installiert (Standard:
-`~/.codex/agents/teams.json`). Dieser eigene JSON-Index ist kein natives
+[MUST] `koordinator/teams.json` ist die einzige Kontaktquelle des Koordinators und wird
+bytegleich unter `$CODEX_HOME/agents/koordinator/teams.json` installiert (Standard:
+`~/.codex/agents/koordinator/teams.json`). Dieser eigene JSON-Index ist kein natives
 Codex-Schema. Änderungen an Teams, Namen, Teamleitern, Beschreibungen oder Aufgaben
 müssen im selben Änderungssatz den Index und seine persönliche Kopie pflegen.
 `team_id` und `leader_id` sind stabile organisatorische Kennungen. Verfügbarkeit
@@ -97,9 +97,9 @@ eine Rollenreferenz muss auf eine tatsächlich vorhandene, geprüfte Datei zeige
 Der Index enthält keine Spezialistenliste.
 
 [MUST] Ein Teamleiter erhält nur seinen eigenen Teameintrag und Auftrag, nicht
-den vollständigen `teams.json`-Index. `softwareentwicklung.json` ist die eigene
-Kontaktquelle des Softwareteamleiters und wird bytegleich im persönlichen
-`agents`-Verzeichnis installiert. Rollenreferenzen einschließlich
+den vollständigen `koordinator/teams.json`-Index. `teams/softwareentwicklung/agenten.json` ist die eigene
+Kontaktquelle des Softwareteamleiters und wird bytegleich unter
+`$CODEX_HOME/agents/softwareentwicklung/agenten.json` installiert. Rollenreferenzen einschließlich
 `coordinator_role_file` sind relativ zu diesem Verzeichnis. Änderungen an eigener
 Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
 Änderungssatz. Fehlende operative Rollen haben `role_file: null`.
@@ -107,6 +107,16 @@ Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
 [MUST] Alle Organisations-JSONs bleiben ohne `status`-Eigenschaften, auch in
 verschachtelten Einträgen. Verfügbarkeit wird ausschließlich durch eine
 vorhandene Rollenreferenz oder `role_file: null` ausgedrückt; keine Ersatzflags.
+
+| Repositoryquelle | Persönliches Ziel relativ zu `$CODEX_HOME` |
+|---|---|
+| `koordinator/koordinator.toml` | `agents/koordinator.toml` |
+| `koordinator/teams.json` | `agents/koordinator/teams.json` |
+| `teams/softwareentwicklung/teamleiter.toml` | `agents/teamleiter_softwareentwicklung.toml` |
+| `teams/softwareentwicklung/agenten.json` | `agents/softwareentwicklung/agenten.json` |
+
+Die TOMLs bleiben für Codex-Discovery flach im persönlichen `agents`-Verzeichnis;
+Lookupdaten liegen in den zugehörigen Unterordnern. Es gibt keine Aliasdateien.
 
 ## Delegation und Kapazität
 
