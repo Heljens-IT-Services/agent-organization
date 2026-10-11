@@ -2,11 +2,15 @@
 param(
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][ValidatePattern('^[a-z][a-z0-9_]*$')][string]$Role,
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][string]$Task,
+    [Parameter(ParameterSetName = 'Start')][ValidateScript({ ($_ -split '\s+' | Where-Object { $_ }).Count -eq 3 -and $_ -notmatch '[\r\n]' })][string]$TaskTitle,
+    [Parameter(ParameterSetName = 'Start')][ValidateScript({ $_ -notmatch '[\r\n]' })][string]$RoleDisplayName,
     [Parameter(ParameterSetName = 'Start')][string]$ContextFile,
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][string]$WorkingDirectory,
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][string]$ResultPath,
     [Parameter(ParameterSetName = 'Start')][ValidateRange(5, 3600)][int]$TimeoutSeconds = 120,
     [Parameter(ParameterSetName = 'Start')][switch]$KeepWindowOpen,
+    [Parameter(ParameterSetName = 'Start')][string]$ParentTaskId,
+    [Parameter(ParameterSetName = 'Start')][string]$AccountingDirectory,
     [Parameter(Mandatory = $true, ParameterSetName = 'Runner')][string]$JobFile
 )
 $ErrorActionPreference = 'Stop'
@@ -22,6 +26,8 @@ public static class AgentTerminalWindow {
  public delegate bool EnumProc(IntPtr h,IntPtr p);
  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f,IntPtr p);
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern bool SetProp(IntPtr h,string name,IntPtr data);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern IntPtr GetProp(IntPtr h,string name);
  public static string Title(IntPtr h){var s=new StringBuilder(512);GetWindowText(h,s,512);return s.ToString();}
  public static long[] ForPid(uint pid){var l=new List<long>();EnumWindows((h,p)=>{uint id;GetWindowThreadProcessId(h,out id);if(id==pid)l.Add(h.ToInt64());return true;},IntPtr.Zero);return l.ToArray();}
 }
@@ -36,7 +42,23 @@ function Read-RoleString([string]$Text, [string]$Key) {
     if (-not $match.Success) { throw "Nicht unterstütztes Rollenfeld: $Key" }
     return $match.Groups[1].Value
 }
+function Format-TokenUsage($Usage) {
+    if ($null -eq $Usage) { return 'unbekannt' }
+    return ('Gesamt {0}; Eingabe {1} (davon Cache {2}); Ausgabe {3} (davon Reasoning {4})' -f
+        $Usage.totalTokens, $Usage.inputTokens, $Usage.cachedInputTokens, $Usage.outputTokens, $Usage.reasoningOutputTokens)
+}
+function Test-ConsoleBinding($Window, [long]$LauncherPid, [long]$ChildParentPid, $Candidates, [long]$ActualOwner, [string]$TaskId, [string]$Title) {
+    return ($ChildParentPid -eq $LauncherPid -and $Window.task_id -ceq $TaskId -and
+        $Window.title -ceq $Title -and @($Candidates).Count -eq 1 -and
+        [long]$Candidates[0] -eq [long]$Window.window_handle -and $ActualOwner -eq $Window.window_pid)
+}
+function Get-FinalLedgerUsage($Evidence) {
+    if ($Evidence.usage_finalized) { return $Evidence.token_usage }
+    return $null
+}
 if ($PSCmdlet.ParameterSetName -eq 'Start') {
+    # A coordinator console is user-owned: it is never automatically closed.
+    if ($Role -ceq 'koordinator') { $KeepWindowOpen = $true }
     $resultFile = [System.IO.Path]::GetFullPath($ResultPath)
     foreach ($suffix in @('', '.job.json', '.window.json', '.go.json', '.events.jsonl')) {
         if (Test-Path -LiteralPath ($resultFile + $suffix)) { throw "Vorhandenes Artefakt bleibt erhalten: $resultFile$suffix" }
@@ -45,6 +67,24 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     if (-not (Test-Path -LiteralPath $workdir -PathType Container)) { throw 'WorkingDirectory ist kein Verzeichnis.' }
     New-Item -ItemType Directory -Path (Split-Path -Parent $resultFile) -Force | Out-Null
     $agentHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+    if (-not $RoleDisplayName) {
+        $RoleDisplayName = $Role
+        if ($Role -eq 'koordinator') { $RoleDisplayName = 'Koordinator' }
+        elseif ($Role.StartsWith('teamleiter_')) {
+            $team = ([IO.File]::ReadAllText((Join-Path $agentHome 'agents\koordinator\teams.json'), $utf8) | ConvertFrom-Json).teams | Where-Object { $_.leader_id -ceq $Role }
+            if (@($team).Count -eq 1) { $RoleDisplayName = 'Teamleiter ' + $team.name }
+        } else {
+            $ownTeam = Get-ChildItem -LiteralPath (Join-Path $agentHome 'agents') -Directory | Where-Object { $Role.StartsWith($_.Name + '_') } | Sort-Object { $_.Name.Length } -Descending | Select-Object -First 1
+            if ($ownTeam -and (Test-Path -LiteralPath (Join-Path $ownTeam.FullName 'agenten.json'))) {
+                $entry = ([IO.File]::ReadAllText((Join-Path $ownTeam.FullName 'agenten.json'), $utf8) | ConvertFrom-Json).agents | Where-Object { $_.agent_id -ceq $Role }
+                if (@($entry).Count -eq 1) { $RoleDisplayName = $entry.name }
+            }
+        }
+    }
+    if (-not $TaskTitle) {
+        $words = @($Task -split '\s+' | Where-Object { $_ })
+        $TaskTitle = if ($words.Count -ge 3) { $words[0..2] -join ' ' } else { 'Auftrag jetzt bearbeiten' }
+    }
     $roleText = [System.IO.File]::ReadAllText((Join-Path $agentHome ('agents\' + $Role + '.toml')), $utf8)
     if ((Read-RoleString $roleText 'name') -ne $Role) { throw 'Rollenname passt nicht zur Datei.' }
     $instructions = [regex]::Match($roleText, "(?s)developer_instructions\s*=\s*'''(.*?)'''")
@@ -53,8 +93,17 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $config = @{ agents = @{ enabled = ($agents.Groups[1].Value -eq 'true') } }
     foreach ($key in @('model_reasoning_effort', 'model_verbosity', 'web_search')) { $config[$key] = Read-RoleString $roleText $key }
     $context = if ($ContextFile) { [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $ContextFile).Path, $utf8) } else { '' }
+    if (-not $PSBoundParameters.ContainsKey('ParentTaskId')) { $ParentTaskId = $env:AGENT_ORG_PARENT_TASK_ID }
+    if ($ParentTaskId) { $ParentTaskId = ([guid]$ParentTaskId).ToString('N') }
+    if (-not $PSBoundParameters.ContainsKey('AccountingDirectory')) { $AccountingDirectory = $env:AGENT_ORG_ACCOUNTING_DIRECTORY }
+    if (-not $AccountingDirectory) { $AccountingDirectory = Join-Path (Split-Path -Parent $resultFile) 'token-accounting' }
+    $AccountingDirectory = [System.IO.Path]::GetFullPath($AccountingDirectory)
+    New-Item -ItemType Directory -Path $AccountingDirectory -Force | Out-Null
     $spec = @{
         task_id = [guid]::NewGuid().ToString('N'); role = $Role; task = $Task; context = $context
+        role_display_name = $RoleDisplayName; task_title = $TaskTitle; window_title = $(if ($Role -ceq 'koordinator') { 'Koordinator' } else { $RoleDisplayName + ' - ' + $TaskTitle })
+        context_file = $(if ($ContextFile) { (Resolve-Path -LiteralPath $ContextFile).Path } else { $null })
+        parent_task_id = $(if ($ParentTaskId) { $ParentTaskId } else { $null }); accounting_directory = $AccountingDirectory
         cwd = $workdir; result_file = $resultFile; timeout_seconds = $TimeoutSeconds; keep_window_open = [bool]$KeepWindowOpen
         developer_instructions = ('Explizit zugewiesene Rolle: ' + $Role + ".`n" + $instructions.Groups[1].Value); config = $config
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
@@ -63,7 +112,9 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $jobPath = $resultFile + '.job.json'
     Write-Json $jobPath $spec
     $protected = @(Get-Process -Name ChatGPT,powershell,conhost,WindowsTerminal -ErrorAction SilentlyContinue | ForEach-Object { [AgentTerminalWindow]::ForPid([uint32]$_.Id) } | Select-Object -Unique)
-    $runner = Start-Process -FilePath (Get-Command powershell.exe).Source -ArgumentList @(
+    # Explicit console host avoids Windows Terminal's non-owning pseudohandle.
+    $runner = Start-Process -FilePath (Join-Path $env:WINDIR 'System32\conhost.exe') -ArgumentList @(
+        ('"' + (Get-Command powershell.exe).Source + '"'),
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'), '-JobFile', ('"' + $jobPath + '"')
     ) -WorkingDirectory $workdir -WindowStyle Normal -PassThru
     $windowPath = $resultFile + '.window.json'
@@ -82,12 +133,17 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
             })
             if ($candidates.Count -ne 1) { Start-Sleep -Milliseconds 100 }
         } while ($candidates.Count -ne 1 -and [DateTime]::UtcNow -lt $hostDeadline)
-        $confirmed = $window.runner_pid -eq $runner.Id -and $window.task_id -eq $spec.task_id -and $window.title.Contains($spec.task_id) -and $candidates.Count -eq 1
+        $child = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$window.runner_pid)
+        $actualOwner = [uint32]0
+        if ($candidates.Count -eq 1) { [void][AgentTerminalWindow]::GetWindowThreadProcessId([IntPtr][long]$candidates[0], [ref]$actualOwner) }
+        $confirmed = $child -and (Test-ConsoleBinding $window $runner.Id $child.ParentProcessId $candidates $actualOwner $spec.task_id $spec.window_title)
         if ($confirmed) {
             $handle = [IntPtr][long]$candidates[0]
             $window.window_handle = $handle.ToInt64()
-            Write-Json ($resultFile + '.go.json') @{ task_id = $spec.task_id; runner_pid = $runner.Id; window_handle = $handle.ToInt64(); visible = $true; title = $window.title; confirmed_at = [DateTime]::UtcNow.ToString('o') }
-            Write-Output ('Fenster bestätigt: PID ' + $runner.Id + ', HWND ' + $handle.ToInt64() + ', ' + $window.title)
+            if (-not [AgentTerminalWindow]::SetProp($handle, ('AgentOrganizationTask.' + $spec.task_id), [IntPtr][int]$window.runner_pid)) { throw 'Eigene Fenstermarkierung fehlgeschlagen; kein ACK oder Modellstart.' }
+            if ($Role -ceq 'koordinator') { $protected = @($protected) + $handle.ToInt64() }
+            Write-Json ($resultFile + '.go.json') @{ task_id = $spec.task_id; runner_pid = $window.runner_pid; launcher_pid = $runner.Id; window_handle = $handle.ToInt64(); visible = $true; title = $window.title; confirmed_at = [DateTime]::UtcNow.ToString('o'); console_binding_verified = $true }
+            Write-Output ('Fenster bestätigt: PID ' + $window.runner_pid + ', HWND ' + $handle.ToInt64() + ', ' + $window.title)
         }
     }
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds + 25)
@@ -95,7 +151,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     if (-not (Test-Path -LiteralPath $resultFile)) { throw 'Runner ohne gesichertes Resultat; kein Erfolg und kein pauschales Beenden anderer Prozesse.' }
     $result = [System.IO.File]::ReadAllText($resultFile, $utf8) | ConvertFrom-Json
     if (-not $KeepWindowOpen) { [void]$runner.WaitForExit(5000) }
-    if (-not $KeepWindowOpen -and $confirmed -and $runner.HasExited -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -eq $window.title) {
+    if ($Role -cne 'koordinator' -and -not $KeepWindowOpen -and $confirmed -and $runner.HasExited -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -eq $window.title -and [AgentTerminalWindow]::GetProp($handle, ('AgentOrganizationTask.' + $spec.task_id)) -eq [IntPtr][int]$window.runner_pid) {
         [void][AgentTerminalWindow]::PostMessage($handle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
         $closeDeadline = [DateTime]::UtcNow.AddSeconds(3)
         while ([AgentTerminalWindow]::IsWindow($handle) -and [DateTime]::UtcNow -lt $closeDeadline) { Start-Sleep -Milliseconds 100 }
@@ -103,8 +159,17 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $result | Add-Member -NotePropertyName window_closed -NotePropertyValue ($window -and -not [AgentTerminalWindow]::IsWindow([IntPtr][long]$window.window_handle))
     $result | Add-Member -NotePropertyName protected_window_handles -NotePropertyValue $protected
     $result | Add-Member -NotePropertyName controller_visibility_confirmed -NotePropertyValue $confirmed
+    $result | Add-Member -NotePropertyName console_binding_verified -NotePropertyValue $confirmed
     [System.IO.File]::WriteAllText($resultFile, ($result | ConvertTo-Json -Depth 10), $utf8)
-    $result | ConvertTo-Json -Depth 10
+    Write-Output ('Auftrag ' + $result.task_id + ': ' + $(if ($result.success) { 'abgeschlossen' } else { 'fehlgeschlagen' }))
+    Write-Output ($(if ($result.usage_finalized) { 'Eigene Tokens: ' } else { 'Vorläufig beobachtete eigene Tokens: ' }) + (Format-TokenUsage $result.token_usage))
+    if ($result.token_summary) {
+        Write-Output ('Inklusive Unteraufträgen: ' + (Format-TokenUsage $result.token_summary.inclusive))
+        if ($result.token_summary.missing_count) { Write-Output ('Bekannte Teilsumme: ' + (Format-TokenUsage $result.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $result.token_summary.missing_count) }
+    }
+    Write-Output ('Vollständiges Resultat: ' + $resultFile)
+    if ($result.output) { Write-Output $result.output }
+    if ($result.error) { Write-Output ('Fehler: ' + $result.error) }
     if (-not $result.success -or -not $confirmed) { exit 2 }
     exit 0
 }
@@ -112,22 +177,37 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
 # Eigener sichtbarer Runner: Taskdaten stehen nicht in einer Shell-Kommandozeile.
 $job = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $JobFile).Path, $utf8) | ConvertFrom-Json
 $resultFile = [string]$job.result_file
-$title = 'Codex Auftrag ' + $job.task_id
+$title = $job.window_title
 $host.UI.RawUI.WindowTitle = $title
 $handle = [AgentTerminalWindow]::GetConsoleWindow()
 $windowPid = [uint32]0
 [void][AgentTerminalWindow]::GetWindowThreadProcessId($handle, [ref]$windowPid)
-Write-Host ('Rolle: ' + $job.role)
+Write-Host '================ DELEGIERTER AUFTRAG ================'
+Write-Host ('Rolle: ' + $job.role_display_name)
 Write-Host ('Auftrag: ' + $job.task)
-Write-Host ('Kontext: ' + $job.context)
+Write-Host ('Scope / Arbeitsverzeichnis: ' + $job.cwd)
+Write-Host ('Kontextdatei: ' + $(if ($job.context_file) { $job.context_file } else { '(keine)' }))
+Write-Host '---------------- Benötigter Kontext ----------------'
+Write-Host $(if ($job.context) { $job.context } else { '(kein zusätzlicher Kontext)' })
+Write-Host '---------------- Ende des Kontextes ----------------'
 Write-Host 'Arbeit beginnt nach bestätigtem Fenster und zehn Sekunden zum Mitlesen.'
 $evidence = [ordered]@{
     task_id = $job.task_id; role = $job.role; runner_pid = $PID; window_handle = $handle.ToInt64(); title = $title
     model_started = $false; thread_id = $null; turn_id = $null; terminal_outcome = $null; output = $null; success = $false; error = $null
+    parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
 }
+$notifications = New-Object System.Collections.Generic.List[object]
 $process = $null
+function Update-NativeUsage($Notification) {
+    if ($Notification.method -eq 'thread/tokenUsage/updated' -and
+        $evidence.thread_id -and $evidence.turn_id -and
+        $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {
+        # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.
+        $evidence.token_usage = $Notification.params.tokenUsage.total
+    }
+}
 function Write-Event([string]$Kind, $Data) {
-    $line = @{ at = [DateTime]::UtcNow.ToString('o'); kind = $Kind; data = $Data } | ConvertTo-Json -Depth 8 -Compress
+    $line = @{ at = [DateTime]::UtcNow.ToString('o'); kind = $Kind; data = $Data } | ConvertTo-Json -Depth 30 -Compress
     [System.IO.File]::AppendAllText($resultFile + '.events.jsonl', $line + "`n", $utf8)
 }
 function Send-Rpc([string]$Method, $Params, [int]$Id) {
@@ -146,10 +226,16 @@ function Read-Rpc {
     $message = $read.Result | ConvertFrom-Json
     if ($message.error) { throw ('App-server-Fehler: ' + $message.error.message) }
     if ($message.method) {
-        Write-Event 'notification' @{ method = $message.method }
+        Write-Event 'notification' $message
+        $notifications.Add($message)
+        Update-NativeUsage $message
         if ($message.id) { throw ('Interaktive Serveranforderung: ' + $message.method) }
-        if ($message.method -eq 'item/agentMessage/delta') { Write-Host -NoNewline ([string]$message.params.delta) }
-        elseif ($message.method -in @('turn/started', 'turn/completed', 'item/started')) { Write-Host ('[' + $message.method + ']') }
+        if ($message.method -eq 'item/agentMessage/delta' -and $message.params.threadId -ceq $evidence.thread_id) { Write-Host -NoNewline ([string]$message.params.delta) }
+        elseif ($message.method -eq 'turn/started') { Write-Host 'Der Agent bearbeitet den Auftrag.' }
+        elseif ($message.method -eq 'turn/completed') { Write-Host "`nBearbeitung beendet; Tokenabrechnung wird gesichert." }
+        elseif ($message.method -eq 'item/started' -and $message.params.item.type -in @('commandExecution', 'fileChange')) {
+            Write-Host $(if ($message.params.item.type -eq 'commandExecution') { 'Der Agent führt einen Arbeitsschritt aus.' } else { 'Der Agent bearbeitet Dateien.' })
+        }
     }
     return $message
 }
@@ -166,6 +252,10 @@ try {
     $evidence.window_handle = $handle.ToInt64()
     Start-Sleep -Seconds 10
     if (-not [AgentTerminalWindow]::IsWindowVisible($handle)) { throw 'Fenster vor Arbeitsbeginn nicht mehr sichtbar.' }
+    if ([AgentTerminalWindow]::Title($handle) -ne $title) { throw 'Fenstertitel vor Arbeitsbeginn verändert; kein Modellstart.' }
+    # Nur dieser Runner und seine eigenen Kindprozesse erhalten den Elternkontext.
+    $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id
+    $env:AGENT_ORG_ACCOUNTING_DIRECTORY = [string]$job.accounting_directory
     $deadline = [DateTime]::UtcNow.AddSeconds([int]$job.timeout_seconds)
     $command = Get-Command codex.cmd -ErrorAction Stop
     $start = New-Object System.Diagnostics.ProcessStartInfo
@@ -185,7 +275,7 @@ try {
     Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
     $thread = Wait-Rpc 2
     $evidence.thread_id = $thread.thread.id
-    Write-Host ('Thread: ' + $evidence.thread_id)
+    Write-Host 'Eigene Sitzung ist bereit.'
     Write-Event 'thread_created' @{ thread_id = $evidence.thread_id }
     $text = [string]$job.task
     if ($job.context) { $text += "`n`nBenötigter Auftragskontext:`n" + $job.context }
@@ -193,13 +283,20 @@ try {
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
-    $messages = New-Object System.Collections.Generic.List[string]
-    do {
-        $message = Read-Rpc
-        if ($message.method -eq 'item/completed' -and $message.params.item.type -eq 'agentMessage') { $messages.Add([string]$message.params.item.text) }
-    } while ($message.method -ne 'turn/completed')
-    $evidence.terminal_outcome = $message.params.turn.status
-    $evidence.output = $messages -join "`n"
+    foreach ($notification in $notifications) { Update-NativeUsage $notification }
+    $completion = $null
+    while ($null -eq $completion) {
+        $completion = $notifications | Where-Object { $_.method -eq 'turn/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turn.id -ceq $evidence.turn_id } | Select-Object -Last 1
+        if ($null -eq $completion) { [void](Read-Rpc) }
+    }
+    $evidence.terminal_outcome = $completion.params.turn.status
+    $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
+    # Unterstützter Roundtrip: auch nach turn/completed noch eintreffende Usage lesen.
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    Send-Rpc 'thread/read' @{ threadId = $evidence.thread_id; includeTurns = $false } 5
+    [void](Wait-Rpc 5)
+    $evidence.usage_finalized = $true
+    $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $evidence.success = ($evidence.terminal_outcome -eq 'completed')
     Write-Event 'terminal' @{ outcome = $evidence.terminal_outcome; thread_id = $evidence.thread_id }
     Write-Host "`nErgebnis:"
@@ -211,6 +308,18 @@ try {
         try { Send-Rpc 'turn/interrupt' @{ threadId = $evidence.thread_id; turnId = $evidence.turn_id } 4 } catch { }
     }
 } finally {
+    try {
+    try {
+        Write-Json (Join-Path $job.accounting_directory ($job.task_id + '.usage.json')) ([ordered]@{
+            task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
+            thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; token_usage = (Get-FinalLedgerUsage $evidence)
+        })
+        $evidence.token_summary = & (Join-Path $PSScriptRoot 'Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
+    } catch {
+        $evidence.success = $false
+        $ledgerError = 'Tokenabrechnung konnte nicht gesichert oder ausgewertet werden: ' + $_.Exception.Message
+        $evidence.error = $(if ($evidence.error) { $evidence.error + '; ' + $ledgerError } else { $ledgerError })
+    }
     Write-Json $resultFile $evidence
     if ($process) {
         try { $process.StandardInput.Close() } catch { }
@@ -218,6 +327,15 @@ try {
         $process.Dispose()
     }
     Write-Host ('Resultat gesichert: ' + $resultFile)
-    if ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') } else { Start-Sleep -Seconds 2 }
+    Write-Host ($(if ($evidence.usage_finalized) { 'Eigene Tokens: ' } else { 'Vorläufig beobachtete eigene Tokens: ' }) + (Format-TokenUsage $evidence.token_usage))
+    if ($evidence.token_summary) {
+        Write-Host ('Inklusive Unteraufträgen: ' + (Format-TokenUsage $evidence.token_summary.inclusive))
+        if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }
+    }
+    } finally {
+        if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }
+        elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }
+        else { Start-Sleep -Seconds 2 }
+    }
 }
 if (-not $evidence.success) { exit 2 }
