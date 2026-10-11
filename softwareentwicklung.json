@@ -8,35 +8,30 @@
       "agent_id": "softwareentwicklung_architektur",
       "name": "Architektur",
       "description": "Softwarearchitektur und technische Entwurfsentscheidungen.",
-      "status": "planned",
       "role_file": null
     },
     {
       "agent_id": "softwareentwicklung_frontend",
       "name": "Frontend",
       "description": "Benutzeroberflächen und clientseitige Implementierung.",
-      "status": "planned",
       "role_file": null
     },
     {
       "agent_id": "softwareentwicklung_backend",
       "name": "Backend",
       "description": "Serverseitige Implementierung und Schnittstellen.",
-      "status": "planned",
       "role_file": null
     },
     {
       "agent_id": "softwareentwicklung_qualitaetssicherung",
       "name": "Qualitätssicherung",
       "description": "Tests und Verifikation von Softwareänderungen.",
-      "status": "planned",
       "role_file": null
     },
     {
       "agent_id": "softwareentwicklung_infrastruktur",
       "name": "Infrastruktur",
       "description": "Technischer Betrieb und Bereitstellung.",
-      "status": "planned",
       "role_file": null
     }
   ]

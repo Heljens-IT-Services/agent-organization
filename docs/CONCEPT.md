@@ -100,7 +100,11 @@ Kontaktquelle des Softwareteamleiters und wird bytegleich im persönlichen
 `agents`-Verzeichnis installiert. Rollenreferenzen einschließlich
 `coordinator_role_file` sind relativ zu diesem Verzeichnis. Änderungen an eigener
 Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
-Änderungssatz. Geplante operative Agenten bleiben `planned` mit `role_file: null`.
+Änderungssatz. Fehlende operative Rollen haben `role_file: null`.
+
+[MUST] Alle Organisations-JSONs bleiben ohne `status`-Eigenschaften, auch in
+verschachtelten Einträgen. Verfügbarkeit wird ausschließlich durch eine
+vorhandene Rollenreferenz oder `role_file: null` ausgedrückt; keine Ersatzflags.
 
 ## Delegation und Kapazität
 
