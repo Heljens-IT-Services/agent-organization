@@ -56,8 +56,10 @@ müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
 
 `roles/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
-allein aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten
-bleiben unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
+allein aktiviert den App-Hauptchat nicht automatisch. Der Teamleiter
+Softwareentwicklung ist nun implementiert und persönlich installiert; seine
+fünf operativen Spezialisierungen bleiben geplant. Andere Teamleiter und operative
+Agenten sind unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
 
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
 Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,
@@ -91,6 +93,14 @@ Teamleiter haben `status: planned` und `role_file: null`; `configured` ist erst
 mit einer tatsächlich vorhandenen, geprüften Rollenreferenz zulässig.
 `role_file` bezeichnet dann eine Datei relativ zum persönlichen `agents`-Verzeichnis.
 Der Index enthält keine Spezialistenliste.
+
+[MUST] Ein Teamleiter erhält nur seinen eigenen Teameintrag und Auftrag, nicht
+den vollständigen `teams.json`-Index. `softwareentwicklung.json` ist die eigene
+Kontaktquelle des Softwareteamleiters und wird bytegleich im persönlichen
+`agents`-Verzeichnis installiert. Rollenreferenzen einschließlich
+`coordinator_role_file` sind relativ zu diesem Verzeichnis. Änderungen an eigener
+Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
+Änderungssatz. Geplante operative Agenten bleiben `planned` mit `role_file: null`.
 
 ## Delegation und Kapazität
 
@@ -169,5 +179,6 @@ machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
 Vor vollständiger Aktivierung sind Organisationsschema, weitere Agentenprofile, Integrationsweg,
-Rechte und eine prüfbare Pilotaufgabe festzulegen. Persönlich installiert ist
-ausschließlich die Koordinator-TOML; GitHub Actions bleiben deaktiviert.
+Rechte und eine prüfbare Pilotaufgabe festzulegen. Persönlich installiert sind
+Koordinator, Teamleiter Softwareentwicklung und ihre Indizes; GitHub Actions
+bleiben deaktiviert.

@@ -6,8 +6,8 @@
       "description": "Technische Lösungen und Softwarequalität.",
       "tasks": ["Softwareaufträge koordinieren", "Architektur und Umsetzung abstimmen", "Qualitätsnachweise bündeln"],
       "leader_id": "teamleiter_softwareentwicklung",
-      "status": "planned",
-      "role_file": null
+      "status": "configured",
+      "role_file": "teamleiter_softwareentwicklung.toml"
     },
     {
       "team_id": "design",

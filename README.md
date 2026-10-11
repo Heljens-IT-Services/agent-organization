@@ -9,8 +9,11 @@ Controlling, Buchhaltung, Geschäftsführung und Assistenz sowie HR.
 
 **Status:** [roles/koordinator.toml](roles/koordinator.toml) ist implementiert und
 bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML allein
-aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten sind
-noch nicht als Agentenprofile implementiert.
+aktiviert den App-Hauptchat nicht automatisch. Der
+[Teamleiter Softwareentwicklung](roles/teamleiter_softwareentwicklung.toml) ist
+ebenfalls implementiert und persönlich installiert; sein
+[Teamindex](softwareentwicklung.json) enthält fünf geplante Spezialisierungen.
+Die übrigen Teamleiter und operative Agenten sind noch nicht implementiert.
 
 Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
 Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster
