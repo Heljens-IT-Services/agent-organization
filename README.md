@@ -7,8 +7,10 @@ die operative Arbeit aus.
 Vorgesehen sind sieben Teams: Softwareentwicklung, Design, Marketing,
 Controlling, Buchhaltung, Geschäftsführung und Assistenz sowie HR.
 
-**Status:** Dokumentierter Erstentwurf. Es sind noch keine Agentenprofile,
-Installation oder Aktivierung enthalten.
+**Status:** Koordinatorprofil und ausdrücklicher CLI-Hauptstart sind implementiert.
+Die [Installations- und Startanleitung](docs/COORDINATOR.md) beschreibt die
+persönlichen Kopien und offenen Grenzen zum App-Hauptchat. Teamleiter und
+Spezialisten sind noch nicht als Agentenprofile implementiert.
 
 Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
 Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster
@@ -18,7 +20,9 @@ Machbarkeit bleibt offen.
 
 Das [Konzept](docs/CONCEPT.md) beschreibt Hierarchie, Teams, Konfigurationsidee
 und offene Umsetzungspunkte. Die [Projektleitplanken](PROJECT.md) begrenzen den
-aktuellen Scope; [AGENTS.md](AGENTS.md) verweist auf die globalen Arbeitsregeln.
+aktuellen Scope. [AGENTS.md](AGENTS.md) ist auf Benutzerwunsch leer; die
+Koordinatorinstruktionen liegen eigenständig in den TOML-Dateien.
 
-Für diesen Dokumentationsstand genügt ein Markdown-Reader. Setup, Start, Build
-und automatisierte Tests sind noch nicht vorhanden.
+Voraussetzungen für Installation und CLI-Start: Windows PowerShell und eine
+Codex-Version mit separaten Profil-Dateien. Build und CI sind nicht vorhanden;
+GitHub Actions sind deaktiviert.

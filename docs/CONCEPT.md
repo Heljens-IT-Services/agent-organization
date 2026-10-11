@@ -54,11 +54,13 @@ automatisch. Native Schlüssel wie `team` oder `leader` werden hier nicht
 behauptet. Dateistruktur, Schema, Validierung, Synchronisierung und Aktivierung
 müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
 
-Die veröffentlichten Heljens-Regeln verlangen derzeit die kanonischen
-Codex-Agenten `planner`, `developer`, `tester` und `designer` für ausführende
-Repositories mit Custom-Agent-Unterstützung. Ihre Beziehung zum neuen
-Teammodell muss vor dessen Umsetzung geklärt werden. Dieser Dokumentationsstand
-unterstützt noch keine Custom-Agent-Ausführung.
+Das Repository enthält nun ein Koordinatorprofil samt gezieltem persönlichen
+Installationsweg, globaler Instruktionsbasis und optionalem CLI-Startweg
+gemäß [Koordinator-Anleitung](COORDINATOR.md). Teamleiter und Spezialisten bleiben
+unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer; sie
+verknüpft keine externen Pflichtregeln. Die Koordinatorinstruktionen sind
+eigenständig in den versionierten TOML-Dateien definiert. Unabhängig anderweitig
+geltende Regeln werden durch die Leerung nicht aufgehoben.
 
 ## Delegation und Kapazität
 
@@ -136,7 +138,7 @@ Git-Versionierung soll Änderungen an Organisation und Profilen nachvollziehbar
 machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
-Vor einer Aktivierung sind Organisationsschema, Agentenprofile, Integrationsweg,
+Vor vollständiger Aktivierung sind Organisationsschema, weitere Agentenprofile, Integrationsweg,
 Rechte und eine prüfbare Pilotaufgabe festzulegen. Änderungen an persönlicher
-Konfiguration oder externen GitHub-Einstellungen sind im lokalen Erstentwurf
-nicht enthalten.
+Konfiguration beschränken sich auf den dokumentierten Koordinatorumfang;
+GitHub Actions bleiben deaktiviert.
