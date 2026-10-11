@@ -7,10 +7,10 @@ die operative Arbeit aus.
 Vorgesehen sind sieben Teams: Softwareentwicklung, Design, Marketing,
 Controlling, Buchhaltung, Geschäftsführung und Assistenz sowie HR.
 
-**Status:** Koordinatorprofil und ausdrücklicher CLI-Hauptstart sind implementiert.
-Die [Installations- und Startanleitung](docs/COORDINATOR.md) beschreibt die
-persönlichen Kopien und offenen Grenzen zum App-Hauptchat. Teamleiter und
-Spezialisten sind noch nicht als Agentenprofile implementiert.
+**Status:** [roles/koordinator.toml](roles/koordinator.toml) ist implementiert und
+bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML allein
+aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten sind
+noch nicht als Agentenprofile implementiert.
 
 Zusätzliche Soll-Anforderung: Jeder Auftrag an einen Teamleiter oder
 Spezialisten soll vor Arbeitsbeginn automatisch ein eigenes Codex-App-Fenster
@@ -21,8 +21,7 @@ Machbarkeit bleibt offen.
 Das [Konzept](docs/CONCEPT.md) beschreibt Hierarchie, Teams, Konfigurationsidee
 und offene Umsetzungspunkte. Die [Projektleitplanken](PROJECT.md) begrenzen den
 aktuellen Scope. [AGENTS.md](AGENTS.md) ist auf Benutzerwunsch leer; die
-Koordinatorinstruktionen liegen eigenständig in den TOML-Dateien.
+Koordinatorinstruktionen liegen eigenständig in der Rollen-TOML.
 
-Voraussetzungen für Installation und CLI-Start: Windows PowerShell und eine
-Codex-Version mit separaten Profil-Dateien. Build und CI sind nicht vorhanden;
-GitHub Actions sind deaktiviert.
+Voraussetzung ist Codex mit standalone Custom Agents. Build und CI sind nicht
+vorhanden; GitHub Actions sind deaktiviert.

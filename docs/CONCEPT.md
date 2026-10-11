@@ -54,13 +54,10 @@ automatisch. Native Schlüssel wie `team` oder `leader` werden hier nicht
 behauptet. Dateistruktur, Schema, Validierung, Synchronisierung und Aktivierung
 müssen in einem späteren Umsetzungsschritt konkret festgelegt werden.
 
-Das Repository enthält nun ein Koordinatorprofil samt gezieltem persönlichen
-Installationsweg, globaler Instruktionsbasis und optionalem CLI-Startweg
-gemäß [Koordinator-Anleitung](COORDINATOR.md). Teamleiter und Spezialisten bleiben
-unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer; sie
-verknüpft keine externen Pflichtregeln. Die Koordinatorinstruktionen sind
-eigenständig in den versionierten TOML-Dateien definiert. Unabhängig anderweitig
-geltende Regeln werden durch die Leerung nicht aufgehoben.
+`roles/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
+ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
+allein aktiviert den App-Hauptchat nicht automatisch. Teamleiter und Spezialisten
+bleiben unimplementiert. Die Repository-`AGENTS.md` ist auf Benutzerwunsch leer.
 
 ## Delegation und Kapazität
 
@@ -139,6 +136,5 @@ machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
 Vor vollständiger Aktivierung sind Organisationsschema, weitere Agentenprofile, Integrationsweg,
-Rechte und eine prüfbare Pilotaufgabe festzulegen. Änderungen an persönlicher
-Konfiguration beschränken sich auf den dokumentierten Koordinatorumfang;
-GitHub Actions bleiben deaktiviert.
+Rechte und eine prüfbare Pilotaufgabe festzulegen. Persönlich installiert ist
+ausschließlich die Koordinator-TOML; GitHub Actions bleiben deaktiviert.
