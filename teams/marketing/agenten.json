@@ -1,0 +1,32 @@
+{
+  "team_id": "marketing",
+  "leader_id": "teamleiter_marketing",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "marketing_strategie",
+      "name": "Strategie",
+      "description": "Erarbeitet beauftragte Positionierung und Marketingstrategie.",
+      "role_file": "marketing_strategie.toml"
+    },
+    {
+      "agent_id": "marketing_text",
+      "name": "Text",
+      "description": "Entwirft und prüft Marketingtexte.",
+      "role_file": "marketing_text.toml"
+    },
+    {
+      "agent_id": "marketing_seo",
+      "name": "SEO",
+      "description": "Analysiert und verbessert beauftragte Suchmaschineninhalte.",
+      "role_file": "marketing_seo.toml"
+    },
+    {
+      "agent_id": "marketing_kampagnen",
+      "name": "Kampagnen",
+      "description": "Plant und bewertet beauftragte Marketingkampagnen.",
+      "role_file": "marketing_kampagnen.toml"
+    }
+  ]
+}

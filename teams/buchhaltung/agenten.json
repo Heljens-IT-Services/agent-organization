@@ -1,0 +1,32 @@
+{
+  "team_id": "buchhaltung",
+  "leader_id": "teamleiter_buchhaltung",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "buchhaltung_belege",
+      "name": "Belege",
+      "description": "Bereitet und prüft Buchhaltungsbelege.",
+      "role_file": "buchhaltung_belege.toml"
+    },
+    {
+      "agent_id": "buchhaltung_rechnungen",
+      "name": "Rechnungen",
+      "description": "Erstellt und prüft Rechnungsdaten.",
+      "role_file": "buchhaltung_rechnungen.toml"
+    },
+    {
+      "agent_id": "buchhaltung_kontierung",
+      "name": "Kontierung",
+      "description": "Bereitet und prüft Kontierungsvorschläge.",
+      "role_file": "buchhaltung_kontierung.toml"
+    },
+    {
+      "agent_id": "buchhaltung_abstimmung",
+      "name": "Abstimmung",
+      "description": "Stimmt beauftragte Konten und Buchungsdaten ab.",
+      "role_file": "buchhaltung_abstimmung.toml"
+    }
+  ]
+}

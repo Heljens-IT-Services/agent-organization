@@ -1,0 +1,26 @@
+{
+  "team_id": "hr",
+  "leader_id": "teamleiter_hr",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "hr_personaladministration",
+      "name": "Personaladministration",
+      "description": "Bereitet beauftragte Personalvorgänge auf.",
+      "role_file": "hr_personaladministration.toml"
+    },
+    {
+      "agent_id": "hr_recruiting",
+      "name": "Recruiting",
+      "description": "Bearbeitet beauftragte Recruitingaufgaben.",
+      "role_file": "hr_recruiting.toml"
+    },
+    {
+      "agent_id": "hr_personalentwicklung",
+      "name": "Personalentwicklung",
+      "description": "Entwirft und bewertet Personalentwicklungsmaßnahmen.",
+      "role_file": "hr_personalentwicklung.toml"
+    }
+  ]
+}
