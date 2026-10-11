@@ -68,6 +68,15 @@ konfiguriert. Die zehn Optionen bilden die Basis, keine Pflicht zu zehn
 Kommentarblöcken. `tool_output_token_limit` bleibt ungesetzt: Vererbung oder
 Laufzeitdefault, kein behauptetes unbegrenztes Budget.
 
+[MUST] Rollen kennen standardmäßig nur ihre direkten Nachbarn: Der Koordinator
+kennt die sieben Teamleiter, keine Spezialistenliste. Ein Teamleiter kennt den
+Koordinator und ausschließlich seine eigenen operativen Agenten; ein operativer
+Agent kennt ausschließlich seinen eigenen Teamleiter. Fachdetails und Besetzung
+liegen beim Teamleiter, Ergebnisse gehen über ihn an den Koordinator.
+Teamübergreifende Anliegen werden über den Koordinator vermittelt. Diese
+Kontextregel ist keine technische Zugriffssperre und erfindet keine nativen
+Beziehungsfelder oder bereits verfügbaren Teamleiterprofile.
+
 ## Delegation und Kapazität
 
 Ein Auftrag geht vom Koordinator an einen passenden Teamleiter und von dort an
