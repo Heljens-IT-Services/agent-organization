@@ -23,8 +23,8 @@ und persönlich installiert. Sie aktiviert den App-Hauptchat nicht automatisch.
 Aufgaben aus. Teamleiter koordinieren ihren Fachbereich und delegieren die
 operative Arbeit an Spezialisten.
 
-[MUST] Die sieben Teams Softwareentwicklung, Design, Marketing, Controlling,
-Buchhaltung, Geschäftsführung und Assistenz sowie HR bilden den vorgesehenen
+[MUST] Die acht Teams Softwareentwicklung, Design, Marketing, Controlling,
+Buchhaltung, Geschäftsführung und Assistenz, HR sowie Agent Ressources bilden den vorgesehenen
 Grundbestand.
 
 [MUST] Revisionssicherheit bezeichnet hier versionierte Nachvollziehbarkeit.

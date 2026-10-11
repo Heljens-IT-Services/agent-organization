@@ -4,8 +4,8 @@ Versionierte Agentenorganisation für Heljens IT Services: Ein Koordinator nimmt
 Anfragen entgegen, Teamleiter koordinieren Fachbereiche und Spezialisten führen
 die operative Arbeit aus.
 
-Vorgesehen sind sieben Teams: Softwareentwicklung, Design, Marketing,
-Controlling, Buchhaltung, Geschäftsführung und Assistenz sowie HR.
+Vorgesehen sind acht Teams: Softwareentwicklung, Design, Marketing,
+Controlling, Buchhaltung, Geschäftsführung und Assistenz, HR sowie Agent Ressources.
 
 **Status:** [koordinator/koordinator.toml](koordinator/koordinator.toml) ist implementiert und
 bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML allein

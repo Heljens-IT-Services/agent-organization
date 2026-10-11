@@ -55,6 +55,14 @@
       "tasks": ["Personaladministration koordinieren", "Recruiting abstimmen", "Personalentwicklung planen"],
       "leader_id": "teamleiter_hr",
       "role_file": null
+    },
+    {
+      "team_id": "agent_ressources",
+      "name": "Agent Ressources",
+      "description": "Prüft vorhandene Agenten und unterstützt die Erstellung von Teams und Agenten.",
+      "tasks": ["Bestand und Eignung vorhandener Agenten prüfen", "Wiederverwendung oder Erweiterung empfehlen", "Begründete Neuanlagen vorbereiten"],
+      "leader_id": "teamleiter_agent_ressources",
+      "role_file": null
     }
   ]
 }

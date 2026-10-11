@@ -14,7 +14,7 @@ analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
 
 ## Vorgesehene Teams
 
-Der vorgesehene Grundbestand umfasst sieben Teams. Jeder Fachbereich wird
+Der vorgesehene Grundbestand umfasst acht Teams. Jeder Fachbereich wird
 konzeptionell durch einen Teamleiter koordiniert; die operative Arbeit liegt
 bei den vorgeschlagenen Spezialisten.
 
@@ -27,9 +27,17 @@ bei den vorgeschlagenen Spezialisten.
 | Buchhaltung | Belege und buchhalterische Abläufe | Belegaufbereitung, Abstimmung, Auswertungen |
 | Geschäftsführung und Assistenz | Verträge, Outlook/E-Mail und Kundenkommunikation | Vertragskoordination, Outlook-/E-Mail-Assistenz, Kundenkommunikation |
 | HR | Personalthemen | Personaladministration, Recruiting, Personalentwicklung |
+| Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsprüfung, Wiederverwendung, Vorbereitung begründeter Neuanlagen |
 
 Die Spezialisierungen sind Vorschläge für eine spätere Konfiguration. Sie sind
 keine bereits installierten oder freigegebenen Agentenprofile.
+
+Agent Ressources prüft zuerst Wiederverwendung und Erweiterung vorhandener
+Agenten, bevor es begründete Neuanlagen vorbereitet. Unterstützung anderer
+Teamleiter läuft ausschließlich über den Koordinator und benötigt nur passende
+Fähigkeitsauszüge der jeweiligen Leiter, keine globale Spezialistenliste oder
+direkten Kontakte zu anderen Teams. Für dieses Team ist nur der zentrale
+Lookupeintrag vorgesehen; seine Rollenreferenz bleibt `null`.
 
 Vertragskoordination beschreibt einen vorgesehenen Aufgabenbereich und enthält
 keine Garantie rechtlicher Fachkompetenz. Das Versenden von E-Mails erfordert
@@ -75,7 +83,7 @@ Kommentarblöcken. `tool_output_token_limit` bleibt ungesetzt: Vererbung oder
 Laufzeitdefault, kein behauptetes unbegrenztes Budget.
 
 [MUST] Rollen kennen standardmäßig nur ihre direkten Nachbarn: Der Koordinator
-kennt die sieben Teamleiter, keine Spezialistenliste. Ein Teamleiter kennt den
+kennt die acht Teamleiter, keine Spezialistenliste. Ein Teamleiter kennt den
 Koordinator und ausschließlich seine eigenen operativen Agenten; ein operativer
 Agent kennt ausschließlich seinen eigenen Teamleiter. Fachdetails und Besetzung
 liegen beim Teamleiter, Ergebnisse gehen über ihn an den Koordinator.
