@@ -88,9 +88,9 @@ bytegleich unter `$CODEX_HOME/agents/teams.json` installiert (Standard:
 `~/.codex/agents/teams.json`). Dieser eigene JSON-Index ist kein natives
 Codex-Schema. Änderungen an Teams, Namen, Teamleitern, Beschreibungen oder Aufgaben
 müssen im selben Änderungssatz den Index und seine persönliche Kopie pflegen.
-`team_id` und `leader_id` sind stabile organisatorische Kennungen. Geplante
-Teamleiter haben `status: planned` und `role_file: null`; `configured` ist erst
-mit einer tatsächlich vorhandenen, geprüften Rollenreferenz zulässig.
+`team_id` und `leader_id` sind stabile organisatorische Kennungen. Verfügbarkeit
+wird ausschließlich durch `role_file` ausgedrückt: `null` bedeutet fehlende Rolle;
+eine Rollenreferenz muss auf eine tatsächlich vorhandene, geprüfte Datei zeigen.
 `role_file` bezeichnet dann eine Datei relativ zum persönlichen `agents`-Verzeichnis.
 Der Index enthält keine Spezialistenliste.
 

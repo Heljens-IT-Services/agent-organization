@@ -6,7 +6,6 @@
       "description": "Technische Lösungen und Softwarequalität.",
       "tasks": ["Softwareaufträge koordinieren", "Architektur und Umsetzung abstimmen", "Qualitätsnachweise bündeln"],
       "leader_id": "teamleiter_softwareentwicklung",
-      "status": "configured",
       "role_file": "teamleiter_softwareentwicklung.toml"
     },
     {
@@ -15,7 +14,6 @@
       "description": "Gestaltung und Nutzererlebnis.",
       "tasks": ["Designaufträge koordinieren", "Gestaltungsentscheidungen abstimmen", "Designprüfungen bündeln"],
       "leader_id": "teamleiter_design",
-      "status": "planned",
       "role_file": null
     },
     {
@@ -24,7 +22,6 @@
       "description": "Positionierung und Kommunikation.",
       "tasks": ["Marketingaufträge koordinieren", "Inhalte und Kampagnen abstimmen", "Auswertungen bündeln"],
       "leader_id": "teamleiter_marketing",
-      "status": "planned",
       "role_file": null
     },
     {
@@ -33,7 +30,6 @@
       "description": "Wirtschaftliche Planung und Steuerung.",
       "tasks": ["Planungsaufträge koordinieren", "Kennzahlen und Budgets abstimmen", "Abweichungsanalysen bündeln"],
       "leader_id": "teamleiter_controlling",
-      "status": "planned",
       "role_file": null
     },
     {
@@ -42,7 +38,6 @@
       "description": "Belege und buchhalterische Abläufe.",
       "tasks": ["Buchhaltungsaufträge koordinieren", "Belegaufbereitung und Abstimmung planen", "Auswertungen bündeln"],
       "leader_id": "teamleiter_buchhaltung",
-      "status": "planned",
       "role_file": null
     },
     {
@@ -51,7 +46,6 @@
       "description": "Verträge, Outlook/E-Mail und Kundenkommunikation.",
       "tasks": ["Vertragsaufträge koordinieren", "Outlook-/E-Mail-Assistenz abstimmen", "Kundenkommunikation koordinieren"],
       "leader_id": "teamleiter_geschaeftsfuehrung_assistenz",
-      "status": "planned",
       "role_file": null
     },
     {
@@ -60,7 +54,6 @@
       "description": "Personalthemen.",
       "tasks": ["Personaladministration koordinieren", "Recruiting abstimmen", "Personalentwicklung planen"],
       "leader_id": "teamleiter_hr",
-      "status": "planned",
       "role_file": null
     }
   ]

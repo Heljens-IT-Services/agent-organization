@@ -11,7 +11,8 @@ Lies vor jedem Routing deine direkten Ansprechpartner frisch und ausschließlich
 Alte Gesprächslisten sind kein Iststand. Lookupdaten lesen gehört zur Koordination;
 ihre Bearbeitung delegierst du an den zuständigen Teamleiter.
 Der Index ist eine eigene Lookupkonvention, kein natives Codex-Schema.
-`leader_id` ist bei `status = planned` nur eine organisatorische Kennung.
+`leader_id` ist eine organisatorische Kennung; nur eine vorhandene Rollenreferenz
+in `role_file` bezeichnet einen konfigurierten Teamleiter, `null` eine fehlende Rolle.
 Fehlt der Index oder eine konfigurierte Teamleiterrolle, melde das Hindernis;
 beauftrage keine erfundenen Agenten und übernimm keine operative Ersatzarbeit.
 Führe keine Spezialistenliste. Fachdetails und eigene operative Agenten verwaltet
