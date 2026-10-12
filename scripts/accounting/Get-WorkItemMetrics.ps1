@@ -4,7 +4,10 @@ param(
     [Parameter(Mandatory)][string]$WorkItemId,
     [Parameter(Mandatory)][string]$AccountingDirectory,
     [Parameter(Mandatory)][string]$RepositoryRoot,
-    [string[]]$ExpectedTaskSources
+    [string[]]$ExpectedTaskSources,
+    [string[]]$ExpectedJobArtifacts,
+    [string[]]$NativeRolloutPaths,
+    [string[]]$NativeEventLogPaths
 )
 $ErrorActionPreference = 'Stop'
 $readStarted = [DateTime]::UtcNow
@@ -36,18 +39,30 @@ do {
 } while ($changed)
 $entries = @(Read-UsageEntries $AccountingDirectory)
 $family = Read-ExpectedTaskFamily @($ExpectedTaskSources)
+# Read real reservation/transfer bindings before native projection. No writes.
+$preNativeExecutions=Read-ExecutionEvidence $AccountingDirectory $entries
+$executionBindings=@(foreach ($execution in $preNativeExecutions.Values) {
+    if ($execution.initialTurns.Count -eq 0) { New-AccountingBinding $execution $execution.sources }
+    else { foreach ($turn in $execution.initialTurns) { $binding=New-AccountingBinding $execution $execution.sources; $binding.turnId=$turn; $binding } }
+})
+$supplementalBindings=@($family.tasks)+@($entries | ForEach-Object { New-AccountingBinding $_.identity $_.paths })+@($executionBindings)
+$observedFamily = Read-ObservedAccountingFamily @($ExpectedJobArtifacts) @($NativeRolloutPaths) @() @($NativeEventLogPaths) $supplementalBindings
+$nativeMerge = Merge-NativeAccountingMeasurements $entries $observedFamily.measurements
+$entries = @($nativeMerge.entries)
+$family.tasks = @($observedFamily.tasks | Where-Object { $null -ne $_.taskId })
+$family.sources = @($family.sources) + @($observedFamily.sources)
 # Includes every bound usage-only execution before subtree selection, preventing
 # a reused execution ID outside the selected subtree from escaping correlation.
 $executions = Read-ExecutionEvidence $AccountingDirectory $entries
 $expected = @($executions.Values | Where-Object {
-    @($_.scopeClaims | Where-Object { $_.storePath -ceq $store -and $selected.ContainsKey($_.workItemId) }).Count -gt 0
+    @($_.scopeClaims | Where-Object { $_.storePath -ceq $store -and ($null -ne $_.workItemId -and $selected.ContainsKey($_.workItemId)) }).Count -gt 0
 })
 $unknownItems = @($selected.Keys | Where-Object {
     $id = $_
     @($expected | Where-Object { @($_.scopeClaims | Where-Object { $_.storePath -ceq $store -and $_.workItemId -ceq $id }).Count -gt 0 }).Count -eq 0
 })
-$selectedEntries = @($entries | Where-Object { $_.identity.storePath -ceq $store -and $selected.ContainsKey($_.identity.workItemId) })
-$expectedFamilyTasks = @($family.tasks | Where-Object { $_.storePath -ceq $store -and $selected.ContainsKey($_.workItemId) })
+$selectedEntries = @($entries | Where-Object { $_.identity.storePath -ceq $store -and ($null -ne $_.identity.workItemId -and $selected.ContainsKey($_.identity.workItemId)) })
+$expectedFamilyTasks = @($family.tasks | Where-Object { $_.storePath -ceq $store -and ($null -ne $_.workItemId -and $selected.ContainsKey($_.workItemId)) })
 $conflicts = @($expected | ForEach-Object { $_.conflicts })
 $bindingGaps = @(); $expectedMissing = @(); $parentGaps = @(); $incompleteTransfers = @()
 foreach ($execution in $expected) {
@@ -83,6 +98,29 @@ foreach ($expectedTask in $expectedFamilyTasks) {
         $bindingGaps += @([pscustomobject]@{workItemId=$expectedTask.workItemId; executionId=$expectedTask.executionId; taskId=$expectedTask.taskId; reason='expected_family_native_binding_incomplete'; sources=$expectedTask.sources})
     }
 }
+# The same scope expectations feed known finals, missing closure and own.
+$scopedExpectations=@(Get-AccountingScopeExpectations $expectedFamilyTasks $observedFamily.nativeTurns)
+foreach ($execution in $expected) {
+    foreach ($turn in $execution.initialTurns) {
+        $binding=New-AccountingBinding $execution $execution.sources; $binding.turnId=$turn
+        $scopedExpectations+=@($binding)
+    }
+}
+$allNativeConflicts=@($observedFamily.conflicts)+@($nativeMerge.conflicts)+@($family.conflicts)+@($conflicts)
+$closure=Get-AccountingExpectedClosure $scopedExpectations $selectedEntries $allNativeConflicts
+$nativeConflictKeys=@($closure.mask.nativeKeys)
+$nativeConflictEntries=@($selectedEntries | Where-Object { $nativeConflictKeys -ccontains $_.native_key })
+$missingNativeTurns=@($closure.missing | Where-Object { $null -ne $_.threadId -and $null -ne $_.turnId })
+# Presence-only legacy gap calculations above remain diagnostics. Replace their
+# closure result with final/conflict-aware gaps, then add execution inventory gaps.
+$expectedMissing=@($closure.missing | ForEach-Object {
+    [pscustomobject]@{workItemId=$_.workItemId;executionId=$_.executionId;taskId=$_.taskId;threadId=$_.threadId;turnId=$_.turnId;reason='expected_final_usage_missing_or_conflicted';sources=$_.sources}
+})
+foreach ($execution in $expected) {
+    if ($execution.initialTurns.Count -eq 0 -and $execution.usageEntries.Count -eq 0) {
+        $expectedMissing+=@([pscustomobject]@{workItemId=$execution.workItemId;executionId=$execution.executionId;taskId=$execution.taskId;threadId=$execution.threadId;turnId=$null;reason='expected_execution_final_closure_unknown';sources=$execution.sources})
+    }
+}
 foreach ($entry in $selectedEntries) {
     $identity = $entry.identity
     $parent = $identity.parentTaskId
@@ -102,23 +140,23 @@ foreach ($entry in $selectedEntries) {
         $parentGaps += @([pscustomobject]@{taskId=$identity.taskId; workItemId=$identity.workItemId; reason='parent_native_binding_incomplete'; sources=$entry.paths})
     }
 }
-# Same selected entries feed sums, missing/provisional counts, own and details.
-# Contradictory executions do not contribute a purportedly trustworthy partial sum.
-$usable = @($selectedEntries | Where-Object { $executions[$_.identity.executionId].conflicts.Count -eq 0 })
-$known = @($usable | Where-Object { $_.identity.final -and $null -ne $_.identity.tokenUsage })
-$missingUsage = @($selectedEntries | Where-Object { $_.identity.final -and $null -eq $_.identity.tokenUsage }).Count
-$provisional = @($selectedEntries | Where-Object { -not $_.identity.final }).Count
-$partial = Get-UsageSum $known
-$ownEntries = @($selectedEntries | Where-Object { $_.identity.workItemId -ceq $WorkItemId })
-$ownKnown = @($known | Where-Object { $_.identity.workItemId -ceq $WorkItemId })
-$ownPartial = Get-UsageSum $ownKnown
-$rootExpected = @($expected | Where-Object { @($_.scopeClaims | Where-Object { $_.storePath -ceq $store -and $_.workItemId -ceq $WorkItemId }).Count -gt 0 })
-$rootConflicts = @($rootExpected | ForEach-Object { $_.conflicts })
-$rootGaps = @($bindingGaps | Where-Object { $_.workItemId -ceq $WorkItemId })
-$rootMissing = @($expectedMissing | Where-Object { $_.workItemId -ceq $WorkItemId })
-$rootIncomplete = @($incompleteTransfers | Where-Object { $_.workItemId -ceq $WorkItemId })
-$ownCoverageComplete = ($rootExpected.Count -gt 0 -and $rootConflicts.Count -eq 0 -and $rootGaps.Count -eq 0 -and $rootMissing.Count -eq 0 -and $rootIncomplete.Count -eq 0 -and
-    @($ownEntries | Where-Object { -not $_.identity.final -or $null -eq $_.identity.tokenUsage }).Count -eq 0)
+$known=@($closure.known)
+$missingUsage=@($selectedEntries | Where-Object { $_.identity.final -and $null -eq $_.identity.tokenUsage }).Count
+$provisional=@($selectedEntries | Where-Object { -not $_.identity.final }).Count
+$partial=Get-UsageSum $known
+$ownEntries=@($selectedEntries | Where-Object { $_.identity.workItemId -ceq $WorkItemId })
+$ownScope=@($scopedExpectations | Where-Object { $_.workItemId -ceq $WorkItemId -and $_.storePath -ceq $store })
+$ownClosure=Get-AccountingExpectedClosure $ownScope $ownEntries $allNativeConflicts
+$ownKnown=@($ownClosure.known); $ownPartial=Get-UsageSum $ownKnown
+$rootExpected=@($expected | Where-Object { @($_.scopeClaims | Where-Object { $_.storePath -ceq $store -and $_.workItemId -ceq $WorkItemId }).Count -gt 0 })
+$rootConflicts=@($rootExpected | ForEach-Object conflicts)
+$rootGaps=@($bindingGaps | Where-Object workItemId -ceq $WorkItemId)
+$rootMissing=@($expectedMissing | Where-Object workItemId -ceq $WorkItemId)
+$rootIncomplete=@($incompleteTransfers | Where-Object workItemId -ceq $WorkItemId)
+$ownMissingNativeTurns=@($ownClosure.missing)
+$ownCoverageComplete=($ownClosure.complete -and $ownKnown.Count -gt 0 -and $rootConflicts.Count -eq 0 -and
+    $rootGaps.Count -eq 0 -and $rootMissing.Count -eq 0 -and $rootIncomplete.Count -eq 0 -and
+    @($ownEntries | Where-Object { -not $_.identity.final -or $null -eq $_.identity.tokenUsage -or $nativeConflictKeys -ccontains $_.native_key }).Count -eq 0)
 $tokenCoverageComplete = $false
 $lifecycle = @(); $measurements = @(); $goalDecisions = @(); $measurementGaps = @(); $criterionDecisions = @(); $measurementConflicts = @()
 foreach ($item in $items) {
@@ -147,7 +185,7 @@ $details = @($selectedEntries | ForEach-Object {
         correlationValid=($executions[$_.identity.executionId].conflicts.Count -eq 0)
     }
 })
-$sourcePaths = @($StorePath) + @($entries | ForEach-Object { $_.paths }) + @($executions.Values | ForEach-Object { $_.sources }) + @($family.sources)
+$sourcePaths = @($StorePath) + @($entries | ForEach-Object { $_.paths }) + @($executions.Values | ForEach-Object { $_.sources }) + @($family.sources) + @($observedFamily.sources)
 [pscustomobject][ordered]@{
     workItemId=$WorkItemId; includedWorkItemIds=@($selected.Keys | Sort-Object); storePath=[IO.Path]::GetFullPath($StorePath); storeRevision=$snapshot.Revision
     accountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)
@@ -156,9 +194,9 @@ $sourcePaths = @($StorePath) + @($entries | ForEach-Object { $_.paths }) + @($ex
         own=$(if ($ownCoverageComplete) { $ownPartial } else { $null }); ownKnownPartial=$ownPartial; ownCoverageComplete=$ownCoverageComplete
         inclusive=$null; known_partial=$partial
         missingExpectedExecutions=$expectedMissing; missingUsageRecords=$missingUsage; provisionalUsageRecords=$provisional
-        familyCompletenessProven=$false; familyCompletenessReason='family_inventory_verification_unavailable'; familyConflicts=$family.conflicts; expectedFamilyTasks=$expectedFamilyTasks
+        familyCompletenessProven=$false; familyCompletenessReason=$observedFamily.completenessReason; familyConflicts=@($family.conflicts)+@($observedFamily.conflicts)+@($nativeMerge.conflicts); accountingDiagnostics=@($observedFamily.diagnostics)+@($nativeMerge.diagnostics); expectedFamilyTasks=$expectedFamilyTasks; missingExpectedNativeTurns=$missingNativeTurns
         incompleteTransfers=$incompleteTransfers; bindingGaps=$bindingGaps; parentBindingGaps=$parentGaps
-        knownRecordCount=$known.Count; taskCount=@($selectedEntries | ForEach-Object { $_.AliasTaskIds } | Select-Object -Unique).Count
+        knownRecordCount=$known.Count; nativeConflictMeasurementCount=$nativeConflictEntries.Count; observedNativeTurns=$observedFamily.nativeTurns; taskCount=@($selectedEntries | ForEach-Object { $_.AliasTaskIds } | Select-Object -Unique).Count
         records=$details; deduplicationDuplicates=@($selectedEntries | Where-Object { $_.paths.Count -gt 1 } | ForEach-Object { [pscustomobject]@{nativeIdentity=$_.native_key; AliasTaskIds=@($_.AliasTaskIds); paths=@($_.paths)} })
         correlationConflicts=$conflicts
     }
