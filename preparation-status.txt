@@ -1,0 +1,33 @@
+﻿PR92-FINAL preparation status
+
+Checkout: C:\Users\Tom-OliverMarek\source\repos\agent-organization-pr92-final
+Branch: work/pr92-final
+Starting PR92 head: 39de9cf36dbe118f0aede552b29990e626d49db0
+Integrated origin/develop: 3114a8f628ca4866dfc1d144400d3f07bc1e6316
+
+Conflict scope and resolution
+- Actual merge conflict: README.md only.
+- Resolution retains the PR92 central skill discovery/runner documentation and the newly merged develop operations-documentation link.
+- All other origin/develop changes are retained by the merge, including scripts/coordinator/*, coordinator entry scripts, docs/operations.md, contract/evidence updates and role-adjacent updates. No manual edits were made to organization indexes, role files or contracts.
+
+PR88 source-based inclusion review
+- PR88 head c6e2c612ace73d17a58b5c0ba91a1c12eecea274 is an ancestor of PR92 head.
+- Its own registry/adapters, skills README, inventory/implementation evidence and parent acceptance changes are therefore already present in PR92.
+- PR92 adds its runner and skill-runtime integration on top; no PR88-owned source or contract omission was identified.
+- PR88/PR92 historical acceptance remains distinct from this work item's acceptance. Existing docs record #61 and #57 HOLD/OPEN; no child closure is inferred here.
+
+Proposed minimal remaining implementation
+- Keep the README conflict resolution above.
+- Incorporate only the architecture agent's current-inventory decision and explicitly scoped #67/#68/#66 outcomes if that evidence identifies a required source change. Do not infer an inventory migration from historical lists; do not expand runner/adapter behavior without that result.
+- No organization index, role contract, AGENTS rule, examples, migration or new foundation work is proposed.
+
+Sources read
+- Git ancestry and file diffs: PR88 head c6e2c612ace73d17a58b5c0ba91a1c12eecea274; PR92 head 39de9cf36dbe118f0aede552b29990e626d49db0; origin/develop 3114a8f628ca4866dfc1d144400d3f07bc1e6316.
+- GitHub PR92 and PR88 bodies/comments and changed-file lists.
+- Issues #67, #68 and #66 descriptions.
+- docs/evidence/issue57-parent-acceptance.md, docs/evidence/issue61-current-inventory.md, docs/evidence/issue61-implementation.md, docs/contracts/SKILLS.md and docs/contracts/TASK60-EVIDENCE.md.
+
+Limits and open points
+- No tests, parsers, validators, runtimes, runners or Actions were invoked; no CI/publication/GitHub writes were performed.
+- Current accessible-script inventory and candidate classification for the actual start time are delegated to the architecture contribution; this preparation does not claim that criterion met.
+- PRs remain separate from parent acceptance. Remote head, mergeability after integration, PR88 supersession/closure and parent acceptance are not addressed in this preparation phase.
