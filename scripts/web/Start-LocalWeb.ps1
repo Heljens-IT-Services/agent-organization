@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$StorePath,
     [Parameter(Mandatory = $true)][ValidateRange(1024, 65535)][int]$Port,
     [string]$AccountingDirectory,
+    [string]$DisplayProjectionPath,
     [string[]]$SpecificationDirectories = @('docs/specifications', 'specifications', 'specs')
 )
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,14 @@ if ($AccountingDirectory) {
     $AccountingDirectory = (Resolve-Path -LiteralPath $AccountingDirectory -ErrorAction Stop).Path
     if (-not [IO.Directory]::Exists($AccountingDirectory)) { throw 'AccountingDirectory muss bereits vorhanden sein.' }
 }
-$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = [IO.Path]::GetFullPath($StorePath); AccountingDirectory = $AccountingDirectory; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
+$canonicalStorePath = [IO.Path]::GetFullPath($StorePath)
+if ($DisplayProjectionPath) {
+    if (-not [IO.Path]::IsPathRooted($DisplayProjectionPath)) { throw 'DisplayProjectionPath muss ausdrücklich als absoluter Pfad angegeben werden.' }
+    if (-not [IO.File]::Exists($DisplayProjectionPath)) { throw 'DisplayProjectionPath muss auf eine bereits vorhandene Anzeigeprojektionsdatei zeigen; sie wird nicht angelegt.' }
+    $DisplayProjectionPath = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $DisplayProjectionPath -ErrorAction Stop).Path)
+    if ([string]::Equals($DisplayProjectionPath, $canonicalStorePath, [StringComparison]::OrdinalIgnoreCase)) { throw 'DisplayProjectionPath darf nicht auf den WorkItem-Store zeigen.' }
+}
+$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = $canonicalStorePath; AccountingDirectory = $AccountingDirectory; DisplayProjectionPath = $DisplayProjectionPath; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
 $staticFiles = @{
     '/' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }
     '/index.html' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }

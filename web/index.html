@@ -28,7 +28,7 @@
         <div class="section-heading"><div><p class="eyebrow">Navigation</p><h1>Arbeitsübersicht</h1></div></div>
         <label class="search-box"><span class="sr-only">WorkItems filtern</span><span aria-hidden="true">⌕</span><input id="tree-search" type="search" placeholder="WorkItems filtern…" autocomplete="off"></label>
         <label class="filter-control">Status<select id="status-filter"><option value="">Alle Statuswerte</option><option value="planned">Geplant</option><option value="in_progress">In Arbeit</option><option value="blocked">Blockiert</option><option value="implemented">Umgesetzt</option><option value="rework">Nacharbeit</option><option value="accepted">Abgenommen</option><option value="cancelled">Abgebrochen</option></select></label>
-        <label class="filter-control">Zuständiger Mensch<select id="human-filter"><option value="">Zuständigkeit unbekannt – keine Filterung</option><option value="__unavailable__" disabled>Keine Zuständigkeitsdaten verfügbar</option></select></label>
+        <label class="filter-control">Zuständiger Mensch<select id="human-filter"><option value="all">Alle Menschen</option><option value="unknown">Zuständigkeit unbekannt</option></select><span id="human-filter-note" class="filter-note">Alle / unbekannte / explizit zugeordnete Zuständigkeit.</span></label>
         <div class="tree-header"><span>Ziele &amp; WorkItems</span><span id="item-count" class="count">—</span></div>
         <nav id="workitem-tree" class="tree" role="tree" aria-label="WorkItem-Baum"></nav>
         <div id="tree-empty" class="empty-state compact" hidden>Keine WorkItems entsprechen dem Filter.</div>
@@ -47,8 +47,7 @@
             <span id="attention-count" class="count count-attention">—</span>
           </div>
           <div class="attention-filter">
-            <span class="filter-label">Zuständigkeitsfilter nicht verfügbar</span>
-            <span class="filter-note">Der WorkItem-Vertrag weist keine verantwortliche Person für menschliche Anforderungen aus.</span>
+            <span class="filter-label">Menschenfilter</span>
           </div>
           <div id="lock-status" class="lock-status" role="status">Lockdiagnose wird geladen…</div>
           <div id="attention-list" class="attention-list"><p class="placeholder">Warte auf den ersten Snapshot…</p></div>

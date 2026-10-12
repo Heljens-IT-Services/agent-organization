@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 2
+Set-StrictMode -Version 2
 
 function New-LocalWebResponse {
     param([string]$RequestId, [string]$Operation, [bool]$Ok, [int]$StatusCode, $Data, $ErrorObject)
@@ -77,15 +77,170 @@ function ConvertTo-LocalWebPlainObject {
 
 function Get-LocalWebSnapshot {
     param($Configuration)
-    if (-not [IO.File]::Exists($Configuration.StorePath)) { return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }; lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null }; teams = [pscustomobject]@{ available = $false; reason = 'Keine freigegebene Teamprojektion vorhanden.'; items = @() } } }
+    if (-not [IO.File]::Exists($Configuration.StorePath)) {
+        $projection = Get-LocalWebDisplayProjection $Configuration $null
+        return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }; lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null; reason = 'Keine an den Lockproduzenten gebundene aktive Lockdiagnose verfügbar.' }; attentionAssignments = $projection.attentionAssignments; teams = $projection.teams }
+    }
     $caller = Join-Path $Configuration.RepositoryRoot 'scripts/workitems/Get-WorkItems.ps1'
     $snapshot = & $caller -Path $Configuration.StorePath -RepositoryRoot $Configuration.RepositoryRoot -TimeoutMilliseconds 5000
-    [pscustomobject][ordered]@{
+    $result = [pscustomobject][ordered]@{
         exists = [bool]$snapshot.Exists; revision = [string]$snapshot.Revision; document = $snapshot.Document
         readAt = [DateTime]::UtcNow.ToString('o')
         capabilities = [pscustomobject]@{ create = $true; update = $true; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }
-        lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null }
-        teams = [pscustomobject]@{ available = $false; reason = 'Keine freigegebene Teamprojektion vorhanden.'; items = @() }
+        lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null; reason = 'Keine an den Lockproduzenten gebundene aktive Lockdiagnose verfügbar.' }
+    }
+    $projection = Get-LocalWebDisplayProjection $Configuration $result.document
+    $result | Add-Member -NotePropertyName attentionAssignments -NotePropertyValue $projection.attentionAssignments
+    $result | Add-Member -NotePropertyName teams -NotePropertyValue $projection.teams
+    return $result
+}
+
+function New-LocalWebUnavailableProjection {
+    param([string]$Reason, [string]$ReadAt, [string]$Revision = $null, [string[]]$SourceReferences = @(), [object[]]$Items = @())
+    return [pscustomobject]@{ available = $false; reason = $Reason; items = @($Items); projectionRevision = $Revision; readAt = $ReadAt; sourceReferences = @($SourceReferences) }
+}
+
+function Get-LocalWebUnassignedAttentionItems {
+    param($Document)
+    $items = @()
+    if ($null -eq $Document) { return ,$items }
+    foreach ($item in @($Document.items)) {
+        if ($null -eq $item.humanInteraction) { continue }
+        $interaction = $item.humanInteraction
+        $items += [pscustomobject]@{ workItemId = [string]$item.id; parentId = $item.parentId; title = [string]$item.title; kind = [string]$interaction.kind; description = [string]$interaction.description; requestedAt = [string]$interaction.requestedAt; response = $interaction.response; status = [string]$item.status; responsibleHumanId = $null; responsibleHumanLabel = $null; assignmentState = 'unknown'; assignmentReason = 'Keine Display-Projektionsquelle verfügbar; Zuständigkeit bleibt unbekannt.'; sourceReference = $null }
+    }
+    return ,$items
+}
+
+function Assert-LocalWebProjectionObject {
+    param($Value, [string[]]$Required, [string[]]$Allowed)
+    if ($null -eq $Value -or $Value -isnot [System.Management.Automation.PSCustomObject]) { throw 'ProjectionShapeInvalid' }
+    $names = @($Value.PSObject.Properties | ForEach-Object { $_.Name })
+    foreach ($name in $Required) { if (-not @($names | Where-Object { [string]::Equals($_, $name, [StringComparison]::Ordinal) }).Count) { throw 'ProjectionShapeInvalid' } }
+    foreach ($name in $names) { if (-not @($Allowed | Where-Object { [string]::Equals($_, $name, [StringComparison]::Ordinal) }).Count) { throw 'ProjectionShapeInvalid' } }
+}
+
+function Get-LocalWebProjectionProperty {
+    param($Value, [string]$Name)
+    foreach ($property in $Value.PSObject.Properties) { if ([string]::Equals($property.Name, $Name, [StringComparison]::Ordinal)) { return ,$property.Value } }
+    throw 'ProjectionShapeInvalid'
+}
+
+function Assert-LocalWebProjectionString {
+    param($Value, [switch]$AllowNull)
+    if ($AllowNull -and $null -eq $Value) { return }
+    if ($Value -isnot [string]) { throw 'ProjectionShapeInvalid' }
+}
+
+function Assert-LocalWebProjectionUtcTimestamp {
+    param($Value)
+    Assert-LocalWebProjectionString $Value
+    $parsed = [DateTimeOffset]::MinValue
+    if ([string]::IsNullOrWhiteSpace($Value) -or $Value -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|\+00:00)$' -or -not [DateTimeOffset]::TryParse($Value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind, [ref]$parsed) -or $parsed.Offset -ne [TimeSpan]::Zero) { throw 'ProjectionShapeInvalid' }
+}
+
+function New-LocalWebOrdinalDictionary {
+    return ,([System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal))
+}
+
+function Get-LocalWebAssignmentKey {
+    param([string]$WorkItemId, [string]$RequestedAt, [string]$Kind, [string]$Digest)
+    return (($WorkItemId.Length.ToString() + ':' + $WorkItemId) + ($RequestedAt.Length.ToString() + ':' + $RequestedAt) + ($Kind.Length.ToString() + ':' + $Kind) + ($Digest.Length.ToString() + ':' + $Digest.ToLowerInvariant()))
+}
+
+function Get-LocalWebDisplayProjection {
+    param($Configuration, $Document)
+    $readAt = [DateTime]::UtcNow.ToString('o')
+    $unknownAttention = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Menschenzuständigkeit bleibt unbekannt.' $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)
+    $unknownTeams = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Teams bleiben unbekannt.' $readAt
+    if ([string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath)) { return [pscustomobject]@{ attentionAssignments = $unknownAttention; teams = $unknownTeams } }
+    try {
+        $path = [string]$Configuration.DisplayProjectionPath
+        if (-not [IO.File]::Exists($path) -or (([IO.File]::GetAttributes($path) -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { throw 'ProjectionSourceUnavailable' }
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $revision = 'sha256:' + ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+        $json = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes)
+        $projection = ConvertFrom-Json -InputObject $json -ErrorAction Stop
+        Assert-LocalWebProjectionObject $projection @('projectionVersion','storePath','generatedAt','sourceReferences','humans','attentionAssignments','teams') @('projectionVersion','storePath','generatedAt','sourceReferences','humans','attentionAssignments','teams')
+        $version = Get-LocalWebProjectionProperty $projection 'projectionVersion'; $storePath = Get-LocalWebProjectionProperty $projection 'storePath'; $generatedAt = Get-LocalWebProjectionProperty $projection 'generatedAt'
+        Assert-LocalWebProjectionString $version; Assert-LocalWebProjectionString $storePath; Assert-LocalWebProjectionUtcTimestamp $generatedAt
+        if ($version -cne '1' -or -not [string]::Equals([IO.Path]::GetFullPath($storePath), [IO.Path]::GetFullPath($Configuration.StorePath), [StringComparison]::OrdinalIgnoreCase)) { throw 'ProjectionStoreBindingMismatch' }
+        if ($projection.sourceReferences -isnot [System.Array] -or $projection.humans -isnot [System.Array] -or $projection.attentionAssignments -isnot [System.Array] -or $projection.teams -isnot [System.Array]) { throw 'ProjectionShapeInvalid' }
+        $sourceReferences = @($projection.sourceReferences | ForEach-Object { if ($_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_)) { throw 'ProjectionShapeInvalid' }; $_ })
+        if ($sourceReferences.Count -eq 0) { throw 'ProjectionShapeInvalid' }
+        $humans = New-LocalWebOrdinalDictionary
+        foreach ($human in @($projection.humans)) {
+            Assert-LocalWebProjectionObject $human @('humanId','label','sourceReference') @('humanId','label','sourceReference')
+            foreach ($field in @('humanId','label','sourceReference')) { Assert-LocalWebProjectionString (Get-LocalWebProjectionProperty $human $field) }
+            if ([string]::IsNullOrWhiteSpace($human.humanId) -or [string]::IsNullOrWhiteSpace($human.label) -or [string]::IsNullOrWhiteSpace($human.sourceReference) -or -not @($sourceReferences | Where-Object { [string]::Equals($_, $human.sourceReference, [StringComparison]::Ordinal) }).Count -or $humans.ContainsKey($human.humanId)) { throw 'ProjectionShapeInvalid' }
+            $humans.Add($human.humanId, $human)
+        }
+        $assignmentGroups = New-LocalWebOrdinalDictionary
+        foreach ($assignment in @($projection.attentionAssignments)) {
+            Assert-LocalWebProjectionObject $assignment @('workItemId','requestedAt','kind','descriptionDigest','responsibleHumanId','sourceReference','recordedAt') @('workItemId','requestedAt','kind','descriptionDigest','responsibleHumanId','sourceReference','recordedAt')
+            foreach ($field in @('workItemId','requestedAt','kind','descriptionDigest','responsibleHumanId','sourceReference','recordedAt')) { Assert-LocalWebProjectionString (Get-LocalWebProjectionProperty $assignment $field) }
+            Assert-LocalWebProjectionUtcTimestamp $assignment.recordedAt
+            if ([string]::IsNullOrWhiteSpace($assignment.workItemId) -or [string]::IsNullOrWhiteSpace($assignment.requestedAt) -or [string]::IsNullOrWhiteSpace($assignment.kind) -or $assignment.descriptionDigest -cnotmatch '^[0-9a-fA-F]{64}$' -or [string]::IsNullOrWhiteSpace($assignment.sourceReference) -or -not @($sourceReferences | Where-Object { [string]::Equals($_, $assignment.sourceReference, [StringComparison]::Ordinal) }).Count -or -not $humans.ContainsKey($assignment.responsibleHumanId)) { throw 'ProjectionShapeInvalid' }
+            $key = Get-LocalWebAssignmentKey $assignment.workItemId $assignment.requestedAt $assignment.kind $assignment.descriptionDigest
+            if (-not $assignmentGroups.ContainsKey($key)) { $assignmentGroups[$key] = @() }
+            $assignmentGroups[$key] += $assignment
+        }
+        $teamItems = @()
+        $teamIds = New-LocalWebOrdinalDictionary
+        foreach ($team in @($projection.teams)) {
+            Assert-LocalWebProjectionObject $team @('teamId','label','leaderId','members','sourceReference') @('teamId','label','leaderId','members','sourceReference')
+            foreach ($field in @('teamId','label','sourceReference')) { Assert-LocalWebProjectionString (Get-LocalWebProjectionProperty $team $field) }
+            if ([string]::IsNullOrWhiteSpace($team.teamId) -or [string]::IsNullOrWhiteSpace($team.label) -or [string]::IsNullOrWhiteSpace($team.sourceReference) -or -not @($sourceReferences | Where-Object { [string]::Equals($_, $team.sourceReference, [StringComparison]::Ordinal) }).Count -or $teamIds.ContainsKey($team.teamId)) { throw 'ProjectionShapeInvalid' }
+            $teamIds.Add($team.teamId, $true)
+            if ($team.members -isnot [System.Array]) { throw 'ProjectionShapeInvalid' }
+            $members = @(); $memberIds = New-LocalWebOrdinalDictionary
+            foreach ($member in @($team.members)) {
+                Assert-LocalWebProjectionObject $member @('id','label','available','sourceReference') @('id','label','available','sourceReference')
+                foreach ($field in @('id','label','sourceReference')) { Assert-LocalWebProjectionString (Get-LocalWebProjectionProperty $member $field) }
+                if ([string]::IsNullOrWhiteSpace($member.id) -or [string]::IsNullOrWhiteSpace($member.label) -or [string]::IsNullOrWhiteSpace($member.sourceReference) -or -not @($sourceReferences | Where-Object { [string]::Equals($_, $member.sourceReference, [StringComparison]::Ordinal) }).Count -or ($null -ne $member.available -and $member.available -isnot [bool]) -or $memberIds.ContainsKey($member.id)) { throw 'ProjectionShapeInvalid' }
+                $memberIds.Add($member.id, $true)
+                $members += [pscustomobject]@{ id = [string]$member.id; label = [string]$member.label; available = $member.available; sourceReference = [string]$member.sourceReference }
+            }
+            Assert-LocalWebProjectionString $team.leaderId -AllowNull
+            if ($null -ne $team.leaderId -and -not $memberIds.ContainsKey($team.leaderId)) { throw 'ProjectionShapeInvalid' }
+            $teamItems += [pscustomobject]@{ teamId = $team.teamId; label = $team.label; leaderId = $team.leaderId; members = @($members); sourceReference = $team.sourceReference }
+        }
+        $attentionItems = @()
+        if ($null -ne $Document) {
+            foreach ($item in @($Document.items)) {
+                if ($null -eq $item.humanInteraction) { continue }
+                $interaction = $item.humanInteraction
+                $description = [string]$interaction.description
+                $descriptionBytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes($description)
+                $descHash = [Security.Cryptography.SHA256]::Create()
+                try { $descriptionDigest = ([BitConverter]::ToString($descHash.ComputeHash($descriptionBytes))).Replace('-', '').ToLowerInvariant() } finally { $descHash.Dispose() }
+                $key = Get-LocalWebAssignmentKey ([string]$item.id) ([string]$interaction.requestedAt) ([string]$interaction.kind) $descriptionDigest
+                $responsibleId = $null; $responsibleLabel = $null; $assignmentSource = $null; $assignmentRecordedAt = $null; $assignmentState = 'unknown'; $assignmentReason = 'Keine exakt gebundene Menschenzuordnung vorhanden.'
+                if ($assignmentGroups.ContainsKey($key)) {
+                    $matches = @($assignmentGroups[$key])
+                    if ($matches.Count -eq 1) {
+                        $assignedHuman = $humans[[string]$matches[0].responsibleHumanId]
+                        $responsibleId = [string]$assignedHuman.humanId; $responsibleLabel = [string]$assignedHuman.label
+                        $assignmentSource = [string]$matches[0].sourceReference; $assignmentRecordedAt = $matches[0].recordedAt; $assignmentState = 'assigned'; $assignmentReason = $null
+                    } else { $assignmentReason = 'Mehrere Zuordnungen für dieselbe Anforderung; Zuständigkeit bleibt unbekannt.' }
+                }
+                $attentionItems += [pscustomobject]@{ workItemId = [string]$item.id; parentId = $item.parentId; title = [string]$item.title; kind = [string]$interaction.kind; description = $description; requestedAt = [string]$interaction.requestedAt; response = $interaction.response; status = [string]$item.status; responsibleHumanId = $responsibleId; responsibleHumanLabel = $responsibleLabel; assignmentState = $assignmentState; assignmentReason = $assignmentReason; sourceReference = $assignmentSource; recordedAt = $assignmentRecordedAt }
+            }
+        }
+        $assignmentReason = if ($null -eq $Document) { 'Store-Snapshot fehlt; Anforderungen können nicht gebunden werden.' } else { $null }
+        $teamsReason = if ($null -eq $Document) { 'Store-Snapshot fehlt; Teamprojektion kann nicht an dessen Bestand gebunden werden.' } else { $null }
+        return [pscustomobject]@{
+            attentionAssignments = [pscustomobject]@{ available = ($null -eq $assignmentReason); reason = $assignmentReason; items = @($attentionItems); projectionRevision = $revision; generatedAt = $generatedAt; readAt = $readAt; sourceReferences = @($sourceReferences) }
+            teams = [pscustomobject]@{ available = ($null -eq $teamsReason); reason = $teamsReason; items = @($teamItems); projectionRevision = $revision; generatedAt = $generatedAt; readAt = $readAt; sourceReferences = @($sourceReferences) }
+        }
+    } catch {
+        $reason = switch -Regex ([string]$_.Exception.Message) {
+            'ProjectionStoreBindingMismatch' { 'Display-Projektion gehört nicht exakt zu diesem WorkItem-Store.'; break }
+            'ProjectionSourceUnavailable' { 'Konfigurierte Display-Projektion ist nicht lesbar oder verweist auf eine Reparse-Datei.'; break }
+            default { 'Display-Projektion fehlt, ist ungültig oder nicht vollständig quellgebunden; Zuordnungen und Teams bleiben unbekannt.' }
+        }
+        return [pscustomobject]@{ attentionAssignments = (New-LocalWebUnavailableProjection $reason $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)); teams = (New-LocalWebUnavailableProjection $reason $readAt) }
     }
 }
 
