@@ -2,9 +2,10 @@
 
 Historischer Task60-Abnahmestand vor PR84-Pfadsortierung. Alte Pfade und
 Quellenhashes in diesem Bericht und docs/task60-evidence/*.json bleiben
-unveraenderte historische Belege. Aktueller Pruefaufruf:
-`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/contracts/Test-SkillContracts.ps1`
-(mit separatem -ResultPath fuer neue Ergebnisse). Aktuelle Integration:
+unveraenderte historische Belege. Historischer Pruefaufruf, aktuell nicht auszufuehren:
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/contracts/Test-SkillContracts.ps1`.
+Die Anweisung zu einem separaten -ResultPath fuer neue Ergebnisse ist aufgehoben;
+es gilt die [aktuelle Prüfregel](../../AGENTS.md). Integrationsdokumentation:
 [PR84-Vorbereitung](../SCRIPTS-ORDER-INTEGRATION.md).
 
 Auftrag: begrenztes Improvement Task60 im isolierten Worktree
