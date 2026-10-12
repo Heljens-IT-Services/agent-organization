@@ -1,16 +1,16 @@
 [CmdletBinding()]
 param([string]$ResultPath)
 $ErrorActionPreference='Stop'
-$repo=Split-Path -Parent $PSScriptRoot
-$module=Join-Path $PSScriptRoot 'workitems/WorkItemStore.psm1'
-$worker=Join-Path $PSScriptRoot 'tests/workitems/Worker.ps1'
+$repo=(Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
+$module=Join-Path $PSScriptRoot '../../workitems/WorkItemStore.psm1'
+$worker=Join-Path $PSScriptRoot 'Worker.ps1'
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('workitem-store-qa-'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($temp)
 $utf8=New-Object Text.UTF8Encoding($false,$true)
 $checks=New-Object 'System.Collections.Generic.List[object]'
 $processes=New-Object 'System.Collections.Generic.List[object]'
 $startHash=(Get-FileHash -LiteralPath $module -Algorithm SHA256).Hash
-. (Join-Path $PSScriptRoot 'contracts/ContractValidation.ps1')
+. (Join-Path $PSScriptRoot '../../contracts/ContractValidation.ps1')
 function Save($v,$p) { [IO.File]::WriteAllText($p,($v | ConvertTo-Json -Depth 100),$utf8) }
 function Read($p) { Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json }
 function Signal($p) { [IO.File]::WriteAllText($p,'go',$utf8) }
@@ -31,8 +31,8 @@ function Spawn($config,$name) {
 function Join-Worker($p) { if (-not $p.WaitForExit(40000)) { throw "Worker did not exit: $($p.Id)" }; Assert ($p.ExitCode -eq 0) "Worker exit $($p.ExitCode)" }
 function Seed($name) { $p=Join-Path $temp ($name+'.json'); [IO.File]::Copy((Join-Path $repo 'examples/workitems/goal-with-children.json'),$p); return $p }
 function Hash($p) { (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash }
-function Get-Store($p) { & (Join-Path $PSScriptRoot 'Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo }
-function Set-Store($p,$item,$rev) { & (Join-Path $PSScriptRoot 'Set-WorkItem.ps1') -Path $p -Id $item.id -Item $item -ExpectedRevision $rev -RepositoryRoot $repo }
+function Get-Store($p) { & (Join-Path $PSScriptRoot '../../workitems/Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo }
+function Set-Store($p,$item,$rev) { & (Join-Path $PSScriptRoot '../../workitems/Set-WorkItem.ps1') -Path $p -Id $item.id -Item $item -ExpectedRevision $rev -RepositoryRoot $repo }
 try {
     Check 'Lock race: barrier, timeout zero, exactly one winner, identity, reacquire' {
         $store=Join-Path $temp 'race.json'; $go=Join-Path $temp 'race.go'; $release=Join-Path $temp 'race.release'
@@ -88,19 +88,19 @@ try {
         $store=Join-Path $temp 'bootstrap.json'; $s=Get-Store $store
         Assert (-not $s.Exists -and $s.Revision -ceq 'absent' -and -not [IO.File]::Exists($store)) 'Get must not bootstrap missing file'
         $item=(Read (Join-Path $repo 'examples/workitems/goal-with-children.json')).items[0]
-        $r=& (Join-Path $PSScriptRoot 'New-WorkItem.ps1') -Path $store -Item $item -ExpectedRevision 'absent' -RepositoryRoot $repo
+        $r=& (Join-Path $PSScriptRoot '../../workitems/New-WorkItem.ps1') -Path $store -Item $item -ExpectedRevision 'absent' -RepositoryRoot $repo
         Assert ($r.Changed -and $r.Document.items.Count -eq 1) 'New did not create singleton store'
         $hash=Hash $store; $same=Set-Store $store $item $r.Revision
         Assert (-not $same.Changed -and $same.Revision -ceq $r.Revision -and (Hash $store) -ceq $hash) 'Identical Set rewrote target'
-        $duplicate=''; try { & (Join-Path $PSScriptRoot 'New-WorkItem.ps1') -Path $store -Item $item -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $duplicate=$_.FullyQualifiedErrorId }
+        $duplicate=''; try { & (Join-Path $PSScriptRoot '../../workitems/New-WorkItem.ps1') -Path $store -Item $item -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $duplicate=$_.FullyQualifiedErrorId }
         Assert ($duplicate -match 'DuplicateWorkItemId' -and (Hash $store) -ceq $hash) 'Duplicate ID was not safely rejected'
-        $mismatch=''; try { & (Join-Path $PSScriptRoot 'Set-WorkItem.ps1') -Path $store -Id 'missing' -Item $item -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $mismatch=$_.FullyQualifiedErrorId }
+        $mismatch=''; try { & (Join-Path $PSScriptRoot '../../workitems/Set-WorkItem.ps1') -Path $store -Id 'missing' -Item $item -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $mismatch=$_.FullyQualifiedErrorId }
         Assert ($mismatch -match 'ItemNotFound' -and (Hash $store) -ceq $hash) 'Missing ID changed target'
         $wrong=Read (Join-Path $repo 'examples/workitems/goal-with-children.json'); $wrong.items[0].id='different'
-        $mismatch=''; try { & (Join-Path $PSScriptRoot 'Set-WorkItem.ps1') -Path $store -Id 'goal' -Item $wrong.items[0] -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $mismatch=$_.FullyQualifiedErrorId }
+        $mismatch=''; try { & (Join-Path $PSScriptRoot '../../workitems/Set-WorkItem.ps1') -Path $store -Id 'goal' -Item $wrong.items[0] -ExpectedRevision $r.Revision -RepositoryRoot $repo | Out-Null } catch { $mismatch=$_.FullyQualifiedErrorId }
         Assert ($mismatch -match 'ItemIdMismatch' -and (Hash $store) -ceq $hash) 'ID mismatch changed target'
         $corrupt=Join-Path $temp 'corrupt.json'; [IO.File]::WriteAllBytes($corrupt,[byte[]]@(255,254,123)); $badHash=Hash $corrupt
-        $bad=''; try { & (Join-Path $PSScriptRoot 'New-WorkItem.ps1') -Path $corrupt -Item $item -ExpectedRevision 'absent' -RepositoryRoot $repo | Out-Null } catch { $bad=$_.FullyQualifiedErrorId }
+        $bad=''; try { & (Join-Path $PSScriptRoot '../../workitems/New-WorkItem.ps1') -Path $corrupt -Item $item -ExpectedRevision 'absent' -RepositoryRoot $repo | Out-Null } catch { $bad=$_.FullyQualifiedErrorId }
         Assert ($bad -match 'InvalidStoredDocument' -and (Hash $corrupt) -ceq $badHash) 'Corrupt bytes were replaced'
         return @{bootstrapRevision=$r.Revision;duplicateError=$duplicate;idMismatchError=$mismatch;corruptError=$bad;idempotentChanged=$same.Changed}
     }
@@ -171,7 +171,7 @@ try {
             $parsed=Read-ContractJson $store
             if ($stage -eq 'before') { Assert ((Hash $store) -ceq $oldHash) 'Pre-publication abort changed target' }
             else { Assert ((Hash $store) -ceq $newHash) 'Post-publication abort did not leave byte-exact complete expected JSON' }
-            $validated=& (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $store -RepositoryRoot $repo
+            $validated=& (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $store -RepositoryRoot $repo
             Assert $validated.valid 'Abort left a contract-invalid document'
             return @{instrumentedCopy=$copy;failure=$r.failure;oldHash=$oldHash;expectedNewHash=$newHash;actualHash=(Hash $store);parseable=$true;contractValid=$true}
         }

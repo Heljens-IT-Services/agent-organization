@@ -2,12 +2,13 @@
 param(
     [Parameter(Mandatory = $true)][string]$Path,
     [string]$PreviousPath,
-    [string]$RepositoryRoot = (Split-Path -Parent $PSScriptRoot)
+    [string]$RepositoryRoot
 )
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'contracts\ContractValidation.ps1')
+if (-not $PSBoundParameters.ContainsKey('RepositoryRoot')) { $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+. (Join-Path $PSScriptRoot '../contracts/ContractValidation.ps1')
 $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
-$schemaPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'schemas\workitems.schema.json'
+$schemaPath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'schemas\workitems.schema.json'
 $schema = Read-ContractJson $schemaPath
 
 function Get-WorkItemMap($Document) {
@@ -26,7 +27,7 @@ function Assert-WorkItemSnapshot($Document) {
     $availableRoles = @{}
     $actorList = @($Document.items | ForEach-Object { $_.owner; foreach ($check in $_.verifications) { $check.reviewer } })
     if (@($actorList | Where-Object { $_.type -ceq 'agent' }).Count -gt 0) {
-        $organization = & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $RepositoryRoot
+        $organization = & (Join-Path $PSScriptRoot '../contracts/Test-Organization.ps1') -RepositoryRoot $RepositoryRoot
         $availableRoles['koordinator'] = $true
         $teams = Read-ContractJson (Join-Path $RepositoryRoot 'koordinator\teams.json')
         foreach ($team in $teams.teams) {

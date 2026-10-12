@@ -1,5 +1,7 @@
 # AR55: Organisationsanpassung – Umsetzungsbeleg
 
+Historischer Abnahme-/Implementierungsbeleg: Skriptpfade und Befehle dokumentieren den damaligen Stand. Aktuelle Pfade stehen in README.md des Repositorys und docs/WORKITEM-STORAGE.md.
+
 Stand: 12. Oktober 2026. WorkItem AR55-Umsetzung unter AR55-Organisation;
 lokal auf `feat/epic-5-workitem-contracts` (Auftragskontext PR55).
 Die vorherige menschliche Freigabe ist im übergebenen Auftrag dokumentiert.

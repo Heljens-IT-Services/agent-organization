@@ -1,0 +1,33 @@
+﻿{
+    "id":  "improvement-scripts-order",
+    "type":  "Improvement",
+    "owner":  "teamleiter_agent_ressources",
+    "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+    "status":  "preparation",
+    "authorization":  "Explicit user approval 2026-10-12; routed Agent Ressources assignment; sensitive edits only optimizer",
+    "scope":  "Move existing scripts by responsibility and update all paths; no independent logic changes",
+    "children":  [
+                     {
+                         "specialist":  "agent_ressources_bestandsanalyse",
+                         "id":  "inventory",
+                         "goal":  "Folder architecture and dependency inventory"
+                     },
+                     {
+                         "specialist":  "agent_ressources_optimierer",
+                         "id":  "implementation",
+                         "goal":  "Scoped moves, path repair, meaningful checks and new-path smoke"
+                     },
+                     {
+                         "specialist":  "agent_ressources_qualitaetspruefung",
+                         "id":  "independent-review",
+                         "goal":  "Independent acceptance evidence"
+                     }
+                 ],
+    "acceptance":  [
+                       "No top-level PS1; logical PSM1/testworker placement",
+                       "All current references and ScriptRoot verified; native TOML parse",
+                       "Meaningful contract/store/recovery/accounting/console checks; harmless visible delegation smoke",
+                       "Unchanged main checkout/global roles; Story16 and Task60 integration dependencies explicit",
+                       "Own documented parent preparation acceptance then explicit-file commit push PR develop; no merge/global rollout"
+                   ]
+}

@@ -1,5 +1,7 @@
 # Eigene Elternabnahme Story #14
 
+Historischer Abnahme-/Implementierungsbeleg: Skriptpfade und Befehle dokumentieren den damaligen Stand. Aktuelle Pfade stehen in README.md des Repositorys und docs/WORKITEM-STORAGE.md.
+
 Entscheidung teamleiter_softwareentwicklung am 12.10.2026: Story #14 im abgegrenzten Scope mit #30 und #31 accepted. Dies ist die eigene fachliche Elternentscheidung nach Prüfung der unabhängigen Ergebnisse, nicht die Übernahme eines Kinderabschlusses. Epic #6 ist nicht abgenommen.
 
 Basis: develop 84d7d4a99b3d3f5a661f262b12c0f7bbec21637c, feature/story14-atomic-storage. Final geprüftes WorkItemStore.psm1 SHA256 C4AAE2CB7AE8B100D7B98918B1E3AC98053CB144C0EF557070852DB728F41C89. Fachbeiträge: Architektur, Backend, unabhängige Qualitätssicherung; QA-01 und QA-02 korrigiert und unabhängig nachgeprüft.

@@ -25,8 +25,8 @@ Verträge und Markdown-Referenzen von dort bezogen werden. Ein alternatives
 
 ## Öffentliche Befehle und Revisionen
 
-Die Caller sind `scripts/Get-WorkItems.ps1`, `scripts/New-WorkItem.ps1` und
-`scripts/Set-WorkItem.ps1`. Ihre öffentlichen Parameter sind:
+Die Caller sind `scripts/workitems/Get-WorkItems.ps1`, `scripts/workitems/New-WorkItem.ps1` und
+`scripts/workitems/Set-WorkItem.ps1`. Ihre öffentlichen Parameter sind:
 
 | Skript | Parameter |
 | --- | --- |
@@ -42,7 +42,7 @@ Status `planned` und eine eindeutige ID. `Set` erwartet die vollständige
 aktualisierte Instanz sowie deren stabile ID. Zum Beispiel:
 
 ```powershell
-$snapshot = .\scripts\Get-WorkItems.ps1 `
+$snapshot = .\scripts\workitems\Get-WorkItems.ps1 `
     -Path $storePath -RepositoryRoot $repositoryRoot
 
 if ($snapshot.Exists) {
@@ -53,7 +53,7 @@ if ($snapshot.Exists) {
 }
 
 # Vor der Änderung in den Caller aufnehmen, frisch lesen, dann:
-# $created = .\scripts\New-WorkItem.ps1 -Path $storePath `
+# $created = .\scripts\workitems\New-WorkItem.ps1 -Path $storePath `
 #     -RepositoryRoot $repositoryRoot -Item $plannedItem `
 #     -ExpectedRevision $snapshot.Revision
 ```

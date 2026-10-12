@@ -1,0 +1,29 @@
+{
+    "status":  "prepared_not_run",
+    "operator":  "teamleiter_agent_ressources",
+    "role":  "agent_ressources_optimierer",
+    "task_title":  "Neuer Starter Smoke",
+    "task":  "Keine Tools, keine Dateizugriffe, keine Delegationen. Antworte ausschliesslich SCRIPTS_ORDER_SMOKE_OK.",
+    "new_worktree_starter":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization-scripts-order/scripts/delegation/Start-DelegatedCodexTask.ps1",
+    "new_main_starter":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization/scripts/delegation/Start-DelegatedCodexTask.ps1",
+    "stable_starter":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization-task60-preparation/scripts/Start-DelegatedCodexTask.ps1",
+    "working_directory":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization-scripts-order",
+    "result_path":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization-scripts-order/runtime/scripts-order/integration/new-starter-smoke.json",
+    "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+    "accounting_directory":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-accounting",
+    "timeout_seconds":  120,
+    "topology":  "Coordinator -\u003e teamleader -\u003e smoke specialist. No optimizer child.",
+    "gate":  "Until cutover all starts use stable starter. Direct new-starter smoke is a separate teamleader follow-up after cutover, or requires a bounded explicit smoke exception before cutover.",
+    "required_evidence":  [
+                              "visible",
+                              "controller_visibility_confirmed",
+                              "console_binding_verified",
+                              "runner uses actual new starter",
+                              "completed/success",
+                              "exact output",
+                              "window_closed",
+                              "usage_finalized",
+                              "parent/accounting attribution",
+                              "no toolitems"
+                          ]
+}

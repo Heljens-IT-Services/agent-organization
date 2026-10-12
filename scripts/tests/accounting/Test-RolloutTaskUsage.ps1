@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('agent-org-rollout-test-' + [guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $fixtureRoot
-$importer = Join-Path $PSScriptRoot 'Import-RolloutTaskUsage.ps1'
+$importer = Join-Path $PSScriptRoot '../../accounting/Import-RolloutTaskUsage.ps1'
 $thread = [guid]::NewGuid().ToString('D')
 $turn = [guid]::NewGuid().ToString('D')
 $ancestor = [guid]::NewGuid().ToString('D')
@@ -59,7 +59,7 @@ try {
     $failed = $false
     try { $null = & $importer @arguments } catch { $failed = $_.Exception.Message -match 'Conflicting' }
     Assert ($failed -and [Convert]::ToBase64String($before) -ceq [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($artifact))) 'Conflicting artifact is not overwritten'
-    $ledger = & (Join-Path $PSScriptRoot 'Get-TaskTokenUsage.ps1') -TaskId $turn -AccountingDirectory $arguments.AccountingDirectory
+    $ledger = & (Join-Path $PSScriptRoot '../../accounting/Get-TaskTokenUsage.ps1') -TaskId $turn -AccountingDirectory $arguments.AccountingDirectory
     Assert ($ledger.own.totalTokens -eq 42 -and $ledger.inclusive.totalTokens -eq 42 -and $ledger.missing_count -eq 0) 'Existing ledger reader accepts delta'
     foreach ($missing in @(
         @((Meta $thread), (Event 'task_started'), (Tokens 1), (Event 'task_complete')),
@@ -69,7 +69,7 @@ try {
         $arguments = Fixture $missing
         $record = & $importer @arguments
         Assert ($null -eq $record.token_usage) 'Missing baseline or final stays null (including fresh thread)'
-        $ledger = & (Join-Path $PSScriptRoot 'Get-TaskTokenUsage.ps1') -TaskId $turn -AccountingDirectory $arguments.AccountingDirectory
+        $ledger = & (Join-Path $PSScriptRoot '../../accounting/Get-TaskTokenUsage.ps1') -TaskId $turn -AccountingDirectory $arguments.AccountingDirectory
         Assert ($null -eq $ledger.inclusive -and $ledger.missing_count -eq 1) 'Unknown usage remains unknown in reader'
     }
     $arguments = Fixture @((Meta $thread), (Tokens 1 -WithCacheWrite), (Event 'task_started'), (Tokens 2 -WithCacheWrite), (Event 'task_complete'))

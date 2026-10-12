@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:heljens:skill-response:1",
+  "title": "Skill response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["isSuccessful", "exception", "result"],
+  "properties": {
+    "isSuccessful": {"type": "boolean"},
+    "exception": {"anyOf": [{"type": "null"}, {"type": "object"}]},
+    "result": {}
+  },
+  "anyOf": [
+    {"properties": {"isSuccessful": {"const": true}, "exception": {"type": "null"}}},
+    {"properties": {
+      "isSuccessful": {"const": false},
+      "exception": {"type": "object", "required": ["message"], "properties": {
+        "message": {"type": "string", "minLength": 1, "pattern": "\\S"}
+      }}
+    }}
+  ]
+}

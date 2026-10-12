@@ -1,0 +1,218 @@
+{
+  "checkedAt": "2026-10-12T10:39:05Z",
+  "branch": "improvement/task60-preparation-20261012",
+  "head": "46c1da60dc0c4502f37eae9667ec7662605f4a81",
+  "trackedChanges": [],
+  "ownedNewFiles": [
+    "schemas/skills.schema.json",
+    "schemas/skill-response.schema.json",
+    "docs/contracts/SKILLS.md",
+    "docs/contracts/TASK60-EVIDENCE.md",
+    "scripts/Test-SkillContracts.ps1",
+    "docs/task60-evidence/runner-error.json",
+    "docs/task60-evidence/test-results.json",
+    "docs/task60-evidence/workitem-preflight.json",
+    "docs/task60-evidence/workitem.json",
+    "docs/task60-evidence/scope-check.json",
+    "docs/task60-evidence/qa-review.json"
+  ],
+  "hashes": [
+    {
+      "path": "schemas/skills.schema.json",
+      "sha256": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+      "gitBlobSHA256": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080"
+    },
+    {
+      "path": "schemas/skill-response.schema.json",
+      "sha256": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+      "gitBlobSHA256": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A"
+    },
+    {
+      "path": "docs/contracts/SKILLS.md",
+      "sha256": "89622F8A05732478FBEE924A2EC441493A3800BCEF073B5F85146B973E36B74F",
+      "gitBlobSHA256": "C946D4ABEBFA2484F883EAFA89F9C752162D5D4DC89B013AB028352ABCB330ED"
+    },
+    {
+      "path": "docs/contracts/TASK60-EVIDENCE.md",
+      "sha256": "BEBB4E4B82A6B538738C0ABAA471CDF9DBAA500CC7BD0677B0CFF5D08E538701",
+      "gitBlobSHA256": "E19272E5BCF290D101EFCEB4C5421994E77B4DF4333457E3BC4EA8FC4A4D5E3D"
+    },
+    {
+      "path": "scripts/Test-SkillContracts.ps1",
+      "sha256": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+      "gitBlobSHA256": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B"
+    },
+    {
+      "path": "docs/task60-evidence/runner-error.json",
+      "sha256": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+      "gitBlobSHA256": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56"
+    },
+    {
+      "path": "docs/task60-evidence/test-results.json",
+      "sha256": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+      "gitBlobSHA256": "DF0FB9197A44B12593EEFAA331662C0A49532C0DBADB81C75A98A449F3B1033D"
+    },
+    {
+      "path": "docs/task60-evidence/workitem-preflight.json",
+      "sha256": "3B70FDD4137BECF7C6FF57A075CED1DCF2C9735449EBD68121895E9841D1931F",
+      "gitBlobSHA256": "D6CF0BEE0CF21D55EA5B4CB4618680E7247383951C5254F54A973C1BC4943972"
+    },
+    {
+      "path": "docs/task60-evidence/workitem.json",
+      "sha256": "6F3A17DD30C23A2263A12E6768BAF86ACC4B97A25A28CD4848FC72079BEBABBD",
+      "gitBlobSHA256": "E2643BDC12745E60AC95F630CFB354D95FE1F3305BF9FB755448FFECB3C209C7"
+    },
+    {
+      "path": "docs/task60-evidence/qa-review.json",
+      "sha256": "AF6AEC5D5A5B630A1C93C7053B67CE380658A8EDE6488A3933AB5DE21FD7037E",
+      "gitBlobSHA256": "1102741D161EAAADDF3C920D560AB58348A1AFDBAC2AD1523EF6AADFF4153584"
+    }
+  ],
+  "metaschema": "PASS2/2; fixtures16/16; default1/1; PythonCompileOnly1/1; total20/20",
+  "globalStoreGraphValidator": "NOT_RUN",
+  "independentQA": "PASS14/14; original BLOCKER historical",
+  "teamLeaderAcceptance": "ACCEPTED",
+  "commitPushPR": "AUTHORIZED in current teamleader completion instruction; publication readback follows in PR/Issue60",
+  "ownMeasuredTokens": null,
+  "hashCoverage": "All eleven own new files listed; ten hashed. scope-check.json intentionally excludes its own recursive hash.",
+  "remediationChanges": [
+    "scripts/Test-SkillContracts.ps1",
+    "docs/contracts/SKILLS.md",
+    "docs/contracts/TASK60-EVIDENCE.md",
+    "docs/task60-evidence/workitem.json",
+    "docs/task60-evidence/workitem-preflight.json",
+    "docs/task60-evidence/test-results.json",
+    "docs/task60-evidence/scope-check.json",
+    "docs/task60-evidence/qa-review.json (new)"
+  ],
+  "unchangedOwnedChecks": [
+    {
+      "path": "schemas/skills.schema.json",
+      "matchesPriorScopeHash": true
+    },
+    {
+      "path": "schemas/skill-response.schema.json",
+      "matchesPriorScopeHash": true
+    },
+    {
+      "path": "docs/task60-evidence/runner-error.json",
+      "matchesPriorScopeHash": true
+    }
+  ],
+  "focusedRun": {
+    "failed": 0,
+    "counterprobes": 8,
+    "runs": 1,
+    "total": 87,
+    "passed": 87
+  },
+  "taskAcceptance": "ACCEPTED",
+  "gitMutations": "Snapshot before authorized stage/commit/push; only eleven owned new files",
+  "gitStatusAfter": [
+    "?? docs/contracts/SKILLS.md",
+    "?? docs/contracts/TASK60-EVIDENCE.md",
+    "?? docs/task60-evidence/",
+    "?? schemas/skill-response.schema.json",
+    "?? schemas/skills.schema.json",
+    "?? scripts/Test-SkillContracts.ps1"
+  ],
+  "gitStatusBefore": [
+    "?? docs/contracts/SKILLS.md",
+    "?? docs/contracts/TASK60-EVIDENCE.md",
+    "?? docs/task60-evidence/",
+    "?? schemas/skill-response.schema.json",
+    "?? schemas/skills.schema.json",
+    "?? scripts/Test-SkillContracts.ps1"
+  ],
+  "gitStatusUnchanged": true,
+  "writerCheck": {
+    "checkedAt": "2026-10-12T10:39:05Z",
+    "currentTaskId": "745fe979757a49848244e324ec85bbc8",
+    "knownFinalJobs": [
+      {
+        "taskId": "1a126be0f4f440cfaa1fa84bf8e7a525",
+        "role": "agent_ressources_rollenkonfiguration",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-architecture.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "92208c3ed76b4ba18b02cab05d7978be",
+        "role": "agent_ressources_optimierer",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-bootstrap.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "5fb316acf0cd484ab6f9bcde8eec72d2",
+        "role": "agent_ressources_qualitaetspruefung",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-finish-metaschema.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "d04ad2ef2370430bbbf7a7cdea152dc9",
+        "role": "agent_ressources_optimierer",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-fixes.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "297eac268933490bbe3b07712e9480af",
+        "role": "agent_ressources_optimierer",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-implementation.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "6c641b2c31db428480aaf52a2d7d9b64",
+        "role": "agent_ressources_qualitaetspruefung",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-qa-final.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      },
+      {
+        "taskId": "4a4084a6a1714032bd9b9e037b870f72",
+        "role": "agent_ressources_qualitaetspruefung",
+        "cwd": "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+        "resultPath": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-qa.json",
+        "terminalOutcome": "completed",
+        "usageFinalized": true
+      }
+    ],
+    "activeKnownWriters": [
+      "745fe979757a49848244e324ec85bbc8"
+    ]
+  },
+  "sharedAccounting": {
+    "ParentTaskId": "87ee1bb435a44a7f9d25d804e63d2712",
+    "taskId": "745fe979757a49848244e324ec85bbc8",
+    "accountingDirectory": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-accounting",
+    "ownMeasuredTokens": null
+  },
+  "historicalSnapshotNote": "head and gitStatusBefore/After represent pre-publication state; independent source hashes in qa-review remain historical.",
+  "verification": {
+    "utf8": "PASS strict UTF8 decoding of eleven files",
+    "json": "PASS parsed owned JSON using Python standard json; case-distinct fixture keys preserved",
+    "references": {
+      "outcome": "PASS",
+      "resolvedReferences": [
+        "schemas/skills.schema.json",
+        "schemas/skill-response.schema.json",
+        "docs/task60-evidence/runner-error.json",
+        "docs/task60-evidence/qa-review.json",
+        "docs/task60-evidence/workitem.json",
+        "docs/task60-evidence/test-results.json",
+        "docs/task60-evidence/qa-review.json"
+      ]
+    },
+    "workitem": "PASS current schema and acceptance criteria/reviewer/timestamps; global StoreGraph NOT_RUN"
+  },
+  "hashBasis": "sha256: current raw UTF8 worktree bytes. gitBlobSHA256: normalized staged bytes for durable remote verification. Historical independent sourceHashes remain unchanged snapshots. No self hash."
+}

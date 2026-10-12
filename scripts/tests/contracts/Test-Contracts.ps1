@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([string]$ResultPath)
 $ErrorActionPreference = 'Stop'
-$repo = Split-Path -Parent $PSScriptRoot
-. (Join-Path $PSScriptRoot 'contracts\ContractValidation.ps1')
+$repo = (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
+. (Join-Path $PSScriptRoot '../../contracts/ContractValidation.ps1')
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('agent-org-contracts-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 $utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -29,9 +29,9 @@ function Check-WorkItems($Value, $Previous = $null) {
     $file = Save-TestJson $Value
     if ($null -ne $Previous) {
         $prior = Save-TestJson $Previous 'previous.json'
-        return (& (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $file -PreviousPath $prior)
+        return (& (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $file -PreviousPath $prior)
     }
-    return (& (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $file)
+    return (& (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $file)
 }
 function Check-Invalid([string]$Name, [scriptblock]$Mutation, [string]$Message) {
     $d = Copy-TestDocument $planned
@@ -59,7 +59,7 @@ try {
     Assert-Pass 'Human-blocked WorkItem' { Check-WorkItems $blocked }
     Assert-Pass 'Parent with own successful business verification' { Check-WorkItems $accepted }
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repo 'examples\workitems\invalid') -Filter '*.json') {
-        Assert-Reject ('Invalid fixture ' + $file.Name) { & (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $file.FullName } ''
+        Assert-Reject ('Invalid fixture ' + $file.Name) { & (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $file.FullName } ''
     }
     Check-Invalid 'Duplicate IDs' { param($d) $d.items[2].id = $d.items[1].id } 'Duplicate WorkItem ID'
     Check-Invalid 'Missing parent' { param($d) $d.items[1].parentId = 'missing' } 'Missing parent'
@@ -169,7 +169,7 @@ try {
         $deep.items += $child
     }
     Assert-Pass '121 task levels independent of agent depth' { Check-WorkItems $deep }
-    Assert-Pass 'All current organization indices' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') }
+    Assert-Pass 'All current organization indices' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') }
     $org = Join-Path $temp 'organization'
     New-Item -ItemType Directory -Path $org | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'koordinator'),(Join-Path $repo 'teams') -Destination $org -Recurse
@@ -177,41 +177,41 @@ try {
     $originalCentral = Read-ContractJson $centralPath
     $central = Copy-TestDocument $originalCentral; $central.teams[0] | Add-Member status 'ready'
     [IO.File]::WriteAllText($centralPath, ($central | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Organization status field forbidden' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Schema additional property'
+    Assert-Reject 'Organization status field forbidden' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Schema additional property'
     $central = Copy-TestDocument $originalCentral; $central.teams[0].role_file = '../outside.toml'
     [IO.File]::WriteAllText($centralPath, ($central | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Role reference traversal forbidden' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Schema anyOf'
+    Assert-Reject 'Role reference traversal forbidden' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Schema anyOf'
     $central = Copy-TestDocument $originalCentral; $central.teams += $central.teams[0]
     [IO.File]::WriteAllText($centralPath, ($central | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Duplicate organization teams' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Duplicate team ID'
+    Assert-Reject 'Duplicate organization teams' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Duplicate team ID'
     [IO.File]::WriteAllText($centralPath, ($originalCentral | ConvertTo-Json -Depth 50), $utf8)
     $roleFile = Join-Path $org 'teams\softwareentwicklung\teamleiter.toml'
     $roleText = [IO.File]::ReadAllText($roleFile)
     [IO.File]::WriteAllText($roleFile, $roleText.Replace('name = "teamleiter_softwareentwicklung"','name = "wrong"'), $utf8)
-    Assert-Reject 'Referenced role must declare matching ID' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Role name mismatch'
+    Assert-Reject 'Referenced role must declare matching ID' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Role name mismatch'
     [IO.File]::WriteAllText($roleFile, $roleText, $utf8)
     $agentPath = Join-Path $org 'teams\softwareentwicklung\agenten.json'
     $index = Read-ContractJson $agentPath; $originalIndex = Copy-TestDocument $index
     $index.agents[0] | Add-Member status 'ready'
     [IO.File]::WriteAllText($agentPath, ($index | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Nested agent status field forbidden' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Schema additional property'
+    Assert-Reject 'Nested agent status field forbidden' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Schema additional property'
     $index = Copy-TestDocument $originalIndex; $index.agents[0].role_file = 'softwareentwicklung_missing.toml'
     [IO.File]::WriteAllText($agentPath, ($index | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Wrong role file rejected' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Role file mismatch'
+    Assert-Reject 'Wrong role file rejected' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Role file mismatch'
     [IO.File]::WriteAllText($agentPath, ($originalIndex | ConvertTo-Json -Depth 50), $utf8)
     $operativeFile = Join-Path $org 'teams\softwareentwicklung\agenten\architektur.toml'
     Remove-Item -LiteralPath $operativeFile
-    Assert-Reject 'Missing referenced role rejected' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Missing referenced file'
+    Assert-Reject 'Missing referenced role rejected' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Missing referenced file'
     $index = Copy-TestDocument $originalIndex; $index.agents[0].role_file = $null
     [IO.File]::WriteAllText($agentPath, ($index | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Pass 'Null role reference marks unavailability' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org }
+    Assert-Pass 'Null role reference marks unavailability' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org }
     $unavailableOwner = Copy-TestDocument $planned
     $unavailableOwner.items[0].owner = [pscustomobject]@{ type = 'agent'; id = 'softwareentwicklung_architektur' }
     $ownerFile = Save-TestJson $unavailableOwner 'unavailable-owner.json'
-    Assert-Reject 'Unavailable indexed role cannot own work' { & (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $ownerFile -RepositoryRoot $org } 'Missing actor role'
+    Assert-Reject 'Unavailable indexed role cannot own work' { & (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $ownerFile -RepositoryRoot $org } 'Missing actor role'
     $index.team_id = 'foreign'
     [IO.File]::WriteAllText($agentPath, ($index | ConvertTo-Json -Depth 50), $utf8)
-    Assert-Reject 'Wrong index team rejected' { & (Join-Path $PSScriptRoot 'Test-Organization.ps1') -RepositoryRoot $org } 'Agent index team mismatch'
+    Assert-Reject 'Wrong index team rejected' { & (Join-Path $PSScriptRoot '../../contracts/Test-Organization.ps1') -RepositoryRoot $org } 'Agent index team mismatch'
     $schema = Read-ContractJson (Join-Path $repo 'schemas\agents.schema.json')
     $schema | Add-Member unimplementedKeyword $true
     Assert-Reject 'Unsupported schema keywords fail closed' { Assert-ContractSchemaVocabulary $schema } 'Unsupported schema keyword'

@@ -55,23 +55,23 @@ try {
             Save @{pid=$PID;releaseId=$releaseId;idOnlyError=$idOnly;releasedCopyError=$releasedCopy;deleteDenied=$deleteDenied;timeoutId=$timeoutId;elapsedMs=$w.ElapsedMilliseconds} $c.result
         }
         'writer' {
-            $snapshot = & (Join-Path $c.repo 'scripts/Get-WorkItems.ps1') -Path $c.store -RepositoryRoot $c.repo
+            $snapshot = & (Join-Path $c.repo 'scripts/workitems/Get-WorkItems.ps1') -Path $c.store -RepositoryRoot $c.repo
             Save @{revision=$snapshot.Revision;pid=$PID} $c.ready
             Wait-File $c.go
             $item = @($snapshot.Document.items | Where-Object id -eq $c.id)[0]
             $item.title = $c.title; $item.updatedAt='2026-10-12T11:00:00Z'
             try {
-                $r = & (Join-Path $c.repo 'scripts/Set-WorkItem.ps1') -Path $c.store -RepositoryRoot $c.repo -Id $c.id -Item $item -ExpectedRevision $snapshot.Revision
+                $r = & (Join-Path $c.repo 'scripts/workitems/Set-WorkItem.ps1') -Path $c.store -RepositoryRoot $c.repo -Id $c.id -Item $item -ExpectedRevision $snapshot.Revision
                 Save @{success=$true;revision=$r.Revision;pid=$PID} $c.result
             } catch {
                 $conflict = $_.FullyQualifiedErrorId
                 Save @{success=$false;errorId=$conflict;pid=$PID} $c.result
                 if ($c.retry -and $conflict -match 'RevisionConflict') {
                     Wait-File $c.retryGo
-                    $fresh = & (Join-Path $c.repo 'scripts/Get-WorkItems.ps1') -Path $c.store -RepositoryRoot $c.repo
+                    $fresh = & (Join-Path $c.repo 'scripts/workitems/Get-WorkItems.ps1') -Path $c.store -RepositoryRoot $c.repo
                     $item = @($fresh.Document.items | Where-Object id -eq $c.id)[0]
                     $item.title=$c.title; $item.updatedAt='2026-10-12T11:01:00Z'
-                    $r = & (Join-Path $c.repo 'scripts/Set-WorkItem.ps1') -Path $c.store -RepositoryRoot $c.repo -Id $c.id -Item $item -ExpectedRevision $fresh.Revision
+                    $r = & (Join-Path $c.repo 'scripts/workitems/Set-WorkItem.ps1') -Path $c.store -RepositoryRoot $c.repo -Id $c.id -Item $item -ExpectedRevision $fresh.Revision
                     Save @{success=$true;revision=$r.Revision;pid=$PID} $c.retryResult
                 }
             }

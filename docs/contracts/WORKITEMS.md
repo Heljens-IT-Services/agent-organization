@@ -63,9 +63,9 @@ ausgewertet werden und erteilen keine pauschale Dienst- oder Änderungsfreigabe.
 ## Prüfung
 
 ```powershell
-.\scripts\Test-WorkItems.ps1 -Path .\examples\workitems\goal-with-children.json
-.\scripts\Test-WorkItems.ps1 -Path next.json -PreviousPath current.json
-.\scripts\Test-Contracts.ps1 -ResultPath "$env:TEMP\contract-tests.json"
+.\scripts\workitems\Test-WorkItems.ps1 -Path .\examples\workitems\goal-with-children.json
+.\scripts\workitems\Test-WorkItems.ps1 -Path next.json -PreviousPath current.json
+.\scripts\tests\contracts\Test-Contracts.ps1 -ResultPath "$env:TEMP\contract-tests.json"
 ```
 
 Geprüft werden Struktur, IDs, Rollen/Markdown, Eltern-/Abhängigkeitszyklen und
