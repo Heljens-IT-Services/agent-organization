@@ -42,7 +42,8 @@ vorhanden; GitHub Actions sind deaktiviert.
 [Organisationsverträge](docs/contracts/ORGANIZATION.md) validieren die bestehenden
 Indizes. [Entscheidung 0001](docs/decisions/0001-system-scope.md) legt Struktur und
 Folgeumfang fest. Der frühere Test-Contracts-Aufruf ist aufgehoben; technische
-Testinfrastruktur wird nicht mehr mitgeführt. Der produktive
+Testinfrastruktur wird nicht mehr mitgeführt. Es gilt die [aktuelle Prüfregel](AGENTS.md):
+keine Tests ausführen oder erstellen. Der produktive
 Organisationsvertragsvalidator bleibt verfügbar:
 `scripts/contracts/Test-Organization.ps1`.
 
@@ -95,3 +96,4 @@ Zusätzliche Bindungen müssen auf absolute Executablepfade zeigen. Die Anfrage 
 Kern übergeben, damit PowerShell 5.1 kein `StandardInputEncoding` benötigt.
 Die Beispiele beschreiben Bedienung, sie sind keine aktuellen Laufzeitbelege;
 die Wrapper wurden in diesem Auftrag nicht ausgeführt.
+Betrieb, Sicherung und Wiederanlauf: [Betriebsdokumentation](docs/operations.md).

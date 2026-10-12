@@ -34,3 +34,18 @@ durch Agenten geschlossen. Andere Rollen schließen nur ihr eigenes Aufgabenfens
 
 Tokenberichte verwenden gemessenen Eigenverbrauch und deduplizierte Unteraufträge.
 Fehlende Messungen bleiben unbekannt; inklusive Kindersummen werden nicht doppelt gezählt.
+
+# Aktuelle Prüfregel
+
+Diese Prüfregel gilt ausschließlich für dieses Repository.
+Aktuell dürfen hier keine Tests ausgeführt oder erstellt werden,
+auch keine Parser-Testläufe, neuen Suiten oder Testinfrastruktur. Dies ersetzt
+alle älteren widersprechenden Testpflichten dieses Repositorys einschließlich
+der Epic-Regression. Tests werden
+später neu geschrieben. Produktive Validatoren und historische Belege bleiben
+erhalten; GitHub Actions bleiben deaktiviert.
+
+Änderungen werden aktuell nur durch Zurücklesen von Inhalt, Diff und Referenzen
+belegt. Fachliche Kriterien, unabhängige Prüfung und eigene Elternabnahme bleiben
+verbindlich. Nachweise nennen Scope, Quellen, Grenzen und offene Punkte;
+Inhaltsbefunde oder historische Ergebnisse sind kein aktueller Funktionsnachweis.

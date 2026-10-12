@@ -285,7 +285,8 @@ Quellen und Belege (erfasst am 12. Oktober 2026):
   ihr Testdiff ist synthetisch. MCP-, Dynamic-, Web-, Image- und Collab-Fixtures
   sind Schemafixtures und kein Nachweis einer neuen Liveausführung.
 
-Historische Wiederholungsanweisung (aufgehoben):
+Historische Wiederholungsanweisung (aufgehoben; aktuell nicht ausführen,
+siehe [aktuelle Prüfregel](../AGENTS.md)):
 
 ```powershell
 .\scripts\tests\delegation\Test-DelegatedProgress.ps1 -EvidenceStream `

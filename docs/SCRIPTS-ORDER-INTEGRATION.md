@@ -43,7 +43,7 @@ Historische Movebeschreibung: Task60 brachte elf Dateien. Genau eine zusätzlich
 Genau drei Quelltextänderungen: Helperimport `../../contracts/ContractValidation.ps1`,
 Repositorywurzel drei Eltern über `$PSScriptRoot`, Fixtureziel
 `scripts/tests/contracts/Test-Contracts.ps1`. Kein fachlicher Test geändert.
-`SKILLS.md` nennt den aktuellen Aufruf. `TASK60-EVIDENCE.md` kennzeichnet
+`SKILLS.md` kennzeichnet den historischen Nachweisstand und verweist auf die aktuelle Prüfregel. `TASK60-EVIDENCE.md` kennzeichnet
 Altpfade und Originalhashes als historischen Abnahmestand und verlinkt die
 aktuelle Integration. Acht Schema-/JSON-Dateien aus Task60 bleiben unverändert.
 Keine Fachlogik-, Modell-, Reasoning-, Rechte-, Auth-, Rollen- oder Indexänderung.
@@ -100,7 +100,7 @@ Organisationsindizes geladen. Die bisherige Abnahme bleibt im
 | Rebasediff / Whitespace | Rebase `=`; `git diff --check` und gestagter Check Exit 0 | Runtime-Protokoll und Übergabe |
 | GitHub Actions | `enabled=false`, nur gelesen | [environment.json](scripts-order-evidence/environment.json) |
 
-Der damalige Skilltestaufruf und die zugehörigen Testcaller sind aufgehoben.
+Der damalige Skilltestaufruf und die zugehörigen Testcaller sind aufgehoben; es gilt die [aktuelle Prüfregel](../AGENTS.md).
 Die historischen JSON-Ergebnis- und Abnahmebelege bleiben unverändert; ein
 Produktivnachweis für einen Skillrunner ist weiterhin nicht dokumentiert.
 Starter -> Accounting bleibt `../accounting/Get-TaskTokenUsage.ps1` (Zeile 561);
@@ -139,21 +139,21 @@ Umschaltprüfung bleibt erforderlich. Die parallele unabhängige QA meldet
 Accountinglücken bei zwei alten Leitungen und zwei Story16-Abbrüchen; diese
 werden nicht durch eine Prozessbeendigung oder fehlende Runner geschlossen.
 
-## Sichtbarer echter Smoke: eigener Plan und paralleler Teamleiterlauf
+## Historischer Smokeplan und historischer paralleler Teamleiterlauf
 
 [Smokeplan](scripts-order-evidence/new-starter-smoke-plan.json) enthält Rolle,
 dreiwortigen Titel, absoluten neuen Starter, Arbeitsverzeichnis, ResultPath,
 gemeinsames Accounting und **ParentTaskId der Teamleitung**. Auftrag: keine Tools,
 Dateizugriffe oder Delegationen, ausschließlich `SCRIPTS_ORDER_SMOKE_OK`.
-Die Teamleitung startet den Smoke direkt als dritten Agentenlevel; der aktuelle
-Optimierer startet keinen weiteren Agenten. Keine produktive Änderung.
+Historisch war ein direkter Start durch die Teamleitung als dritter Agentenlevel geplant; der damalige
+Optimierer sollte keinen weiteren Agenten starten. Keine produktive Änderung.
 
-Bis zur Umstellung erfolgen sämtliche tatsächlichen Starts über den stabilen
-Übergangsstarter. Ein direkter neuer-Starter-Smoke davor benötigt eine ausdrücklich
-abgegrenzte Smokeausnahme durch die Teamleitung; alternativ folgt er nach der
-koordinierten Umstellung in eigener Folgestufe über den neuen Mainstarter.
-Der Plan ist ein vorbereiteter Aufruf, kein bestandener Sichtbarkeitsnachweis.
-Konkreter Aufruf durch die Teamleitung, ausschließlich nach Erfüllung dieses Gates:
+Der gesamte offene Smokeplan einschließlich des folgenden Aufrufs ist historisch
+und aktuell nicht auszuführen (siehe [aktuelle Prüfregel](../AGENTS.md)).
+Sämtliche Ausführungspflichten, Smokeausnahmen und späteren Folgestufen dieses
+Abschnitts sind aufgehoben, auch nach einer Umstellung auf den neuen Mainstarter.
+Der historische Plan ist kein bestandener Sichtbarkeitsnachweis.
+Historischer Originalaufruf, aktuell nicht auszuführen:
 
 ```powershell
 & 'C:/Users/Tom-OliverMarek/source/repos/agent-organization-scripts-order/scripts/delegation/Start-DelegatedCodexTask.ps1' `
@@ -166,10 +166,11 @@ Konkreter Aufruf durch die Teamleitung, ausschließlich nach Erfüllung dieses G
   -TimeoutSeconds 120
 ```
 
-Nach Umstellung kann derselbe Aufruf den neuen Mainstarter verwenden. Die
-Teamleitung aktualisiert ParentTaskId bei einem späteren eigenen Lauf; die
-oben gebundene ID ist die aktuelle Teamleitung und nicht der Optimierertask.
-Erforderliche Belege: go/window-ACK visible, controller_visibility_confirmed,
+Die früher vorgesehene Wiederverwendung nach Umstellung und Aktualisierung der
+ParentTaskId sind aufgehoben. Die oben gebundene ID bezeichnet die damalige
+Teamleitung und nicht den Optimierertask.
+Historisch vorgesehene Laufbelege, ohne aktuelle Ausführungspflicht:
+go/window-ACK visible, controller_visibility_confirmed,
 console_binding_verified, tatsächlicher neuer Runnerpfad, exakte Antwort,
 success/completed, window_closed, usage_finalized, Parent/Ledgerzuordnung und
 keine Toolitems. Own/inclusive nicht addieren. Fehlende Messung bleibt unbekannt.
@@ -197,7 +198,7 @@ Parent ist die aktuelle Teamleitung `1366a0a484bd401d967c166977d72c63`, Accounti
 das gemeinsame `agent-org-backlog-accounting`. Own=inclusive **70.641 Tokens**,
 ein deduplizierter Datensatz, missing_count=0; einmal zählen, kein Eigenverbrauch
 dieses Optimierers. Keine vierte Agentenebene. Diese fremde beauftragte Evidenz
-ersetzt keine unabhängige finale Headabnahme; der ursprüngliche Plan bleibt vorbereitet.
+ersetzt keine unabhängige finale Headabnahme oder eigene Elternabnahme; der ursprüngliche Plan bleibt ausschließlich historisch und aktuell nicht auszuführen.
 
 ## Backup-/Spiegelplan und verbleibende Abnahmen
 
