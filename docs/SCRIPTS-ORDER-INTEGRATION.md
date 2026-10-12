@@ -37,7 +37,7 @@ Konfliktfreier Rebase-Head: `c9a3e56f01c6a185552e706703e4b748a244435e`.
 Der endgültige veröffentlichte Head wird im Übergabebericht und der
 Runtime-Veröffentlichungsquittung festgehalten; kein rekursiver Eigenhash.
 
-Task60 brachte elf Dateien. Genau eine zusätzliche PS-Datei wurde verschoben:
+Historische Movebeschreibung: Task60 brachte elf Dateien. Genau eine zusätzliche PS-Datei wurde verschoben:
 `scripts/Test-SkillContracts.ps1` ->
 `scripts/tests/contracts/Test-SkillContracts.ps1`.
 Genau drei Quelltextänderungen: Helperimport `../../contracts/ContractValidation.ps1`,
@@ -76,20 +76,6 @@ scripts/
     Set-WorkItem.ps1
     Test-WorkItems.ps1
     WorkItemStore.psm1
-  tests/
-    accounting/
-      Test-RolloutTaskUsage.ps1
-      Test-TaskTokenUsage.ps1
-    contracts/
-      Test-Contracts.ps1
-      Test-SkillContracts.ps1
-    delegation/
-      Test-DelegatedProgress.ps1
-    workitems/
-      RecoveryWorker.ps1
-      Test-WorkItemStore.ps1
-      Test-WorkItemStoreRecovery.ps1
-      Worker.ps1
 ```
 
 ## Prüfungen, Caller und Grenzen
@@ -114,16 +100,14 @@ Organisationsindizes geladen. Die bisherige Abnahme bleibt im
 | Rebasediff / Whitespace | Rebase `=`; `git diff --check` und gestagter Check Exit 0 | Runtime-Protokoll und Übergabe |
 | GitHub Actions | `enabled=false`, nur gelesen | [environment.json](scripts-order-evidence/environment.json) |
 
-Konkreter neuer Testaufruf:
-`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/contracts/Test-SkillContracts.ps1 -ResultPath runtime/scripts-order/integration/skills.json`.
-Dieser prüft Default-PowerShell-Fixture, Pfadexistenz, Sprachen, Node-Syntax,
-JSON-/Antwortsemantik und Negativfälle. Er führt weder produktive Skills noch
-`Test-Contracts.ps1` aus. Produktiver Skillrunner bleibt unbelegt und außerhalb Scope.
+Der damalige Skilltestaufruf und die zugehörigen Testcaller sind aufgehoben.
+Die historischen JSON-Ergebnis- und Abnahmebelege bleiben unverändert; ein
+Produktivnachweis für einen Skillrunner ist weiterhin nicht dokumentiert.
 Starter -> Accounting bleibt `../accounting/Get-TaskTokenUsage.ps1` (Zeile 561);
 Store -> Validator bleibt `scripts/workitems/Test-WorkItems.ps1`;
-Contracttest -> Validator/Helper bleibt `../../workitems` / `../../contracts`.
-Skillcaller: Helper Zeile 4, Root Zeile 5, Fixture Zeile 105; SKILLS.md
-enthält den aktuellen Testbefehl. Historische JSON-Abnahmebelege werden nicht umgeschrieben.
+Historische Abhängigkeit des damaligen Contracttests: Validator/Helper unter `../../workitems` / `../../contracts`; der Contracttest und diese Testabhängigkeit sind aufgehoben.
+Vertrags- und Abnahmeverweise außerhalb der freigegebenen Dokumentationspfade
+bleiben als offene geschützte Referenzen bestehen.
 
 ## Altjobs, Prozessidentität und Übergang
 

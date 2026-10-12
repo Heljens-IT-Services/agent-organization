@@ -41,9 +41,7 @@ vorhanden; GitHub Actions sind deaktiviert.
 [WorkItem-Verträge](docs/contracts/WORKITEMS.md) trennen Umsetzung und Abnahme;
 [Organisationsverträge](docs/contracts/ORGANIZATION.md) validieren die bestehenden
 Indizes. [Entscheidung 0001](docs/decisions/0001-system-scope.md) legt Struktur und
-Folgeumfang fest. Prüfung unter Windows PowerShell 5.1:
-
-```powershell
-.\scripts\tests\contracts\Test-Contracts.ps1
-.\scripts\contracts\Test-Organization.ps1
-```
+Folgeumfang fest. Der frühere Test-Contracts-Aufruf ist aufgehoben; technische
+Testinfrastruktur wird nicht mehr mitgeführt. Der produktive
+Organisationsvertragsvalidator bleibt verfügbar:
+`scripts/contracts/Test-Organization.ps1`.
