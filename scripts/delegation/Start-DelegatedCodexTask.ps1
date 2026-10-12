@@ -735,7 +735,7 @@ try {
     Write-Json $resultFile $evidence
     if ($job.work_item_id) {
         try {
-            $reservation = Join-Path $job.accounting_directory ('execution-' + (([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$job.execution_id)))).Replace('-', '').ToLowerInvariant()) + '.json')
+            $reservation = Join-Path $job.accounting_directory ('execution-' + (([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$job.execution_id)))).Replace('-', '').ToLowerInvariant()) + '.json')
             if (-not (Test-Path -LiteralPath $reservation)) { throw 'Global execution reservation missing before transfer.' }
             $reservationData = [IO.File]::ReadAllText($reservation, $utf8) | ConvertFrom-Json
             if ($reservationData.task_id -cne $job.task_id -or $reservationData.workItemId -cne $job.work_item_id -or $reservationData.executionId -cne $job.execution_id) { throw 'Execution reservation mismatch before transfer.' }
