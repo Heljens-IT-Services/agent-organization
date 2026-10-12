@@ -1,0 +1,22 @@
+{
+  "recordedState": "historical final QA evidence copied from the external task directory; absolute TEMP paths in execution data describe the original runs",
+  "sourceRevision": "23d7b6c5a80fd7552bbec464f07cba925dbaf34a",
+  "sourceSha256": "372534F7B2F30A99EAFF5609992275487ACE2B5288861542187CE28A1FA25630",
+  "results": {
+    "recovery": { "exitCode": 0, "passed": 27, "total": 27 },
+    "store": { "exitCode": 0, "passed": 14, "total": 14 },
+    "contracts": { "exitCode": 0, "passed": 75, "total": 75 },
+    "workitems": { "exitCode": 0, "valid": true, "workItemCount": 3, "transitionsChecked": false }
+  },
+  "relativeReproduction": [
+    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\Test-WorkItemStoreRecovery.ps1 -ResultPath <isolated-result.json>",
+    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\Test-WorkItemStore.ps1 -ResultPath <isolated-result.json>",
+    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\Test-Contracts.ps1 -ResultPath <isolated-result.json>",
+    "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\Test-WorkItems.ps1 -Path .\\examples\\workitems\\goal-with-children.json -RepositoryRoot ."
+  ],
+  "limits": [
+    "These are copied historical results, not reruns in this publication-preparation task.",
+    "Execution JSON retains original absolute TEMP paths as historical run metadata.",
+    "No conclusion of Story 15 or Epic 6 acceptance is made here."
+  ]
+}

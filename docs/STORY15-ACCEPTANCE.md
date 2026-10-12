@@ -1,0 +1,24 @@
+# Eigene Elternabnahme Story #15
+
+Entscheidung teamleiter_softwareentwicklung am 12.10.2026: Story #15 mit Tasks #32/#33 accepted im lokalen Windows-/NTFS-Scope. Diese Kriterienentscheidung ist die eigene Elternabnahme und folgt nicht allein aus Kinderabschlüssen.
+
+Branch: feature/story15-store-recovery. Basis: 23d7b6c5a80fd7552bbec464f07cba925dbaf34a, Story14 Merge PR69. Fachbeiträge: bestehender Architekturbericht (WorkItem A), Backend und gezielte Startzeit-Rework (B), unabhängige QA (C), Betriebsanleitung und dauerhafte Belegsicherung (F). Die ursprünglichen qa-final/infra-final Runner endeten ohne terminale Abschlussdateien; ihre gesicherten Ausführungsbelege wurden übernommen, Prozesszuordnung geklärt und durch einen begrenzten unabhängigen Belegabschluss dem aktuellen Quellstand zugeordnet. Es wurden keine alten aktiven Schreiber übernommen oder beendet.
+
+## Eigene Kriterienentscheidung
+
+1. Aktive lange Bearbeitung verliert ihre Sperre nicht: Der finale Recoveryfall hält einen echten exklusiven Handle mit altem Erwerbszeitpunkt; nach Timeout eines Konkurrenten schreibt der ursprüngliche Besitzer weiter. Auch irreführende tote Metadaten erlauben keine Übernahme eines gehaltenen Handles. Erfüllt.
+2. Tote Besitzer sind wiederherstellbar, unklare Sperren bleiben geschützt und sichtbar: lokaler Hostanker, PID und gültige UTC-Startzeit werden vor der Todentscheidung geprüft; sicher tote und Startzeit-Mismatch-Fälle sowie Recoveryrennen bestehen. Lebende, fremde, Legacy-, kaputte Startzeit-/JSON-/UTF8- und verweigerte Abfragefälle bleiben geschützt. Übernahme erfolgt nur unter exklusivem Inspektionshandle. Alter allein ist kein Totnachweis. Erfüllt.
+3. Keine verlorene Änderung und kein Teil-JSON in Konkurrenztests: echte R0-Writer erzeugen einen Gewinner und RevisionConflict mit byteidentischem Ziel; neuer Prozess liest frisch und erhält beim Retry beide Änderungen. Ungültiges UTF8/JSON/Schema bleibt byteidentisch. Externe Kills bei partiellem Kandidaten und vor/nach Replace sowie vor/nach initialem Move hinterlassen vollständigen gültigen alten/neuen Bestand oder das geschützte fehlende Initialziel mit Artefakten. Erfüllt im geprüften Fehlermodell.
+4. Wiederanlauf und Wiederherstellung anhand der Anleitung reproduzierbar: unabhängiger Betriebspfad mit persistentem lokalem NTFS-Ordner, öffentlichen Callern und unverändertem RepositoryRoot ist belegt. Neuer Prozess verwendet nach Kill das unveränderte Originalmodul; konservativer Klärungsweg schützt unklare Locks und alte/fremde Artefakte. Vor initialem Move bleibt StoreRecoveryRequired ausdrücklich ein geschützter Zustand; es gibt kein automatisches Candidate-Replay. Die Anleitung beschreibt Sicherung, Diagnose und manuelle Entscheidung, keine unbelegte automatische Reparatur. Erfüllt.
+
+## Finale Nachweise
+
+[Runmanifest](story15-evidence/run-manifest.json): Recovery 27/27, Store 14/14, Contracts 75/75, jeweils Exitcode 0; WorkItems-Beispiel valid mit drei Einträgen (keine erfundene 3/3-Testsuite). Originalausführung Windows PowerShell 5.1.26100.9549, lokales NTFS, Recovery 2026-10-12T09:33:26.5441881Z. Sechs externe Prozesskills einschließlich Lockbesitzer und fünf Veröffentlichungsbarrieren; Wiederanlauf und weitere Änderung über Originalmodul belegt. Keine Tests nur wegen fehlenden Turnabschlusses wiederholt.
+
+Geprüfter Modul-Byte-SHA256: 372534F7B2F30A99EAFF5609992275487ACE2B5288861542187CE28A1FA25630; vor/nach Lauf identisch. LF-normalisiert: E9547B3AEDB617F8003C310A57AB5A71F186E67FA9BD9624CFDEA1A018ECA401. Test- und Workerhashes im [Quellenbeleg](story15-evidence/qa-final-source-evidence.json). Dokumentation wurde danach eng um Schemafehler und dauerhafte Links präzisiert; ihr historischer Laufhash ist kein finaler Dokumenthash. Story14-Hash entspricht dem LF-Gitblob, Checkout-CRLF erklärt dessen historischen Unterschied.
+
+## Grenzen und Publikationsentscheidung
+
+Lokales Windows/NTFS mit kooperierenden Callern. Externe Prozesskills an Barrieren belegen keine Unterbrechung innerhalb des atomaren OS-Schritts, keinen Stromausfall, Reboot während Veröffentlichung, Cache-/Controllerverlust oder Datenträgerkorruption. Keine Zusage für SMB, Cloudsync, verteilte/geklonte Hosts, andere Dateisysteme oder Alias-/Hardlink-/Reparsepfade. Alte und unklare Artefakte bleiben erhalten; gültiger neuer Bestand wird nicht über Backup zurückgerollt.
+
+Freigegeben: explizite Story15-Store-/Recoverytest-/Betriebs-/Beleg-/Abnahmedateien committen und pushen; PR auf develop mit Closes #15/#32/#33, Closes #6 nur aufgrund gesonderter Epicabnahme. Issue-Nachweise schreiben und zurücklesen. Kein Merge, keine CI-Aktivierung, keine Rollen-/Index-/Vertrags-/Starteränderung. Integration bleibt beim Koordinator.

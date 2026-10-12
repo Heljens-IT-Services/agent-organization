@@ -1,0 +1,9 @@
+{
+    "suite":  "store",
+    "exitCode":  0,
+    "passed":  true,
+    "checkCount":  14,
+    "passedCount":  14,
+    "beforeHash":  "372534F7B2F30A99EAFF5609992275487ACE2B5288861542187CE28A1FA25630",
+    "afterHash":  "372534F7B2F30A99EAFF5609992275487ACE2B5288861542187CE28A1FA25630"
+}

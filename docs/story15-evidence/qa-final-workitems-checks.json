@@ -1,0 +1,9 @@
+{
+    "suite":  "workitems",
+    "exitCode":  0,
+    "fixture":  "examples/workitems/goal-with-children.json",
+    "output":  "\r\nvalid workItemCount transitionsChecked\r\n----- ------------- ------------------\r\n True             3              False\r\n\r\n\r\n",
+    "valid":  true,
+    "workItemCount":  3,
+    "transitionsChecked":  false
+}
