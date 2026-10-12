@@ -1,48 +1,58 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)][ValidateSet('Count','Reserve','Release','RegisterNative')][string]$Action,
+    [Parameter(Mandatory=$true)][ValidateSet('Count','Reserve','Release','RegisterNative','ConfirmInventory')][string]$Action,
     [Parameter(Mandatory=$true)][string]$DataDirectory,
-    [string]$TaskId,
-    [string]$DispatchId,
-    [string]$NativeThreadId,
-    [string]$Role,
-    [string]$ResultPath,
-    [string]$PayloadHash,
+    [string]$TaskId,[string]$DispatchId,[string]$NativeThreadId,[string]$Role,[string]$ResultPath,[string]$PayloadHash,
+    [string]$InventoryEpoch,[string]$InventoryJson,
+    [string]$DispatchJournalPath,
     [ValidateRange(1,100)][int]$Capacity=4,
     [ValidateSet('reserved','active','unknown','terminal')][string]$State='reserved'
 )
 $ErrorActionPreference='Stop'
+function Convert-RegistryGuid([string]$Value,[string]$Format){$parsed=[guid]::Empty;if([guid]::TryParse($Value,[ref]$parsed)){return $parsed.ToString($Format)};return $Value}
+if($TaskId){$TaskId=Convert-RegistryGuid $TaskId 'D'};if($DispatchId){$DispatchId=Convert-RegistryGuid $DispatchId 'D'}
 $root=[IO.Path]::GetFullPath($DataDirectory);[void][IO.Directory]::CreateDirectory($root)
-$file=Join-Path $root 'executions.json';$mutex=New-Object Threading.Mutex($false,'Global\AgentOrganizationCoordinatorExecutions')
+$file=Join-Path $root 'executions.json';$inventoryFile=Join-Path $root 'execution-inventory.json';$mutex=New-Object Threading.Mutex($false,'Global\AgentOrganizationCoordinatorExecutions')
 if(-not $mutex.WaitOne([TimeSpan]::FromSeconds(30))){throw 'ExecutionRegistryLockUnavailable'}
 try {
-    $entries=@();if(Test-Path -LiteralPath $file){try{$entries=@([IO.File]::ReadAllText($file,[Text.Encoding]::UTF8)|ConvertFrom-Json)}catch{throw 'ExecutionRegistryUnreadable; capacity remains closed'}}
-    if($Action -eq 'Count'){
-        $active=@($entries|Where-Object{$_.state -ne 'terminal'});$aliases=@{};$unique=@{}
-        foreach($e in $active){if(-not $e.executionId -or (-not $e.taskId -and -not $e.nativeThreadId)){throw 'ExecutionRegistryAmbiguous; capacity remains closed'};$keys=@([string]$e.executionId);if($e.taskId){$keys+='task:'+[string]$e.taskId};if($e.nativeThreadId){$keys+='thread:'+[string]$e.nativeThreadId};$key=$null;foreach($k in $keys){if($aliases.ContainsKey($k)){$key=$aliases[$k];break}};if(-not $key){$key=[string]$e.executionId;$unique[$key]=$e};foreach($k in $keys){$aliases[$k]=$key}}
-        [pscustomobject]@{Count=$unique.Count;Executions=@($unique.Values);CapacityKnown=$true};return
+    $entries=@();if(Test-Path -LiteralPath $file){try{$parsed=[IO.File]::ReadAllText($file,[Text.Encoding]::UTF8)|ConvertFrom-Json;$entries=@($parsed)}catch{throw 'ExecutionRegistryUnreadable; capacity remains closed'}}
+    foreach($e in $entries){foreach($name in @('inventoryAbsentAt','terminalAt')){if(-not $e.PSObject.Properties[$name]){$e|Add-Member -NotePropertyName $name -NotePropertyValue $null}}}
+    if($Action -eq 'ConfirmInventory'){
+        if(-not $InventoryEpoch -or -not $InventoryJson){throw 'CompleteInventoryAndEpochRequired'}
+        try{$provided=@($InventoryJson|ConvertFrom-Json -ErrorAction Stop)}catch{throw 'InventoryPayloadUnreadable'}
+        $seen=@{};$hasCoordinator=$false;foreach($x in $provided){if(-not $x.executionId -or -not $x.taskId -or $x.state -notin @('reserved','active','unknown')){throw 'InventoryEntryIncomplete'};if($x.role -ceq 'koordinator'){$hasCoordinator=$true};$xTask=Convert-RegistryGuid ([string]$x.taskId) 'D';$xExecution=Convert-RegistryGuid ([string]$x.executionId) 'D';$found=@($entries|Where-Object{(Convert-RegistryGuid ([string]$_.executionId) 'D') -eq $xExecution -or (Convert-RegistryGuid ([string]$_.taskId) 'D') -eq $xTask});if($found.Count){$e=$found[0];if($e.taskId -and (Convert-RegistryGuid ([string]$e.taskId) 'D') -cne $xTask){throw 'ExecutionIdentityConflict'};$e.nativeThreadId=$x.nativeThreadId;if($e.source -in @('native-inventory','native-registration') -and $e.state -ne 'terminal'){$e.state=$x.state};$seen[(Convert-RegistryGuid ([string]$e.executionId) 'D')]=$true}else{$seen[$xExecution]=$true;$entries+= [pscustomobject]@{executionId=$xExecution;taskId=$xTask;dispatchId=(Convert-RegistryGuid ([string]$x.dispatchId) 'D');nativeThreadId=$x.nativeThreadId;role=$x.role;resultPath=$x.resultPath;payloadHash=$x.payloadHash;state=$x.state;source='native-inventory';createdAt=[DateTime]::UtcNow.ToString('o');inventoryAbsentAt=$null;terminalAt=$null}}}
+        if(-not $hasCoordinator){throw 'CoordinatorMustBeIncludedInCompleteInventory'}
+        foreach($e in @($entries|Where-Object{$_.source -eq 'native-inventory' -and $_.state -ne 'terminal' -and -not $seen.ContainsKey((Convert-RegistryGuid ([string]$_.executionId) 'D'))})){$e.state='terminal';$e.inventoryAbsentAt=[DateTime]::UtcNow.ToString('o')}
+        $persist=$file+'.'+[guid]::NewGuid().ToString('N')+'.tmp';[IO.File]::WriteAllText($persist,(@($entries)|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false));if(Test-Path -LiteralPath $file){[IO.File]::Replace($persist,$file,$null)}else{[IO.File]::Move($persist,$file)}
+        $meta=[ordered]@{complete=$true;epoch=$InventoryEpoch;confirmedAt=[DateTime]::UtcNow.ToString('o');inventoryIds=@($seen.Keys|Sort-Object)}
+        [IO.File]::WriteAllText($inventoryFile,($meta|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+        [pscustomobject]@{Confirmed=$true;InventoryEpoch=$InventoryEpoch;InventoryIds=@($seen.Keys|Sort-Object);ImportedOrReconciledCount=$provided.Count};return
     }
-    if($Action -eq 'RegisterNative'){
-        if(-not $NativeThreadId -or -not $TaskId){throw 'NativeThreadIdAndTaskIdRequired'}
-        $match=@($entries|Where-Object{$_.taskId -eq $TaskId -or $_.nativeThreadId -eq $NativeThreadId})
-        if($match.Count){foreach($e in $match){if($e.taskId -ne $TaskId -or ($e.nativeThreadId -and $e.nativeThreadId -ne $NativeThreadId)){throw 'ExecutionIdentityConflict'};$e.nativeThreadId=$NativeThreadId;$e.state=$State};$entry=$match[0]}
-        else{$entry=[pscustomobject]@{executionId=([guid]::NewGuid().ToString('N'));taskId=$TaskId;dispatchId=$DispatchId;nativeThreadId=$NativeThreadId;role=$Role;resultPath=$ResultPath;payloadHash=$PayloadHash;state=$State;createdAt=[DateTime]::UtcNow.ToString('o')};$entries+= $entry}
-    } elseif($Action -eq 'Reserve') {
+    if($Action -in @('Count','Reserve')){
+        if(-not (Test-Path -LiteralPath $inventoryFile)){throw 'NativeInventoryUnconfirmed; capacity remains closed'}
+        try{$inv=[IO.File]::ReadAllText($inventoryFile,[Text.Encoding]::UTF8)|ConvertFrom-Json}catch{throw 'NativeInventoryUnreadable; capacity remains closed'}
+        if(-not $inv.complete -or -not $inv.epoch){throw 'NativeInventoryIncomplete; capacity remains closed'}
+        foreach($id in @($inv.inventoryIds)){$canonicalId=Convert-RegistryGuid ([string]$id) 'D';$present=@($entries|Where-Object{(Convert-RegistryGuid ([string]$_.executionId) 'D') -ceq $canonicalId});if($present.Count -eq 0){throw 'ConfirmedInventoryEntryMissing; capacity remains closed'}}
+    }
+    if($Action -eq 'Count' -or $Action -eq 'Reserve'){
+        $active=@($entries|Where-Object{$_.state -ne 'terminal'});$capacityUnknown=(@($active|Where-Object{$_.state -eq 'unknown'}).Count -gt 0);$aliases=@{};$unique=@{}
+        foreach($e in $active){if(-not $e.executionId -or (-not $e.taskId -and -not $e.nativeThreadId)){throw 'ExecutionRegistryAmbiguous; capacity remains closed'};$keys=@((Convert-RegistryGuid ([string]$e.executionId) 'D'));if($e.taskId){$keys+='task:'+(Convert-RegistryGuid ([string]$e.taskId) 'D')};if($e.nativeThreadId){$keys+='thread:'+[string]$e.nativeThreadId};$key=$null;foreach($k in $keys){if($aliases.ContainsKey($k)){$key=$aliases[$k];break}};if(-not $key){$key=[string]$e.executionId;$unique[$key]=$e};foreach($k in $keys){$aliases[$k]=$key}}
+        if($Action -eq 'Count') {[pscustomobject]@{Count=$unique.Count;Executions=@($unique.Values);CapacityKnown=(-not $capacityUnknown);CapacityUnknown=$capacityUnknown;InventoryEpoch=$inv.epoch};return}
+        if($capacityUnknown){throw 'CapacityUnknown; inventory remains closed'}
         if(-not $TaskId -or -not $DispatchId -or -not $PayloadHash){throw 'TaskIdDispatchIdAndPayloadHashRequired'}
-        $entry=@($entries|Where-Object{$_.dispatchId -eq $DispatchId -or $_.taskId -eq $TaskId})|Select-Object -First 1
-        if($entry){if($entry.taskId -ne $TaskId -or $entry.dispatchId -ne $DispatchId -or $entry.payloadHash -ne $PayloadHash){throw 'ExecutionIdentityConflict'};$copy=$entry|Select-Object *;$copy|Add-Member -NotePropertyName Reused -NotePropertyValue $true;return $copy}
-        $active=@($entries|Where-Object{$_.state -ne 'terminal'});$aliases=@{};$known=@{};foreach($e in $active){if(-not $e.executionId -or (-not $e.taskId -and -not $e.nativeThreadId)){throw 'ExecutionRegistryAmbiguous; admission denied'};$keys=@([string]$e.executionId);if($e.taskId){$keys+='task:'+[string]$e.taskId};if($e.nativeThreadId){$keys+='thread:'+[string]$e.nativeThreadId};$key=$null;foreach($k in $keys){if($aliases.ContainsKey($k)){$key=$aliases[$k];break}};if(-not $key){$key=[string]$e.executionId;$known[$key]=$true};foreach($k in $keys){$aliases[$k]=$key}}
-        if($known.Count -ge $Capacity){throw 'CoordinatorCapacityFull'}
-        $entry=[pscustomobject]@{executionId=$DispatchId;taskId=$TaskId;dispatchId=$DispatchId;nativeThreadId=$null;role=$Role;resultPath=$ResultPath;payloadHash=$PayloadHash;state='reserved';createdAt=[DateTime]::UtcNow.ToString('o')};$entries+= $entry;$entry|Add-Member -NotePropertyName Reused -NotePropertyValue $false
-    } elseif($Action -eq 'Release') {
-        $entry=@($entries|Where-Object{$_.dispatchId -eq $DispatchId -or $_.taskId -eq $TaskId})|Select-Object -First 1
-        if(-not $entry){throw 'ExecutionReservationNotFound'}
-        # A slot is released only by persisted terminal result evidence.
-        if(-not $ResultPath -or -not (Test-Path -LiteralPath $ResultPath -PathType Leaf)){throw 'TerminalResultRequiredToRelease'}
-        $result=[IO.File]::ReadAllText($ResultPath,[Text.Encoding]::UTF8)|ConvertFrom-Json
-        if(-not $result.terminal_outcome -and -not $result.success -and -not $result.error){throw 'TerminalResultUnclear; reservation retained'}
+        $existing=@($entries|Where-Object{(Convert-RegistryGuid ([string]$_.dispatchId) 'D') -eq $DispatchId -or (Convert-RegistryGuid ([string]$_.taskId) 'D') -eq $TaskId})|Select-Object -First 1
+        if($existing){if((Convert-RegistryGuid ([string]$existing.taskId) 'D') -ne $TaskId -or (Convert-RegistryGuid ([string]$existing.dispatchId) 'D') -ne $DispatchId -or $existing.payloadHash -ne $PayloadHash -or ([string]$existing.resultPath -cne [string]$ResultPath) -or ([string]$existing.dispatchJournalPath -cne [string]$DispatchJournalPath)){throw 'ExecutionIdentityConflict'};$copy=$existing|Select-Object *;$copy|Add-Member -NotePropertyName Reused -NotePropertyValue $true;return $copy}
+        if($unique.Count -ge $Capacity){throw 'CoordinatorCapacityFull'}
+        $entry=[pscustomobject]@{executionId=$DispatchId;taskId=$TaskId;dispatchId=$DispatchId;nativeThreadId=$null;role=$Role;resultPath=$ResultPath;payloadHash=$PayloadHash;dispatchJournalPath=$DispatchJournalPath;state='reserved';createdAt=[DateTime]::UtcNow.ToString('o');inventoryAbsentAt=$null;terminalAt=$null};$entries+= $entry;$returned=$entry|Select-Object *;$returned|Add-Member -NotePropertyName Reused -NotePropertyValue $false;$entry=$returned
+    } elseif($Action -eq 'RegisterNative'){
+        if(-not $NativeThreadId -or -not $TaskId){throw 'NativeThreadIdAndTaskIdRequired'};$match=@($entries|Where-Object{(Convert-RegistryGuid ([string]$_.taskId) 'D') -eq $TaskId -or $_.nativeThreadId -ceq $NativeThreadId});if($match.Count){foreach($e in $match){if((Convert-RegistryGuid ([string]$e.taskId) 'D') -ne $TaskId -or ($e.nativeThreadId -and $e.nativeThreadId -cne $NativeThreadId)){throw 'ExecutionIdentityConflict'};$e.nativeThreadId=$NativeThreadId;$e.state=$State};$entry=$match[0]}else{$id=if($DispatchId){$DispatchId}else{$TaskId};$entry=[pscustomobject]@{executionId=$id;taskId=$TaskId;dispatchId=$DispatchId;nativeThreadId=$NativeThreadId;role=$Role;resultPath=$ResultPath;payloadHash=$PayloadHash;state=$State;source='native-registration';createdAt=[DateTime]::UtcNow.ToString('o')};$entries+= $entry}
+    } elseif($Action -eq 'Release'){
+        $entry=@($entries|Where-Object{(Convert-RegistryGuid ([string]$_.dispatchId) 'D') -eq $DispatchId -and (Convert-RegistryGuid ([string]$_.taskId) 'D') -eq $TaskId})|Select-Object -First 1;if(-not $entry){throw 'ExecutionReservationNotFound'}
+        if(-not $ResultPath -or [IO.Path]::GetFullPath($ResultPath) -cne [IO.Path]::GetFullPath([string]$entry.resultPath) -or -not (Test-Path -LiteralPath $ResultPath -PathType Leaf)){throw 'BoundTerminalResultRequiredToRelease'}
+        try{$result=[IO.File]::ReadAllText($ResultPath,[Text.Encoding]::UTF8)|ConvertFrom-Json}catch{throw 'TerminalResultUnreadable; reservation retained'}
+        if((Convert-RegistryGuid ([string]$result.task_id) 'D') -cne $TaskId -or ($result.dispatch_id -and (Convert-RegistryGuid ([string]$result.dispatch_id) 'D') -cne $DispatchId)){throw 'TerminalResultBindingMismatch; reservation retained'}
+        $boundJournal=[string]$entry.dispatchJournalPath; if(-not $boundJournal){$jobPath=[string]$ResultPath+'.job.json';if(-not (Test-Path -LiteralPath $jobPath -PathType Leaf)){throw 'BoundJobRequired; reservation retained'};try{$boundJob=[IO.File]::ReadAllText($jobPath,[Text.Encoding]::UTF8)|ConvertFrom-Json}catch{throw 'BoundJobUnreadable; reservation retained'};if((Convert-RegistryGuid ([string]$boundJob.task_id) 'D') -cne $TaskId -or (Convert-RegistryGuid ([string]$boundJob.dispatch_id) 'D') -cne $DispatchId -or [string]$boundJob.payload_hash -cne [string]$entry.payloadHash -or -not $boundJob.result_file -or [IO.Path]::GetFullPath([string]$boundJob.result_file) -cne [IO.Path]::GetFullPath([string]$entry.resultPath) -or -not $boundJob.PSObject.Properties['dispatch_journal_path']){throw 'BoundJobMismatch; reservation retained'};$boundJournal=[string]$boundJob.dispatch_journal_path};if($DispatchJournalPath -and $boundJournal -and [IO.Path]::GetFullPath($DispatchJournalPath) -cne [IO.Path]::GetFullPath($boundJournal)){throw 'DispatchJournalBindingMismatch; reservation retained'};if($boundJournal){$DispatchJournalPath=$boundJournal};if($DispatchJournalPath){$dm=Import-Module (Join-Path $PSScriptRoot 'CoordinatorDispatch.psm1') -PassThru -Force;$dispatch=& $dm {param($j,$id)Get-CoordinatorDispatch -JournalPath $j -ExecutionId $id} $DispatchJournalPath $DispatchId;if(-not $dispatch -or $dispatch.state -cne 'Returned' -or (Convert-RegistryGuid ([string]$dispatch.taskId) 'D') -cne $TaskId -or (Convert-RegistryGuid ([string]$dispatch.executionId) 'D') -cne $DispatchId -or -not $dispatch.input.resultPath -or [IO.Path]::GetFullPath([string]$dispatch.input.resultPath) -cne [IO.Path]::GetFullPath($ResultPath)){throw 'DispatchNotSafelyReturned; reservation retained'}}else{if($DispatchJournalPath -or $result.terminal_outcome -notin @('completed','failed','interrupted') -or (($result.PSObject.Properties['result_path'] -and ([string]::IsNullOrWhiteSpace([string]$result.result_path) -or [IO.Path]::GetFullPath([string]$result.result_path) -cne [IO.Path]::GetFullPath($ResultPath))) -or (-not $result.PSObject.Properties['result_path'] -and (-not $boundJob -or -not $boundJob.result_file -or [IO.Path]::GetFullPath([string]$boundJob.result_file) -cne [IO.Path]::GetFullPath($ResultPath))))){throw 'ExplicitBoundTerminalOutcomeRequired; reservation retained'}}
         $entry.state='terminal';$entry.resultPath=$ResultPath;$entry.terminalAt=[DateTime]::UtcNow.ToString('o')
     }
-    $temp=$file+'.tmp';[IO.File]::WriteAllText($temp,(@($entries)|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false));Move-Item -LiteralPath $temp -Destination $file -Force
-    $entry
+    $temp=$file+'.'+[guid]::NewGuid().ToString('N')+'.tmp';[IO.File]::WriteAllText($temp,(@($entries)|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false));if(Test-Path -LiteralPath $file){[IO.File]::Replace($temp,$file,$null)}else{[IO.File]::Move($temp,$file)};$entry
 } finally {$mutex.ReleaseMutex();$mutex.Dispose()}

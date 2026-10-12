@@ -13,6 +13,10 @@ param(
     [string]$AccountingDirectory,
     [string]$WorkItemStorePath,
     [string]$EventJournalPath,
+    [string[]]$ResultDirectories,
+    [string]$RegistryDirectory,
+    [string]$NativeInventoryPath,
+    [string]$CompleteEpoch,
     [ValidateRange(1,100)][int]$AutomationCapacity=4,
     [ValidateRange(1,100)][int]$ResumeRetryLimit=3,
     [ValidateRange(100,60000)][int]$RpcTimeoutMilliseconds=15000,
@@ -97,7 +101,9 @@ try {
     else { $session.Cwd=$effectiveCwd; $session.RuntimeExecutable=$effectiveExe; $session.CodexHome=$effectiveHome; $session.HistoryBase=$effectiveHome; Write-CoordinatorAtomicJson $path $session }
     $runtimeConfig.RuntimeExecutable=$effectiveExe; $runtimeConfig.WorkingDirectory=$effectiveCwd
     if(-not $EventJournalPath){$EventJournalPath=Join-Path $owner.DataDirectory 'events.store.json'}
-    if(-not $WorkItemStorePath){$WorkItemStorePath=Join-Path (Split-Path -Parent $PSScriptRoot) 'workitems/workitems.json'}
+    if(-not $WorkItemStorePath){$WorkItemStorePath=Join-Path (Split-Path -Parent $PSScriptRoot) 'runtime/workitems.json'}
+    if(-not $RegistryDirectory){$RegistryDirectory=$owner.DataDirectory}
+    if(-not $ResultDirectories){$ResultDirectories=@()}
     Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorEvents.psm1') -Force
     Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorAutomation.psm1') -Force
     if(-not (Test-Path -LiteralPath $EventJournalPath -PathType Leaf)){[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($EventJournalPath)));[IO.File]::WriteAllText($EventJournalPath,'{"schemaVersion":"1.0","events":[]}',$utf8)}
@@ -125,7 +131,7 @@ try {
         }
     } else {
         # Production host remains resident; callers use the single local dispatcher.
-        $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$ParentTaskId;Capacity=$AutomationCapacity}
+        $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$ParentTaskId;TaskId=$TaskId;WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;RuntimeConfig=$runtimeConfig}
         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request } { Invoke-CoordinatorAutomationIdle $automationConfig $runtime $session $path }
     }
 } catch {

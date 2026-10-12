@@ -108,6 +108,56 @@ function Test-CoordinatorNotificationBinding($Notification, [string]$ThreadId, [
     return $foundTurnId
 }
 
+function ConvertTo-CoordinatorEffectDecision($FinalItems, $Request, $Session, [string]$TerminalStatus, [bool]$InvalidFinalItem = $false) {
+    $status='Missing'; $plan=$null; $payload=$null; $errorText=$null
+    try {
+        if ($TerminalStatus -ne 'completed') { return @{effectPlan=$null;planPayloadBase64=$null;effectPlanStatus='Missing';effectPlanError='EffectPlanNotExecutable: non-completed turns cannot produce an executable plan.'} }
+        if ($InvalidFinalItem) { throw 'EffectFinalItemIdMissing' }
+        if (@($FinalItems).Count -eq 0) { return @{effectPlan=$null;planPayloadBase64=$null;effectPlanStatus='Missing';effectPlanError='EffectFinalItemMissing'} }
+        if (@($FinalItems).Count -ne 1) { throw 'EffectFinalItemAmbiguous' }
+        $final=@($FinalItems)[0]
+        $parsed=ConvertFrom-Json -InputObject ([string]$final.text) -ErrorAction Stop
+        if ($parsed -isnot [System.Management.Automation.PSCustomObject]) { throw 'EffectProtocolRootMustBeObject' }
+        $names=@($parsed.PSObject.Properties.Name)
+        if (@($names | Where-Object { $_ -notin @('version','disposition','reason','commands') }).Count -or
+            @(@('version','disposition','reason','commands') | Where-Object { $_ -notin $names }).Count) { throw 'EffectProtocolFieldsInvalid' }
+        if ([string]$parsed.version -cne '1' -or [string]$parsed.disposition -notin @('apply','no_change') -or
+            [string]::IsNullOrWhiteSpace([string]$parsed.reason) -or $parsed.commands -isnot [array]) { throw 'EffectProtocolHeaderInvalid' }
+        $commands=@($parsed.commands)
+        if (($parsed.disposition -eq 'no_change' -and $commands.Count -ne 0) -or
+            ($parsed.disposition -eq 'apply' -and $commands.Count -eq 0)) { throw 'EffectProtocolDispositionInvalid' }
+        $required=@('logicalSessionId','threadId','turnId','requestId','eventId','executionId','inputHash','baseRevision')
+        foreach($field in $required) { if ([string]::IsNullOrWhiteSpace([string](Get-CoordinatorConfigValue $Request $field))) { throw "EffectBindingMissing:$field" } }
+        if ([string]$Request.logicalSessionId -cne [string]$Session.LogicalSessionId -or [string]$Request.threadId -cne [string]$Session.NativeThreadId) { throw 'EffectHostBindingMismatch' }
+        $boundCommands=New-Object System.Collections.Generic.List[object]; $ordinal=0
+        foreach($command in $commands) {
+            if ($command -isnot [System.Management.Automation.PSCustomObject]) { throw 'EffectCommandMustBeObject' }
+            $kind=[string]$command.kind
+            if ($kind -eq 'set_workitem') {
+                if (@($command.PSObject.Properties.Name | Where-Object { $_ -notin @('kind','id','isNew','item') }).Count -or @(@('kind','id','isNew','item') | Where-Object { $_ -notin $command.PSObject.Properties.Name }).Count) { throw 'EffectSetWorkItemFieldsInvalid' }
+                if ([string]::IsNullOrWhiteSpace([string]$command.id) -or $null -eq $command.isNew -or $null -eq $command.item) { throw 'EffectSetWorkItemInvalid' }
+                if ($command.isNew -isnot [bool]) { throw 'EffectSetWorkItemIsNewMustBeBoolean' }
+                $bound=[ordered]@{kind=$kind;id=[string]$command.id;isNew=[bool]$command.isNew;item=$command.item}
+            } elseif ($kind -eq 'request_rework') {
+                if (@($command.PSObject.Properties.Name | Where-Object { $_ -notin @('kind','workItemId','purpose','priorExecutionId','priorGeneration','reason') }).Count -or @(@('kind','workItemId','purpose','priorExecutionId','priorGeneration','reason') | Where-Object { $_ -notin $command.PSObject.Properties.Name }).Count) { throw 'EffectRequestReworkFieldsInvalid' }
+                if ([string]::IsNullOrWhiteSpace([string]$command.workItemId) -or [string]$command.purpose -cne 'teamleiter-workitem' -or
+                    [string]::IsNullOrWhiteSpace([string]$command.priorExecutionId) -or $command.priorGeneration -isnot [int] -or
+                    [string]::IsNullOrWhiteSpace([string]$command.reason)) { throw 'EffectRequestReworkInvalid' }
+                $bound=[ordered]@{kind=$kind;workItemId=[string]$command.workItemId;purpose=[string]$command.purpose;priorExecutionId=[string]$command.priorExecutionId;priorGeneration=[int]$command.priorGeneration;reason=[string]$command.reason;sourceEventId=[string]$Request.eventId}
+            } else { throw 'EffectCommandKindUnsupported' }
+            $identity=[string]$Request.executionId+"`n"+[string]$Request.inputHash+"`n"+$ordinal
+            $sha=[Security.Cryptography.SHA256]::Create(); try { $effectId=([BitConverter]::ToString($sha.ComputeHash($script:Utf8.GetBytes($identity)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+            $bound.effectId=$effectId; $bound.ordinal=$ordinal; $boundCommands.Add($bound); $ordinal++
+        }
+        $plan=[ordered]@{version='1';logicalSessionId=[string]$Request.logicalSessionId;threadId=[string]$Request.threadId;turnId=[string]$Request.turnId;requestId=[string]$Request.requestId;eventId=[string]$Request.eventId;executionId=[string]$Request.executionId;inputHash=[string]$Request.inputHash;baseRevision=[string]$Request.baseRevision;disposition=[string]$parsed.disposition;reason=[string]$parsed.reason;commands=@($boundCommands.ToArray())}
+        $planBytes=$script:Utf8.GetBytes((ConvertTo-Json -InputObject $plan -Depth 50 -Compress)); $sha=[Security.Cryptography.SHA256]::Create()
+        try { $planHash=([BitConverter]::ToString($sha.ComputeHash($planBytes))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+        $plan.planHash=$planHash; $payload=[Convert]::ToBase64String($planBytes)
+        $status='Complete'
+    } catch { $status='Invalid'; $errorText=$_.Exception.Message; $plan=$null; $payload=$null }
+    return @{effectPlan=$plan;planPayloadBase64=$payload;effectPlanStatus=$status;effectPlanError=$errorText}
+}
+
 function Start-CoordinatorRuntime($Config) {
     if ($Config.PSObject.Properties['RuntimeFactory'] -and $Config.RuntimeFactory) { return & $Config.RuntimeFactory $Config }
     $configuredExe=Get-CoordinatorConfigValue $Config 'RuntimeExecutable'
@@ -209,34 +259,47 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
     if ($Request.operation -eq 'Interrupt') { return @{status='Unavailable';requestId=$Request.requestId;message='No safely identified active turn.'} }
     if ($Request.operation -ne 'SubmitInput' -or -not $Request.requestId -or -not $Request.inputText) { return @{status='Rejected';requestId=$Request.requestId} }
     if ($Request.logicalSessionId -cne $Session.LogicalSessionId) { return @{status='Rejected';requestId=$Request.requestId} }
+    $effectMode=Get-CoordinatorConfigValue $Request 'effectMode'
+    if ($effectMode -and $effectMode -cne 'coordinator-effects-v1') { return @{status='Rejected';requestId=$Request.requestId;message='UnsupportedEffectMode'} }
+    if ($effectMode -eq 'coordinator-effects-v1') {
+        foreach($field in @('executionId','eventId','inputHash','baseRevision','threadId')) { if ([string]::IsNullOrWhiteSpace([string](Get-CoordinatorConfigValue $Request $field))) { return @{status='Rejected';requestId=$Request.requestId;message="UnsupportedEffectMode: missing $field binding."} } }
+        if ([string]$Request.threadId -cne [string]$Session.NativeThreadId) { return @{status='Rejected';requestId=$Request.requestId;message='EffectHostBindingMismatch: threadId.'} }
+    }
     $history=@($Session.RequestHistory); $fingerprint=[Convert]::ToBase64String([Security.Cryptography.SHA256]::Create().ComputeHash($script:Utf8.GetBytes([string]$Request.inputText)))
     $prior=@($history|Where-Object{$_.requestId -ceq $Request.requestId}|Select-Object -First 1)
-    if($prior.Count){if($prior[0].fingerprint -cne $fingerprint){return @{status='Rejected';requestId=$Request.requestId;message='RequestId payload conflict.'}};if($prior[0].outcome -in @('Starting','Running','Unknown') -or -not $prior[0].decision){return @{status='BlockedRecovery';requestId=$Request.requestId;classification='Unknown'}};return @{status='Duplicate';classification='Duplicate';requestId=$Request.requestId;outcome=$prior[0].outcome;decision=$prior[0].decision;assistantText=$prior[0].assistantText;turnId=$prior[0].turnId;tokenUsage=$prior[0].usage;usageStatus=$(if($null -eq $prior[0].usage){'unknown'}else{'known'})} }
+    if($prior.Count){$oldDecision=Get-CoordinatorConfigValue $prior[0] 'decision';$oldOutcome=Get-CoordinatorConfigValue $prior[0] 'outcome';if((Get-CoordinatorConfigValue $prior[0] 'fingerprint') -cne $fingerprint){return @{status='Rejected';requestId=$Request.requestId;message='RequestId payload conflict.'}};if($oldOutcome -in @('Starting','Running','Unknown') -or -not $oldDecision){return @{status='BlockedRecovery';requestId=$Request.requestId;classification='Unknown'}};return @{status='Duplicate';classification='Duplicate';requestId=$Request.requestId;outcome=$oldOutcome;decision=$oldDecision;assistantText=(Get-CoordinatorConfigValue $prior[0] 'assistantText');turnId=(Get-CoordinatorConfigValue $prior[0] 'turnId');tokenUsage=(Get-CoordinatorConfigValue $prior[0] 'usage');usageStatus=$(if($null -eq (Get-CoordinatorConfigValue $prior[0] 'usage')){'unknown'}else{'known'})} }
     if($history.Count -ge 256){return @{status='Rejected';requestId=$Request.requestId;message='Request history full; operator recovery required.'}}
     if ($Session.State -ne 'Ready') { return @{status='Busy';requestId=$Request.requestId} }
     $ledgerDirectory=if($Request.PSObject.Properties['accountingDirectory']){$Request.accountingDirectory}else{$null}
     if($ledgerDirectory -and -not [IO.Path]::IsPathRooted([string]$ledgerDirectory)){return @{status='Rejected';requestId=$Request.requestId;message='AccountingDirectory must be an explicit absolute path.'}}
-    $Session.RequestHistory=@($history)+@(@{requestId=$Request.requestId;fingerprint=$fingerprint;threadId=$Session.NativeThreadId;turnId=$null;outcome='Starting';usage=$null})
+    $historyEntry=@{requestId=$Request.requestId;fingerprint=$fingerprint;threadId=$Session.NativeThreadId;turnId=$null;outcome='Starting';usage=$null}
+    if($effectMode -eq 'coordinator-effects-v1'){ $historyEntry.effectMode=$effectMode; $historyEntry.executionId=[string]$Request.executionId; $historyEntry.eventId=[string]$Request.eventId; $historyEntry.inputHash=[string]$Request.inputHash; $historyEntry.baseRevision=[string]$Request.baseRevision }
+    $Session.RequestHistory=@($history)+@($historyEntry)
     $Session.State='StartingTurn'; $Session.LastRequestId=$Request.requestId; $Session.LastTurnId=$null; $Session.LastUsage=$null; $Session.LastOutcome='Starting'; $Session.LastSource=$Request.source
     Write-CoordinatorAtomicJson $SessionPath $Session
     try {
-        $started=Invoke-CoordinatorRuntimeRpc $Runtime 'turn/start' @{threadId=$Session.NativeThreadId;input=@(@{type='text';text=[string]$Request.inputText})} $rpcTimeout
+        $turnParams=@{threadId=$Session.NativeThreadId;input=@(@{type='text';text=[string]$Request.inputText})}
+        if($effectMode -eq 'coordinator-effects-v1') { $turnParams.sandboxPolicy=@{type='readOnly'} }
+        $started=Invoke-CoordinatorRuntimeRpc $Runtime 'turn/start' $turnParams $rpcTimeout
         $Session.LastTurnId=if($started.turn.id){[string]$started.turn.id}else{$null}
         if (-not $Session.LastTurnId) { throw 'RecoveryUnknown: turn/start ACK lacks turn ID.' }
-        $Session.State='RunningTurn'; Write-CoordinatorAtomicJson $SessionPath $Session
+        $Session.State='RunningTurn'; $runningEntry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$runningEntry.turnId=$Session.LastTurnId;$runningEntry.outcome='Running'; Write-CoordinatorAtomicJson $SessionPath $Session
         $turnTimeout=if($Runtime.TurnTimeoutMilliseconds){[int]$Runtime.TurnTimeoutMilliseconds}else{600000};$watch=[Diagnostics.Stopwatch]::StartNew(); $terminal=$false
         $usage=$null
-        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'tokenUsage') 'last'}; if ($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true } }
+        $assistantParts=New-Object System.Collections.Generic.List[string]
+        $finalItems=[ordered]@{}; $invalidFinalItem=$false
+        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'tokenUsage') 'last'}; if($n.method -eq 'item/agentMessage/delta' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$delta=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'delta';if($null -ne $delta){$assistantParts.Add([string]$delta)}}; if($effectMode -eq 'coordinator-effects-v1' -and $n.method -eq 'item/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){ $item=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'item';if((Get-CoordinatorConfigValue $item 'type') -eq 'agentMessage' -and (Get-CoordinatorConfigValue $item 'phase') -eq 'final_answer'){ $iid=[string](Get-CoordinatorConfigValue $item 'id');if(-not $iid){$invalidFinalItem=$true;continue};$itext=[string](Get-CoordinatorConfigValue $item 'text');if($finalItems.Contains($iid) -and $finalItems[$iid] -cne $itext){$iid='__conflict_'+[guid]::NewGuid().ToString('N')};$finalItems[$iid]=$itext } }; if ($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true } }
         while ($watch.ElapsedMilliseconds -lt $turnTimeout -and -not $Runtime.Process.HasExited) {
             if (-not $Runtime.PendingRead) { $Runtime.PendingRead=$Runtime.Reader.ReadLineAsync() }
-            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; $messageMethod=Get-CoordinatorConfigValue $m 'method'; if ($messageMethod) { $messageId=Get-CoordinatorConfigValue $m 'id';if($null -ne $messageId){throw 'BlockedRecovery: unsupported runtime server request.'};if($Runtime.Notifications.Count -ge 256){$Runtime.Notifications.RemoveAt(0)};[void]$Runtime.Notifications.Add($m) };if($messageMethod -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $m 'params') 'tokenUsage') 'last'};if ($messageMethod -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true; break } } }
+            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; $messageMethod=Get-CoordinatorConfigValue $m 'method'; if ($messageMethod) { $messageId=Get-CoordinatorConfigValue $m 'id';if($null -ne $messageId){throw 'BlockedRecovery: unsupported runtime server request.'};if((Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)){if($messageMethod -eq 'item/agentMessage/delta'){$delta=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $m 'params') 'delta';if($null -ne $delta){$assistantParts.Add([string]$delta)}};if($effectMode -eq 'coordinator-effects-v1' -and $messageMethod -eq 'item/completed'){ $item=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $m 'params') 'item';if((Get-CoordinatorConfigValue $item 'type') -eq 'agentMessage' -and (Get-CoordinatorConfigValue $item 'phase') -eq 'final_answer'){ $iid=[string](Get-CoordinatorConfigValue $item 'id');if(-not $iid){$invalidFinalItem=$true}else{$itext=[string](Get-CoordinatorConfigValue $item 'text');if($finalItems.Contains($iid) -and $finalItems[$iid] -cne $itext){$iid='__conflict_'+[guid]::NewGuid().ToString('N')};$finalItems[$iid]=$itext} } };if($messageMethod -eq 'thread/tokenUsage/updated'){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $m 'params') 'tokenUsage') 'last'};if($messageMethod -eq 'turn/completed'){$terminal=$true}};if($Runtime.Notifications.Count -ge 256){$Runtime.Notifications.RemoveAt(0)};[void]$Runtime.Notifications.Add($m) };if ($terminal) { break } } }
             if ($terminal) { break }
         }
         if (-not $terminal) { $Session.State='RecoveryUnknown'; $Session.LastOutcome='Unknown'; Write-CoordinatorAtomicJson $SessionPath $Session; return @{status='BlockedRecovery';requestId=$Request.requestId} }
         $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){$turnStatus=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'turn') 'status';if($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId) -and $turnStatus){$terminalStatus=[string]$turnStatus}}
         $Session.State='Ready'; $Session.LastOutcome=$terminalStatus; $Session.LastUsage=$usage
-        $assistantParts=@();foreach($n in @($Runtime.Notifications.ToArray())){if($n.method -eq 'item/agentMessage/delta' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$delta=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'delta';if($delta){$assistantParts+=([string]$delta)}}};$assistantText=($assistantParts -join '')
+        $assistantText=($assistantParts -join '')
         $decision=[ordered]@{outcome=$terminalStatus;requestId=$Request.requestId;turnId=$Session.LastTurnId;assistantText=$assistantText;usage=$usage;completedAtUtc=[DateTime]::UtcNow.ToString('o')}
+        if($effectMode -eq 'coordinator-effects-v1') { $effectRequest=[ordered]@{logicalSessionId=[string]$Session.LogicalSessionId;threadId=[string]$Session.NativeThreadId;turnId=[string]$Session.LastTurnId;requestId=[string]$Request.requestId;eventId=[string]$Request.eventId;executionId=[string]$Request.executionId;inputHash=[string]$Request.inputHash;baseRevision=[string]$Request.baseRevision}; $planDecision=ConvertTo-CoordinatorEffectDecision @($finalItems.GetEnumerator()|ForEach-Object{@{id=$_.Key;text=$_.Value}}) $effectRequest $Session $terminalStatus $invalidFinalItem; foreach($key in $planDecision.Keys){$decision[$key]=$planDecision[$key]} }
         $entry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$entry.turnId=$Session.LastTurnId;$entry.outcome=$terminalStatus;$entry.usage=$usage;$entry.assistantText=$assistantText;$entry.decision=$decision
         Write-CoordinatorAtomicJson $SessionPath $Session
         if($ledgerDirectory){
@@ -247,7 +310,7 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
             [void][IO.Directory]::CreateDirectory($ledgerDirectory);$ledgerPath=Join-Path $ledgerDirectory ($taskId+'.usage.json')
             if(-not [IO.File]::Exists($ledgerPath)){Write-CoordinatorAtomicJson $ledgerPath $record}
             $summary=& (Join-Path (Split-Path -Parent $PSScriptRoot) 'Get-TaskTokenUsage.ps1') -TaskId $taskId -AccountingDirectory $ledgerDirectory
-            return @{status='Accepted';requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageSummary=$summary}
+            return @{status=$(if($terminalStatus -eq 'completed'){'Accepted'}else{'Failed'});classification='Terminal';outcome=$terminalStatus;decision=$decision;assistantText=$assistantText;requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageSummary=$summary;usageStatus=$(if($null -eq $usage){'unknown'}else{'known'})}
         }
         return @{status=$(if($terminalStatus -eq 'completed'){'Accepted'}else{'Failed'});classification='Terminal';outcome=$terminalStatus;decision=$decision;assistantText=$assistantText;requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageStatus=$(if($null -eq $usage){'unknown'}else{'known'})}
     } catch {
@@ -273,8 +336,8 @@ function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest, [scriptblock]$O
             $line=$reader.ReadLine()
             if (-not $line -or $script:Utf8.GetByteCount($line) -gt 1048576) { throw 'InvalidRequest' }
             $request=$line|ConvertFrom-Json -ErrorAction Stop
+            if($OnIdle -and [DateTime]::UtcNow -ge $nextIdle){try{& $OnIdle}catch{if($_.Exception.Message -like 'BlockedRecovery:*' -or $_.Exception.Message -like 'RecoveryUnknown:*'){throw}};$nextIdle=[DateTime]::UtcNow.AddSeconds(5)}
             $response=& $OnRequest $request
-            $nextIdle=[DateTime]::UtcNow.AddSeconds(5)
             $writer=New-Object IO.StreamWriter($server,$script:Utf8,4096,$true); $writer.AutoFlush=$true
             $writer.WriteLine((ConvertTo-Json -InputObject $response -Depth 20 -Compress)); $writer.Dispose(); $reader.Dispose()
         } catch { if ($server -and $server.IsConnected) { $server.Dispose() }; if ($_.Exception.Message -like 'RetryableRuntimeExit:*' -or $_.Exception.Message -like 'BlockedRecovery:*' -or $_.Exception.Message -like 'RecoveryUnknown:*') { throw } }
