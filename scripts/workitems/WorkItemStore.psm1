@@ -1,3 +1,4 @@
+. (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
 Set-StrictMode -Version 2
 
 $script:WorkItemStoreLocks = @{}
@@ -188,6 +189,7 @@ function Get-WorkItemStoreResult {
         $artifacts = @(Get-WorkItemStoreLockArtifacts $path)
         if (-not [IO.File]::Exists($path) -and $artifacts.Count -gt 0) { New-WorkItemStoreError 'StoreRecoveryRequired' "Store '$path' is missing but publication artifacts are present; preserve them and resolve the intended revision manually: $($artifacts.FullName -join ', ')" }
         $snapshot = Get-WorkItemStoreSnapshot $path $RepositoryRoot
+        Resolve-WorkItemStoreOutbox $path $snapshot
         if ($snapshot.Exists) {
             $temporary = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + [Guid]::NewGuid().ToString('N') + '.read.tmp')
             try {
@@ -208,8 +210,77 @@ function ConvertTo-WorkItemStoreCandidate {
     } catch { New-WorkItemStoreError 'SerializationFailed' "WorkItem document serialization failed: $($_.Exception.Message)" }
 }
 
+function Write-WorkItemStoreOutbox($Path,$Outbox){Write-LCJournal ($Path+'.outbox.json') $Outbox}
+
+function Get-WorkItemStoreOutbox($Path) { $target=$Path+'.outbox.json';if(-not [IO.File]::Exists($target)){return [pscustomobject]@{schemaVersion='1.0';intents=@()}};try{return (Read-LCArchive $target ([IO.File]::ReadAllText($target,(New-Object Text.UTF8Encoding($false,$true)))|ConvertFrom-Json -ErrorAction Stop))}catch{New-WorkItemStoreError 'OutboxRecoveryRequired' "Outbox is unreadable; preserve it: $target"} }
+function Resolve-WorkItemStoreOutbox($Path,$Snapshot) {
+    $outbox=Get-WorkItemStoreOutbox $Path;if($outbox.schemaVersion -cne '1.0'){New-WorkItemStoreError 'OutboxRecoveryRequired' 'Unsupported outbox schema.'}
+    foreach($intent in @($outbox.intents)){foreach($field in @('publishedAtUtc','resolvedAtUtc')){if(-not $intent.PSObject.Properties[$field]){$intent|Add-Member -NotePropertyName $field -NotePropertyValue $null}}}
+    foreach($intent in @($outbox.intents|Where-Object{$_.state -ceq 'pending'})) { if($Snapshot.Revision -ceq $intent.candidateRevision){$intent.state='published';$intent.publishedAtUtc=[DateTime]::UtcNow.ToString('o')} elseif($Snapshot.Revision -ceq $intent.previousRevision){$intent.state='aborted';$intent.resolvedAtUtc=[DateTime]::UtcNow.ToString('o')} else {New-WorkItemStoreError 'OutboxRecoveryRequired' "Current revision matches neither outbox boundary for '$($intent.workItemId)'."};if($intent.PSObject.Properties['effectContext'] -and $intent.effectContext){$r=New-WorkItemStoreEffectReceipt $intent.effectContext $intent.operationHash $intent.state $intent.workItemId $intent.previousRevision $intent.candidateRevision ([bool]($intent.state -eq 'published')) $intent.intentId $intent.itemPayloadBase64;$storedPayload=Get-WorkItemStoreProperty $intent 'receiptPayloadBase64';$storedHash=Get-WorkItemStoreProperty $intent 'receiptHash';if($storedPayload -and $storedPayload -cne $r.receiptPayloadBase64){New-WorkItemStoreError 'EffectIdentityConflict' "Pending intent '$($intent.intentId)' has conflicting immutable receipt bytes."};if($storedHash -and $storedHash -cne $r.receiptHash){New-WorkItemStoreError 'EffectIdentityConflict' "Pending intent '$($intent.intentId)' has a conflicting immutable receipt hash."};if(-not $storedPayload){$intent|Add-Member -NotePropertyName receiptPayloadBase64 -NotePropertyValue $r.receiptPayloadBase64 -Force};if(-not $storedHash){$intent|Add-Member -NotePropertyName receiptHash -NotePropertyValue $r.receiptHash -Force}} }
+    Write-WorkItemStoreOutbox $Path $outbox
+}
+
+function Get-WorkItemStoreProperty($Object,[string]$Name) {
+    if ($null -eq $Object) { return $null }
+    if ($Object -is [System.Collections.IDictionary]) { if ($Object.Contains($Name)) { return $Object[$Name] }; return $null }
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -ne $property) { return $property.Value }
+    return $null
+}
+
+function Get-WorkItemStoreSha256([byte[]]$Bytes) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($sha.ComputeHash($Bytes)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+}
+
+function ConvertTo-WorkItemStoreCanonicalJson($Value) {
+    return (ConvertTo-Json -InputObject $Value -Depth 100 -Compress -ErrorAction Stop)
+}
+
+function ConvertTo-WorkItemStoreReceipt($Receipt) {
+    $payload=Get-WorkItemStoreProperty $Receipt 'receiptPayloadBase64';$receiptHash=Get-WorkItemStoreProperty $Receipt 'receiptHash'
+    if (-not $payload -or -not $receiptHash) { New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt has no immutable receipt payload.' }
+    try { $bytes = [Convert]::FromBase64String([string]$payload) } catch { New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt payload is invalid base64.' }
+    if ((Get-WorkItemStoreSha256 $bytes) -cne [string]$receiptHash) { New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt immutable payload hash does not match.' }
+    try { $data = ConvertFrom-Json -InputObject ((New-Object Text.UTF8Encoding($false,$true)).GetString($bytes)) -ErrorAction Stop } catch { New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt immutable payload cannot be decoded.' }
+    $receiptContext=Get-WorkItemStoreProperty $Receipt 'context';if($null -eq $receiptContext){$receiptContext=Get-WorkItemStoreProperty $Receipt 'effectContext'}
+    $expectedEffectId=Get-WorkItemStoreProperty $Receipt 'effectId';if(-not $expectedEffectId){$expectedEffectId=Get-WorkItemStoreProperty $receiptContext 'effectId'}
+    $expectedOperationHash=Get-WorkItemStoreProperty $Receipt 'operationHash'
+    if (-not $expectedEffectId -or -not $expectedOperationHash -or $data.effectId -cne [string]$expectedEffectId -or $data.operationHash -cne [string]$expectedOperationHash -or $data.context.effectId -cne [string]$expectedEffectId) { New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt identity binding conflicts.' }
+    if($receiptContext -and (ConvertTo-WorkItemStoreCanonicalJson $receiptContext) -cne (ConvertTo-WorkItemStoreCanonicalJson $data.context)){New-WorkItemStoreError 'EffectIdentityConflict' 'Effect receipt context binding conflicts.'}
+    return [pscustomobject]@{ effectId=$data.effectId; operationHash=$data.operationHash; context=$data.context; state=$data.state; workItemId=$data.workItemId; previousRevision=$data.previousRevision; candidateRevision=$data.candidateRevision; changed=[bool]$data.changed; intentId=$data.intentId; itemPayloadBase64=$data.itemPayloadBase64; receiptPayloadBase64=[string]$payload; receiptHash=[string]$receiptHash }
+}
+
+function New-WorkItemStoreEffectReceipt($Context,[string]$OperationHash,[string]$State,[string]$WorkItemId,[string]$PreviousRevision,[string]$CandidateRevision,[bool]$Changed,[string]$IntentId,[string]$ItemPayloadBase64) {
+    $body=[ordered]@{effectId=[string]$Context.effectId;operationHash=$OperationHash;context=$Context;state=$State;workItemId=$WorkItemId;previousRevision=$PreviousRevision;candidateRevision=$CandidateRevision;changed=$Changed;intentId=$IntentId;itemPayloadBase64=$ItemPayloadBase64}
+    $bytes=(New-Object Text.UTF8Encoding($false,$true)).GetBytes((ConvertTo-WorkItemStoreCanonicalJson $body))
+    return [pscustomobject]@{receiptPayloadBase64=[Convert]::ToBase64String($bytes);receiptHash=(Get-WorkItemStoreSha256 $bytes)}
+}
+
+function Get-WorkItemStoreEffectReceipt {
+    param([string]$Path,[string]$EffectId,[string]$RepositoryRoot,[int]$TimeoutMilliseconds=5000)
+    if ([string]::IsNullOrWhiteSpace($EffectId)) { New-WorkItemStoreError 'EffectIdentityConflict' 'EffectId is required.' }
+    $path=Resolve-WorkItemStorePath $Path $RepositoryRoot; $lock=Enter-WorkItemStoreLock $path $TimeoutMilliseconds
+    try {
+        $snapshot=Get-WorkItemStoreSnapshot $path $RepositoryRoot
+        Resolve-WorkItemStoreOutbox $path $snapshot
+        $outbox=Get-WorkItemStoreOutbox $path; $matches=@()
+        foreach($intent in @($outbox.intents)) { $ctx=Get-WorkItemStoreProperty $intent 'effectContext'; if ($null -ne $ctx -and [string](Get-WorkItemStoreProperty $ctx 'effectId') -ceq $EffectId) {
+            $payload=Get-WorkItemStoreProperty $intent 'receiptPayloadBase64'; $hash=Get-WorkItemStoreProperty $intent 'receiptHash'
+            $op=[string](Get-WorkItemStoreProperty $intent 'operationHash')
+            if (-not $payload -or -not $hash) { $itemBytes=[string](Get-WorkItemStoreProperty $intent 'itemPayloadBase64');$state=[string](Get-WorkItemStoreProperty $intent 'state');if (-not $op -or -not $itemBytes -or $state -cne 'published') { New-WorkItemStoreError 'OutboxRecoveryRequired' "Effect intent '$EffectId' lacks published receipt reconstruction metadata." };$receipt=New-WorkItemStoreEffectReceipt $ctx $op $state ([string](Get-WorkItemStoreProperty $intent 'workItemId')) ([string](Get-WorkItemStoreProperty $intent 'previousRevision')) ([string](Get-WorkItemStoreProperty $intent 'candidateRevision')) $true ([string](Get-WorkItemStoreProperty $intent 'intentId')) $itemBytes;if($payload -and $payload -cne $receipt.receiptPayloadBase64){New-WorkItemStoreError 'EffectIdentityConflict' "Effect intent '$EffectId' has conflicting immutable receipt bytes."};if($hash -and $hash -cne $receipt.receiptHash){New-WorkItemStoreError 'EffectIdentityConflict' "Effect intent '$EffectId' has a conflicting immutable receipt hash."};if(-not $payload){$intent|Add-Member -NotePropertyName receiptPayloadBase64 -NotePropertyValue $receipt.receiptPayloadBase64 -Force};if(-not $hash){$intent|Add-Member -NotePropertyName receiptHash -NotePropertyValue $receipt.receiptHash -Force};Write-WorkItemStoreOutbox $path $outbox;$payload=$receipt.receiptPayloadBase64;$hash=$receipt.receiptHash }
+            $matches+=,(ConvertTo-WorkItemStoreReceipt ([pscustomobject]@{effectId=$EffectId;context=$ctx;operationHash=$op;receiptPayloadBase64=$payload;receiptHash=$hash}))
+        } }
+        foreach($receipt in @(Get-WorkItemStoreProperty $outbox 'effectReceipts')) { if ([string](Get-WorkItemStoreProperty (Get-WorkItemStoreProperty $receipt 'context') 'effectId') -ceq $EffectId) { $matches+=,(ConvertTo-WorkItemStoreReceipt $receipt) } }
+        if ($matches.Count -gt 1) { $first=ConvertTo-WorkItemStoreCanonicalJson $matches[0];foreach($m in $matches | Select-Object -Skip 1){if((ConvertTo-WorkItemStoreCanonicalJson $m) -cne $first){New-WorkItemStoreError 'EffectIdentityConflict' "EffectId '$EffectId' has conflicting receipts."}};New-WorkItemStoreError 'EffectIdentityConflict' "EffectId '$EffectId' has multiple receipt records." }
+        if ($matches.Count -eq 0) { return $null }
+        if ($matches[0].state -ceq 'pending') { New-WorkItemStoreError 'OutboxRecoveryRequired' "EffectId '$EffectId' remains pending." }
+        return $matches[0]
+    } finally { Exit-WorkItemStoreLock $lock }
+}
+
 function Set-WorkItemStoreEntry {
-    param([string]$Path, [string]$Id, $Item, [bool]$IsNew, [string]$ExpectedRevision, [string]$RepositoryRoot, [int]$TimeoutMilliseconds)
+    param([string]$Path, [string]$Id, $Item, [bool]$IsNew, [string]$ExpectedRevision, [string]$RepositoryRoot, [int]$TimeoutMilliseconds, $EffectContext=$null)
     try { $Item = ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $Item -Depth 100 -ErrorAction Stop) -ErrorAction Stop } catch { New-WorkItemStoreError 'InvalidCandidate' "WorkItem item is not serializable JSON data: $($_.Exception.Message)" }
     $path = Resolve-WorkItemStorePath $Path $RepositoryRoot
     $lock = Enter-WorkItemStoreLock $path $TimeoutMilliseconds
@@ -218,6 +289,20 @@ function Set-WorkItemStoreEntry {
         $artifacts = @(Get-WorkItemStoreLockArtifacts $path)
         if (-not [IO.File]::Exists($path) -and $artifacts.Count -gt 0) { New-WorkItemStoreError 'StoreRecoveryRequired' "Store '$path' is missing but publication artifacts are present; preserve them and resolve the intended revision manually: $($artifacts.FullName -join ', ')" }
         $snapshot = Get-WorkItemStoreSnapshot $path $RepositoryRoot
+        Resolve-WorkItemStoreOutbox $path $snapshot
+        $effect=$null;$operationHash=$null;$itemPayloadBase64=$null
+        if ($null -ne $EffectContext) {
+            $required=@('effectId','executionId','requestId','threadId','turnId','eventId','inputHash','planHash','ordinal')
+            foreach($field in $required){if($null -eq (Get-WorkItemStoreProperty $EffectContext $field) -or [string]::IsNullOrWhiteSpace([string](Get-WorkItemStoreProperty $EffectContext $field))){New-WorkItemStoreError 'EffectIdentityConflict' "EffectContext.$field is required."}}
+            $ctx=[ordered]@{};foreach($field in $required){$ctx[$field]=Get-WorkItemStoreProperty $EffectContext $field};foreach($field in @('resumeEffectKind','resumeCommandHash')){if($null -ne (Get-WorkItemStoreProperty $EffectContext $field)){$ctx[$field]=Get-WorkItemStoreProperty $EffectContext $field}};$effect=[pscustomobject]$ctx
+            $itemJson=ConvertTo-WorkItemStoreCanonicalJson $Item;$itemBytes=(New-Object Text.UTF8Encoding($false,$true)).GetBytes($itemJson);$itemPayloadBase64=[Convert]::ToBase64String($itemBytes)
+            $opBody=[ordered]@{Id=$Id;IsNew=$IsNew;ExpectedRevision=$ExpectedRevision;Item=$Item;EffectContext=$effect};$opBytes=(New-Object Text.UTF8Encoding($false,$true)).GetBytes((ConvertTo-WorkItemStoreCanonicalJson $opBody));$operationHash=Get-WorkItemStoreSha256 $opBytes
+            $outbox=Get-WorkItemStoreOutbox $path;$known=@()
+            foreach($oldIntent in @($outbox.intents)){ $oldContext=Get-WorkItemStoreProperty $oldIntent 'effectContext';if($null -ne $oldContext -and [string](Get-WorkItemStoreProperty $oldContext 'effectId') -ceq $effect.effectId){$known+=,$oldIntent} }
+            foreach($oldReceipt in @(Get-WorkItemStoreProperty $outbox 'effectReceipts')){if([string](Get-WorkItemStoreProperty (Get-WorkItemStoreProperty $oldReceipt 'context') 'effectId') -ceq $effect.effectId){$known+=,$oldReceipt}}
+            if($known.Count -gt 1){New-WorkItemStoreError 'EffectIdentityConflict' "EffectId '$($effect.effectId)' has multiple prior records."}
+            if($known.Count -eq 1){$old=$known[0];$oldOp=[string](Get-WorkItemStoreProperty $old 'operationHash');$oldContext=Get-WorkItemStoreProperty $old 'effectContext';if($null -eq $oldContext){$oldContext=Get-WorkItemStoreProperty $old 'context'};if($oldOp -cne $operationHash -or (ConvertTo-WorkItemStoreCanonicalJson $oldContext) -cne (ConvertTo-WorkItemStoreCanonicalJson $effect)){New-WorkItemStoreError 'EffectIdentityConflict' "EffectId '$($effect.effectId)' was reused with different operation data."};$savedPayload=Get-WorkItemStoreProperty $old 'receiptPayloadBase64';$savedHash=Get-WorkItemStoreProperty $old 'receiptHash';if($savedPayload -and $savedHash){$saved=[pscustomobject]@{effectId=$effect.effectId;context=$oldContext;operationHash=$oldOp;receiptPayloadBase64=$savedPayload;receiptHash=$savedHash};$receipt=ConvertTo-WorkItemStoreReceipt $saved;$state=$receipt.state}else{$state=[string](Get-WorkItemStoreProperty $old 'state');if($state -cne 'published'){if($state -ceq 'aborted'){New-WorkItemStoreError 'EffectAborted' "EffectId '$($effect.effectId)' was previously aborted."};New-WorkItemStoreError 'OutboxRecoveryRequired' "EffectId '$($effect.effectId)' has no verifiable published receipt."};$itemBytes=[string](Get-WorkItemStoreProperty $old 'itemPayloadBase64');$workItemId=[string](Get-WorkItemStoreProperty $old 'workItemId');$previousRevision=[string](Get-WorkItemStoreProperty $old 'previousRevision');$candidateRevision=[string](Get-WorkItemStoreProperty $old 'candidateRevision');$intentId=[string](Get-WorkItemStoreProperty $old 'intentId');if(-not $itemBytes -or -not $workItemId -or -not $candidateRevision -or -not $intentId){New-WorkItemStoreError 'OutboxRecoveryRequired' "EffectId '$($effect.effectId)' lacks published intent reconstruction metadata."};$saved=New-WorkItemStoreEffectReceipt $effect $operationHash $state $workItemId $previousRevision $candidateRevision $true $intentId $itemBytes;if($savedPayload -and $savedPayload -cne $saved.receiptPayloadBase64){New-WorkItemStoreError 'EffectIdentityConflict' 'Conflicting immutable receipt bytes.'};if($savedHash -and $savedHash -cne $saved.receiptHash){New-WorkItemStoreError 'EffectIdentityConflict' 'Conflicting immutable receipt hash.'};if(-not $savedPayload){$old|Add-Member -NotePropertyName receiptPayloadBase64 -NotePropertyValue $saved.receiptPayloadBase64 -Force};if(-not $savedHash){$old|Add-Member -NotePropertyName receiptHash -NotePropertyValue $saved.receiptHash -Force};Write-WorkItemStoreOutbox $path $outbox;$receipt=ConvertTo-WorkItemStoreReceipt ([pscustomobject]@{effectId=$effect.effectId;context=$effect;operationHash=$operationHash;receiptPayloadBase64=$saved.receiptPayloadBase64;receiptHash=$saved.receiptHash})};if($state -ceq 'pending'){New-WorkItemStoreError 'OutboxRecoveryRequired' "EffectId '$($effect.effectId)' remains pending after resolution."};if($state -ceq 'aborted'){New-WorkItemStoreError 'EffectAborted' "EffectId '$($effect.effectId)' was previously aborted."};if($state -cne 'published'){New-WorkItemStoreError 'EffectIdentityConflict' "EffectId '$($effect.effectId)' has an unsupported prior state."};return [pscustomobject]@{Document=$snapshot.Document;Revision=$snapshot.Revision;Changed=$receipt.changed;Id=$Id;EffectReceipt=$receipt}}
+        }
         if ($snapshot.Exists) {
             $previous = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + $lock.LockId + '.' + [Guid]::NewGuid().ToString('N') + '.previous.tmp')
             New-WorkItemStoreExclusiveFile $previous $snapshot.Bytes
@@ -234,7 +319,7 @@ function Set-WorkItemStoreEntry {
         if (-not $IsNew) {
             $oldJson = ConvertTo-Json -InputObject $matches[0] -Depth 100 -Compress
             $newJson = ConvertTo-Json -InputObject $Item -Depth 100 -Compress
-            if ($oldJson -ceq $newJson) { return [pscustomobject]@{ Document = $snapshot.Document; Revision = $snapshot.Revision; Changed = $false; Id = $Id } }
+            if ($oldJson -ceq $newJson) { if($null -eq $effect){return [pscustomobject]@{ Document = $snapshot.Document; Revision = $snapshot.Revision; Changed = $false; Id = $Id }};$receipt=New-WorkItemStoreEffectReceipt $effect $operationHash 'published' $Id $snapshot.Revision $snapshot.Revision $false $null $itemPayloadBase64;$outbox=Get-WorkItemStoreOutbox $path;if(-not $outbox.PSObject.Properties['effectReceipts']){$outbox|Add-Member -NotePropertyName effectReceipts -NotePropertyValue @()};$outbox.effectReceipts=@($outbox.effectReceipts)+@([pscustomobject]@{context=$effect;operationHash=$operationHash;receiptPayloadBase64=$receipt.receiptPayloadBase64;receiptHash=$receipt.receiptHash});Write-WorkItemStoreOutbox $path $outbox;return [pscustomobject]@{Document=$snapshot.Document;Revision=$snapshot.Revision;Changed=$false;Id=$Id;EffectReceipt=(ConvertTo-WorkItemStoreReceipt ([pscustomobject]@{effectId=$effect.effectId;operationHash=$operationHash;receiptPayloadBase64=$receipt.receiptPayloadBase64;receiptHash=$receipt.receiptHash}))} }
         }
         $document = if ($snapshot.Exists) { ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $snapshot.Document -Depth 100) -ErrorAction Stop } else { [pscustomobject]@{ schemaVersion = '1.0'; items = @() } }
         if ($IsNew) { $document.items = @($document.items) + @($Item) }
@@ -255,6 +340,10 @@ function Set-WorkItemStoreEntry {
         try { $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
         if (-not $validation.valid -or -not $validation.transitionsChecked) { New-WorkItemStoreError 'ValidationFailed' 'Validator did not confirm a valid snapshot and checked transitions.' }
         $newRevision = 'sha256:' + [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash($candidateBytes))).Replace('-', '').ToLowerInvariant()
+        $outbox=Get-WorkItemStoreOutbox $path
+        $intent=[pscustomobject]@{intentId=([Guid]::NewGuid().ToString('D'));type='workitem_changed';sourceId=$Id;revision=$newRevision;item=$Item;workItemId=$Id;previousRevision=$snapshot.Revision;candidateRevision=$newRevision;previousPayloadBase64=$(if($snapshot.Exists){[Convert]::ToBase64String($snapshot.Bytes)}else{$null});candidatePayloadBase64=[Convert]::ToBase64String($candidateBytes);state='pending';createdAtUtc=[DateTime]::UtcNow.ToString('o');publishedAtUtc=$null;resolvedAtUtc=$null}
+        if($null -ne $effect){$intent|Add-Member -NotePropertyName effectContext -NotePropertyValue $effect;$intent|Add-Member -NotePropertyName operationHash -NotePropertyValue $operationHash;$intent|Add-Member -NotePropertyName itemPayloadBase64 -NotePropertyValue $itemPayloadBase64}
+        $outbox.intents=@($outbox.intents)+@($intent);Write-WorkItemStoreOutbox $path $outbox
         if ($snapshot.Exists) {
             $backup = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + $lock.LockId + '.' + [Guid]::NewGuid().ToString('N') + '.replace-backup.tmp')
             try { [IO.File]::Replace($candidate, $path, $backup) } catch { $preservePublicationEvidence = $true; New-WorkItemStoreError 'PublishFailed' "Atomic replacement failed: $($_.Exception.Message); recovery artifacts were retained where present." }
@@ -263,11 +352,31 @@ function Set-WorkItemStoreEntry {
             try { [IO.File]::Move($candidate, $path) } catch { $preservePublicationEvidence = $true; New-WorkItemStoreError 'PublishFailed' "Atomic initial publication failed: $($_.Exception.Message); recovery artifacts were retained where present." }
         }
         $candidate = $null
-        return [pscustomobject]@{ Document = $document; Revision = $newRevision; Changed = $true; Id = $Id }
+        $intent.state='published';$intent.publishedAtUtc=[DateTime]::UtcNow.ToString('o');Write-WorkItemStoreOutbox $path $outbox
+        if($null -ne $effect){$intent.state='published';$intent.publishedAtUtc=[DateTime]::UtcNow.ToString('o');$intentReceipt=New-WorkItemStoreEffectReceipt $effect $operationHash 'published' $Id $snapshot.Revision $newRevision $true $intent.intentId $itemPayloadBase64;$intent|Add-Member -NotePropertyName receiptPayloadBase64 -NotePropertyValue $intentReceipt.receiptPayloadBase64 -Force;$intent|Add-Member -NotePropertyName receiptHash -NotePropertyValue $intentReceipt.receiptHash -Force;Write-WorkItemStoreOutbox $path $outbox;$intentReceipt=ConvertTo-WorkItemStoreReceipt $intent};return [pscustomobject]@{ Document = $document; Revision = $newRevision; Changed = $true; Id = $Id; EffectReceipt=$(if($null -ne $effect){$intentReceipt}else{$null}) }
     } finally {
         foreach ($temporary in @($previous, $(if (-not $preservePublicationEvidence) { $candidate }), $(if (-not $preservePublicationEvidence) { $backup }))) { if ($temporary -and [IO.File]::Exists($temporary)) { try { [IO.File]::Delete($temporary) } catch { Write-Error -ErrorId 'TemporaryCleanupFailed' -Message "Could not remove own temporary file '$temporary': $($_.Exception.Message)" -ErrorAction Continue } } }
         Exit-WorkItemStoreLock $lock
     }
 }
 
-Export-ModuleMember -Function Get-WorkItemStoreResult, Set-WorkItemStoreEntry
+
+function Get-WorkItemStoreResumeRequirement {
+    param([string]$Path,$Item,[string]$RepositoryRoot)
+    $path=Resolve-WorkItemStorePath $Path $RepositoryRoot;$lock=Enter-WorkItemStoreLock $path 5000
+    try{
+        $snapshot=Get-WorkItemStoreSnapshot $path $RepositoryRoot;Resolve-WorkItemStoreOutbox $path $snapshot
+        $outbox=Get-WorkItemStoreOutbox $path;$records=@($outbox.intents)+@(Get-WorkItemStoreProperty $outbox 'effectReceipts');$found=@()
+        foreach($entry in $records){
+            $ctx=Get-WorkItemStoreProperty $entry 'effectContext';if(-not $ctx){$ctx=Get-WorkItemStoreProperty $entry 'context'}
+            if((Get-WorkItemStoreProperty $ctx 'resumeEffectKind') -cne 'propose_resume'){continue}
+            $r=ConvertTo-WorkItemStoreReceipt $entry
+            if($r.state -cne 'published' -or $r.workItemId -cne $Item.id){continue}
+            $saved=ConvertFrom-Json -InputObject ([Text.UTF8Encoding]::new($false,$true).GetString([Convert]::FromBase64String($r.itemPayloadBase64)))
+            if($saved.status -in @('planned','rework','in_progress') -and (Get-LCResumeContent $saved) -ceq (Get-LCResumeContent $Item)){$found+=,$r}
+        }
+        return $found
+    }finally{Exit-WorkItemStoreLock $lock}
+}
+
+Export-ModuleMember -Function Get-WorkItemStoreResumeRequirement,Get-WorkItemStoreResult, Set-WorkItemStoreEntry, Get-WorkItemStoreEffectReceipt

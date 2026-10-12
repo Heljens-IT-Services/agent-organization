@@ -9,103 +9,111 @@ param(
     [Parameter(Mandatory)][string]$ResultPath,
     [Parameter(Mandatory)][string]$ParentJobPath,
     [Parameter(Mandatory)][string]$AccountingDirectory,
+    [Parameter(Mandatory)][string]$ParentContextPath,
+    [Parameter(Mandatory)][string]$ParentContextHash,
+    [Parameter(Mandatory)][string]$StartIntentPath,
+    [Parameter(Mandatory)][string]$StartIntentHash,
+    [Parameter(Mandatory)][string]$StartAttemptPath,
+    [Parameter(Mandatory)][string]$StartAttemptHash,
+    [Parameter(Mandatory)][string]$NoSpawnAttemptPath,
+    [Parameter(Mandatory)][string]$NoSpawnAttemptHash,
+    [Parameter(Mandatory)][string]$PayloadHash,
+    [Parameter(Mandatory)][string]$NoSpawnReceiptPath,
+    [Parameter(Mandatory)][string]$FailureCommitPath,
+    [Parameter(Mandatory)][string]$DispatchJournalPath,
+    [Parameter(Mandatory)][string]$RegistryDirectory,
     [Parameter(Mandatory)][string]$Reason
 )
-$ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($Reason)) { throw 'Prestart failure reason is required.' }
-$utf8 = New-Object Text.UTF8Encoding($false, $true)
-$store = [IO.Path]::GetFullPath($StorePath); $accounting = [IO.Path]::GetFullPath($AccountingDirectory)
-$parentPath = [IO.Path]::GetFullPath($ParentJobPath); $result = [IO.Path]::GetFullPath($ResultPath)
-if (-not [IO.File]::Exists($parentPath)) { throw 'Bound parent job is missing.' }
-$parent = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($parentPath)) -ErrorAction Stop
-$parentId = ([guid]$ParentTaskId).ToString('N'); $childId = ([guid]$TaskId).ToString('N')
-if ($parent.task_id -cne $parentId -or [IO.Path]::GetFullPath($parent.accounting_directory) -cne $accounting -or [IO.Path]::GetFullPath($parent.work_item_store_path) -cne $store -or [string]::IsNullOrWhiteSpace([string]$parent.role) -or [string]::IsNullOrWhiteSpace([string]$parent.work_item_id)) { throw 'Prestart failure parent task/store binding is invalid.' }
-$parentActivePath = [IO.Path]::GetFullPath([string]$parent.result_file) + '.job.json.active.json'
-if (-not [IO.File]::Exists($parentActivePath)) { throw 'Persisted parent active task identity is missing.' }
-$parentActive = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($parentActivePath)) -ErrorAction Stop
-if ($parentActive.task_id -cne $parentId -or $parentActive.role -cne $parent.role -or $parentActive.work_item_id -cne $parent.work_item_id -or [IO.Path]::GetFullPath($parentActive.store_path) -cne $store -or [IO.Path]::GetFullPath($parentActive.accounting_directory) -cne $accounting) { throw 'Persisted parent active task binding is invalid.' }
-$hash = [Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($ExecutionId))
-$key = ([BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant()
-$reservationPath = Join-Path $accounting ('execution-' + $key + '.json')
-$bindingIdentity = [Text.Encoding]::UTF8.GetBytes($store.ToLowerInvariant() + "`n" + $WorkItemId)
-$bindingKey = ([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash($bindingIdentity)))).Replace('-', '').ToLowerInvariant()
-$bindingPath = Join-Path $accounting ('workitem-current-' + $bindingKey + '.json')
-if (-not [IO.File]::Exists($reservationPath) -or -not [IO.File]::Exists($bindingPath)) { throw 'Secured execution reservation or current binding is missing.' }
-$reservation = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($reservationPath)) -ErrorAction Stop
-$binding = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($bindingPath)) -ErrorAction Stop
-if ($reservation.executionId -cne $ExecutionId -or $reservation.task_id -cne $childId -or $reservation.parent_task_id -cne $parentId -or $reservation.workItemId -cne $WorkItemId -or [IO.Path]::GetFullPath($reservation.store_path) -cne $store -or [IO.Path]::GetFullPath($reservation.result_path) -cne $result -or [IO.Path]::GetFullPath($reservation.parent_job_path) -cne $parentPath -or [IO.Path]::GetFullPath($reservation.current_binding_path) -cne $bindingPath) { throw 'Prestart failure does not match the persisted execution reservation.' }
-if ($binding.kind -cne 'workitem-current-execution' -or $binding.executionId -cne $ExecutionId -or $binding.taskId -cne $childId -or $binding.parentTaskId -cne $parentId -or [IO.Path]::GetFullPath($binding.parentJobPath) -cne $parentPath -or $binding.workItemId -cne $WorkItemId -or [IO.Path]::GetFullPath($binding.storePath) -cne $store) { throw 'Prestart failure does not match the persisted current binding.' }
-$role = [string]$reservation.role
-if (-not $role -or $role -ceq [string]$parent.role) { throw 'Reserved child role is missing or equals the parent role.' }
-if ([IO.File]::Exists($result)) {
-    $savedResult = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($result)) -ErrorAction Stop
-    if ($savedResult.task_id -cne $childId -or $savedResult.parent_task_id -cne $parentId -or $savedResult.work_item_id -cne $WorkItemId -or $savedResult.execution_id -cne $ExecutionId -or $savedResult.terminal_outcome -notin @('failed','blocked') -or $savedResult.model_started -eq $true) { throw 'Existing result path is not the matching prestart failure result.' }
-}
-Import-Module (Join-Path $PSScriptRoot 'WorkItemStore.psm1') -Force
-$snapshot = Get-WorkItemStoreResult -Path $store -RepositoryRoot $RepositoryRoot
-$items = @($snapshot.Document.items | Where-Object { $_.id -ceq $WorkItemId })
-if ($items.Count -ne 1) { throw 'WorkItem missing or ambiguous.' }
-$item = $items[0]
-if ($item.owner.type -cne 'agent' -or $item.owner.id -cne $role) { throw 'Failed child role does not own this WorkItem.' }
-$seen = @{}; $cursor = $item; $foundParent = $false
-while ($null -ne $cursor.parentId) {
-    $id = [string]$cursor.id
-    if ($seen.ContainsKey($id)) { throw 'WorkItem ancestry contains a cycle.' }
-    $seen[$id] = $true
-    if ($cursor.parentId -ceq $parent.work_item_id) { $foundParent = $true }
-    $next = @($snapshot.Document.items | Where-Object { $_.id -ceq $cursor.parentId })
-    if ($next.Count -ne 1) { throw 'WorkItem ancestry is incomplete.' }
-    $cursor = $next[0]
-}
-if (-not $foundParent) { throw 'WorkItem is not below the persisted parent WorkItem.' }
-$recordPath = Join-Path $accounting ('prestart-failure-' + $key + '.json')
-$record = $null; $recordReplay = $false
-if ([IO.File]::Exists($recordPath)) {
-    $existing = ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($recordPath)) -ErrorAction Stop
-    if ($existing.executionId -cne $ExecutionId -or $existing.taskId -cne $childId -or $existing.parentTaskId -cne $parentId -or $existing.workItemId -cne $WorkItemId -or $existing.storePath -cne $store -or $existing.resultPath -cne $result -or $existing.parentJobPath -cne $parentPath -or $existing.reason -cne $Reason) { throw 'Existing prestart failure record conflicts.' }
-    if ($item.status -ceq 'blocked' -and $item.blockReason -ceq $Reason) {
-        if (-not [IO.File]::Exists($result)) {
-            $prestartEvidence = [ordered]@{ task_id=$childId; parent_task_id=$parentId; work_item_id=$WorkItemId; execution_id=$ExecutionId; parent_job_task_id=$parentId; parent_job_path=$parentPath; work_item_store_path=$store; accounting_directory=$accounting; role=$role; model_started=$false; thread_id=$null; turn_id=$null; terminal_outcome='failed'; success=$false; output=$null; error=$Reason; prestart_failure_record_path=$recordPath }
-            $resultDirectory = Split-Path -Parent $result
-            if ($resultDirectory) { New-Item -ItemType Directory -Path $resultDirectory -Force | Out-Null }
-            $resultStream = New-Object IO.FileStream($result, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-            try { $resultBytes = $utf8.GetBytes(($prestartEvidence | ConvertTo-Json -Depth 30 -Compress)); $resultStream.Write($resultBytes,0,$resultBytes.Length); $resultStream.Flush($true) } finally { $resultStream.Dispose() }
-        }
-        if ($binding.state -ceq 'active') { $binding.state = 'failed'; $binding.finishedAt = [DateTime]::UtcNow.ToString('o'); [IO.File]::WriteAllText($bindingPath, ($binding | ConvertTo-Json -Depth 40 -Compress), $utf8) }
-        if ($reservation.state -ne 'failed' -or $reservation.failure_record_path -cne $recordPath) { $reservation.state = 'failed'; $reservation.failure_record_path = $recordPath; $reservation.failure_recorded_at = [DateTime]::UtcNow.ToString('o'); [IO.File]::WriteAllText($reservationPath, ($reservation | ConvertTo-Json -Depth 30 -Compress), $utf8) }
-        return [pscustomobject]@{ persisted=$true; outcome='failed'; unchanged=$true; recordPath=$recordPath; revision=$snapshot.Revision; workItemId=$WorkItemId; executionId=$ExecutionId }
+$ErrorActionPreference='Stop'
+Import-Module (Join-Path $PSScriptRoot 'WorkItemPrestartRecovery.psm1') -Force
+$cm=Import-Module (Join-Path $PSScriptRoot 'CoordinatorExecutionContext.psm1') -PassThru -Force
+$sm=Import-Module (Join-Path $PSScriptRoot 'WorkItemStore.psm1') -PassThru -Force
+$store=[IO.Path]::GetFullPath($StorePath);$accounting=[IO.Path]::GetFullPath($AccountingDirectory)
+$result=[IO.Path]::GetFullPath($ResultPath);$parentPath=[IO.Path]::GetFullPath($ParentJobPath)
+$childId=([guid]$TaskId).ToString('N');$parentId=([guid]$ParentTaskId).ToString('N')
+$paths=Get-PrestartRecoveryPaths $accounting $ExecutionId $store $WorkItemId
+if([IO.Path]::GetFullPath($NoSpawnReceiptPath) -cne $paths.receipt -or [IO.Path]::GetFullPath($FailureCommitPath) -cne $paths.commit -or [string]::IsNullOrWhiteSpace($Reason)){throw 'InvalidFailureReceiptLocationOrReason'}
+$lock=$null
+try {
+    $lock=[IO.File]::Open($paths.lock,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    $parent=Read-RecoveryJson $parentPath
+    $ctx=& $cm {param($p,$h,$j,$t,$s,$a)Assert-ExecutionContext $p $h $j $t $s $a} $ParentContextPath $ParentContextHash $parentPath $parentId $store $accounting
+    & $cm {param($p,$h,$s,$a)Assert-ExecutionAncestors $p $h $s $a|Out-Null} $ParentContextPath $ParentContextHash $store $accounting
+    $authority=& $cm {param($p,$h)Read-DelegatedStartAuthority $p $h} $StartIntentPath $StartIntentHash
+    $prepared=Read-RecoveryJson $StartAttemptPath $StartAttemptHash
+    $noSpawn=Read-RecoveryJson $NoSpawnAttemptPath $NoSpawnAttemptHash
+    $reservation=Read-RecoveryJson $paths.reservation
+    Assert-PrestartAttemptGroup $prepared $noSpawn $authority $ctx $reservation
+    if($prepared.taskId -cne $childId -or $prepared.parentTaskId -cne $parentId -or $prepared.executionId -cne $ExecutionId -or $prepared.workItemId -cne $WorkItemId -or $prepared.storePath -cne $store -or $prepared.resultPath -cne $result -or $prepared.parentJobPath -cne $parentPath -or $prepared.parentContextHash -cne $ParentContextHash -or $prepared.startIntentHash -cne $StartIntentHash -or $prepared.payloadHash -cne $PayloadHash -or $reservation.start_attempt_path -cne [IO.Path]::GetFullPath($StartAttemptPath) -or $reservation.start_attempt_hash -cne $StartAttemptHash -or $reservation.current_binding_path -cne $paths.binding -or $reservation.state -notin @('reserved','failed')){throw 'CallerReservationAttemptConflict'}
+    $role=[string]$prepared.role
+    $root=$parent.role -ceq 'koordinator' -and $null -eq $parent.work_item_id -and -not $parent.parent_task_id -and -not $parent.parent_job_path -and -not $parent.execution_id -and -not $parent.work_item_request_path
+    if($root){if($ctx.outcome -cne 'Completed' -or $role -notmatch '^teamleiter_[a-z][a-z0-9_]*$'){throw 'InvalidCompletedRootAuthority'}}elseif(-not $parent.work_item_id -or $ctx.outcome -cne 'Running'){throw 'InvalidHistoricalParentAuthority'}
+    $eventJournal=Get-PrestartEventJournal $ctx
+    if([IO.Path]::GetFullPath($RegistryDirectory) -cne [IO.Path]::GetFullPath($authority.parameters.CoordinatorDataDirectory) -or [IO.Path]::GetFullPath($DispatchJournalPath) -cne $prepared.dispatchJournalPath){throw 'CallerDispatchRegistryConflict'}
+    $snapshot=& $sm {param($p,$repo)Get-WorkItemStoreResult -Path $p -RepositoryRoot $repo} $store $RepositoryRoot
+    $items=@($snapshot.Document.items|Where-Object{$_.id -ceq $WorkItemId})
+    if($items.Count -ne 1){throw 'WorkItemMissingOrAmbiguous'};$item=$items[0]
+    if($item.owner.type -cne 'agent' -or $item.owner.id -cne $role -or $item.status -in @('accepted','cancelled')){throw 'ForeignOwnerOrTerminalWorkItem'}
+    if($root -and $null -ne $item.parentId){throw 'RootWorkItemMustBeParentless'}
+    if(-not $root){$cursor=$item;$seen=@{};$found=$false;while($null -ne $cursor.parentId){if($seen.ContainsKey($cursor.id)){throw 'WorkItemAncestryCycle'};$seen[$cursor.id]=$true;if($cursor.parentId -ceq $parent.work_item_id){$found=$true};$next=@($snapshot.Document.items|Where-Object{$_.id -ceq $cursor.parentId});if($next.Count -ne 1){throw 'WorkItemAncestryIncomplete'};$cursor=$next[0]};if(-not $found){throw 'ForeignParentWorkItem'}}
+    if($snapshot.Revision -cne $reservation.startingRevision -and -not [IO.File]::Exists($paths.receipt)){
+        if(-not $reservation.startingCAS -or $snapshot.Revision -cne $reservation.startingCAS.candidateRevision -or $reservation.startingCAS.sourceRevision -cne $reservation.startingRevision){throw 'ForeignPrestartStoreCAS'}
+        $startReceipt=& $sm {param($r,$repo)Get-WorkItemStoreEffectReceipt -Path $r.store_path -EffectId $r.startingCAS.effectContext.effectId -RepositoryRoot $repo} $reservation $RepositoryRoot
+        if(-not $startReceipt -or $startReceipt.state -cne 'published' -or $startReceipt.previousRevision -cne $reservation.startingRevision -or $startReceipt.candidateRevision -cne $snapshot.Revision -or $startReceipt.context.executionId -cne $ExecutionId -or $startReceipt.context.inputHash -cne $StartIntentHash -or $startReceipt.context.planHash -cne $StartAttemptHash){throw 'OwnedStartCASReceiptRequired'}
     }
-    if ($binding.state -cne 'active' -or $reservation.state -notin @('reserved','failed') -or $item.status -in @('accepted','cancelled')) { throw 'Existing prestart failure record cannot be safely replayed against the current WorkItem.' }
-    $record = $existing; $recordReplay = $true
-}
-if ($binding.state -cne 'active' -or $reservation.state -notin @('reserved','failed')) { throw 'Execution is not the active or explicitly replayable prestart attempt.' }
-if ($item.status -ceq 'blocked' -and $item.blockReason -ceq $Reason) { throw 'Matching blocked state lacks its correlated prestart record; refusing to infer ownership.' }
-if ($item.status -in @('accepted','cancelled')) { throw 'Terminal WorkItem cannot receive a prestart failure mutation.' }
-$now = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
-if (-not $recordReplay) {
-    $record = [ordered]@{ kind='prestart-failure'; outcome='failed'; taskId=$childId; parentTaskId=$parentId; executionId=$ExecutionId; workItemId=$WorkItemId; storePath=$store; resultPath=$result; parentJobPath=$parentPath; childRole=$role; parentRole=[string]$parent.role; sourceRevision=$snapshot.Revision; reason=$Reason; recordedAt=$now }
-    $recordBytes = $utf8.GetBytes(($record | ConvertTo-Json -Depth 20 -Compress))
-    $recordStream = New-Object IO.FileStream($recordPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-    try { $recordStream.Write($recordBytes, 0, $recordBytes.Length); $recordStream.Flush($true) } finally { $recordStream.Dispose() }
-}
-if (-not [IO.File]::Exists($result)) {
-    $prestartEvidence = [ordered]@{
-        task_id=$childId; parent_task_id=$parentId; work_item_id=$WorkItemId; execution_id=$ExecutionId
-        parent_job_task_id=$parentId; parent_job_path=$parentPath; work_item_store_path=$store
-        accounting_directory=$accounting; role=$role; model_started=$false; thread_id=$null; turn_id=$null
-        terminal_outcome='failed'; success=$false; output=$null; error=$Reason; prestart_failure_record_path=$recordPath
+    $receipt=$null
+    if([IO.File]::Exists($paths.receipt)){
+        $receipt=Read-RecoveryJson $paths.receipt
+        foreach($n in @('executionId','taskId','parentTaskId','workItemId','payloadHash','parentContextHash','startIntentHash')){if([string]$receipt.$n -cne [string]$prepared.$n){throw 'ExistingReceiptGroupConflict'}}
+        if($receipt.noSpawnReceiptVersion -cne '1.0' -or $receipt.reason -cne $Reason -or $receipt.startAttemptHash -cne $StartAttemptHash -or $receipt.noSpawnAttemptHash -cne $NoSpawnAttemptHash -or $receipt.resultPath -cne $result -or $receipt.storePath -cne $store -or $receipt.registryDirectory -cne [IO.Path]::GetFullPath($RegistryDirectory) -or $receipt.eventJournalPath -cne $eventJournal){throw 'LegacyOrConflictingReceiptRecoveryClosed'}
+        if($snapshot.Revision -notin @($receipt.sourceRevision,$receipt.candidateRevision)){throw 'FailureCASReconcileMismatch'}
     }
-    $resultDirectory = Split-Path -Parent $result
-    if ($resultDirectory) { New-Item -ItemType Directory -Path $resultDirectory -Force | Out-Null }
-    $resultStream = New-Object IO.FileStream($result, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-    try { $resultBytes = $utf8.GetBytes(($prestartEvidence | ConvertTo-Json -Depth 30 -Compress)); $resultStream.Write($resultBytes,0,$resultBytes.Length); $resultStream.Flush($true) } finally { $resultStream.Dispose() }
-}
-$item.status='blocked'; $item.blockReason=$Reason; $item.updatedAt=$now
-try { $write = Set-WorkItemStoreEntry -Path $store -Id $WorkItemId -Item $item -ExpectedRevision $snapshot.Revision -RepositoryRoot $RepositoryRoot }
-catch { throw ('Failure record retained; WorkItem store publication failed: ' + $_.Exception.Message) }
-$binding.state = 'failed'; $binding.finishedAt = [DateTime]::UtcNow.ToString('o')
-$binding.failureRecordPath = $recordPath; $binding.resultPath = $result
-[IO.File]::WriteAllText($bindingPath, ($binding | ConvertTo-Json -Depth 40 -Compress), $utf8)
-$reservation.failure_record_path = $recordPath; $reservation.failure_recorded_at = [DateTime]::UtcNow.ToString('o'); $reservation.state = 'failed'
-[IO.File]::WriteAllText($reservationPath, ($reservation | ConvertTo-Json -Depth 30 -Compress), $utf8)
-[pscustomobject]@{ persisted=$true; outcome='failed'; delivered=$false; recordPath=$recordPath; revision=$write.Revision; workItemId=$WorkItemId; executionId=$ExecutionId }
+    $binding=$null
+    if([IO.File]::Exists($paths.binding)){$binding=Read-RecoveryJson $paths.binding;Assert-PrestartCurrentBinding $binding $prepared;if($binding.startAttemptPath -cne [IO.Path]::GetFullPath($StartAttemptPath) -or $binding.startAttemptHash -cne $StartAttemptHash -or $binding.startingRevision -cne $reservation.startingRevision){throw 'BindingPreparedReservationConflict'}}
+    else {
+        # Reconstruct only the identical reserved attempt, never replace a foreign binding.
+        if($reservation.state -cne 'reserved' -or $snapshot.Revision -cne $reservation.startingRevision -or $snapshot.Revision -cne $prepared.storeRevision -or (Get-RecoveryHash (ConvertTo-RecoveryBytes $item)) -cne (Get-RecoveryHash (ConvertTo-RecoveryBytes $reservation.startingSnapshot))){throw 'EarlyBindingRecoveryCASMismatch'}
+        $binding=New-PrestartCurrentBinding $prepared $reservation
+        Write-RecoveryBytes $paths.binding (ConvertTo-RecoveryBytes $binding) -Immutable
+    }
+    if(-not $receipt){
+        if($binding.state -cne 'active' -or $reservation.state -cne 'reserved' -or $item.status -notin @('planned','in_progress','rework','blocked')){throw 'UncorrelatedOrNonTransitionablePrestartState'}
+        $candidateItem=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $item -Depth 100)
+        $candidateItem.status='blocked';$candidateItem.blockReason=$Reason;$candidateItem.updatedAt=[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
+        $document=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $snapshot.Document -Depth 100)
+        for($i=0;$i -lt @($document.items).Count;$i++){if($document.items[$i].id -ceq $WorkItemId){$document.items[$i]=$candidateItem}}
+        $candidateBytes=& $sm {param($d) ,(ConvertTo-WorkItemStoreCandidate $d)} $document
+        $candidateRevision='sha256:'+(Get-RecoveryHash $candidateBytes)
+        $evidence=[ordered]@{task_id=$childId;dispatch_id=$ExecutionId;parent_task_id=$parentId;work_item_id=$WorkItemId;execution_id=$ExecutionId;parent_job_task_id=$parentId;parent_job_path=$parentPath;parent_thread_id=$ctx.threadId;parent_turn_id=$ctx.turnId;parent_context_path=[IO.Path]::GetFullPath($ParentContextPath);parent_context_hash=$ParentContextHash;start_intent_path=[IO.Path]::GetFullPath($StartIntentPath);start_intent_hash=$StartIntentHash;work_item_store_path=$store;accounting_directory=$accounting;role=$role;model_started=$false;thread_id=$null;turn_id=$null;terminal_outcome='failed';success=$false;output=$null;error=$Reason;result_path=$result;prestart_failure_record_path=$paths.receipt;no_spawn_receipt_path=$paths.receipt;failure_commit_path=$paths.commit}
+        $resultBytes=ConvertTo-RecoveryBytes $evidence
+        # Effect thread/turn/requestId refer to the real historical authorizing parent turn.
+        $effect=[ordered]@{effectId=('prestart:'+ $ExecutionId);executionId=$ExecutionId;requestId=$ctx.requestId;threadId=$ctx.threadId;turnId=$ctx.turnId;eventId=('prestart:'+ $ExecutionId);inputHash=$StartIntentHash;planHash=$NoSpawnAttemptHash;ordinal=1}
+        $receipt=[ordered]@{kind='prestart-failure';noSpawnReceiptVersion='1.0';outcome='failed';executionId=$ExecutionId;taskId=$childId;parentTaskId=$parentId;workItemId=$WorkItemId;payloadHash=$PayloadHash;storePath=$store;accountingDirectory=$accounting;resultPath=$result;parentJobPath=$parentPath;parentContextPath=[IO.Path]::GetFullPath($ParentContextPath);parentContextHash=$ParentContextHash;startIntentPath=[IO.Path]::GetFullPath($StartIntentPath);startIntentHash=$StartIntentHash;startAttemptPath=[IO.Path]::GetFullPath($StartAttemptPath);startAttemptHash=$StartAttemptHash;noSpawnAttemptPath=[IO.Path]::GetFullPath($NoSpawnAttemptPath);noSpawnAttemptHash=$NoSpawnAttemptHash;contextAuthorityAttempt=[ordered]@{parentContextHash=$ParentContextHash;startIntentHash=$StartIntentHash;preparedAttemptHash=$StartAttemptHash;noSpawnAttemptHash=$NoSpawnAttemptHash};reservationProof=$reservation;noSpawnProof=$noSpawn.noSpawnProof;childRole=$role;reason=$Reason;sourceRevision=$snapshot.Revision;candidateRevision=$candidateRevision;candidateBytesHash=(Get-RecoveryHash $candidateBytes);candidatePayloadBase64=[Convert]::ToBase64String($candidateBytes);candidateItem=$candidateItem;resultHash=(Get-RecoveryHash $resultBytes);resultPayloadBase64=[Convert]::ToBase64String($resultBytes);effectContext=$effect;dispatchJournalPath=$prepared.dispatchJournalPath;registryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);eventJournalPath=$eventJournal}
+        Write-RecoveryBytes $paths.receipt (ConvertTo-RecoveryBytes $receipt) -Immutable
+        $receipt=Read-RecoveryJson $paths.receipt
+    }
+    $receiptHash=Get-RecoveryHash ([IO.File]::ReadAllBytes($paths.receipt))
+    if(('sha256:'+(Get-RecoveryHash ([Convert]::FromBase64String($receipt.candidatePayloadBase64)))) -cne $receipt.candidateRevision -or (Get-RecoveryHash ([Convert]::FromBase64String($receipt.resultPayloadBase64))) -cne $receipt.resultHash){throw 'ReceiptBytePlanInvalid'}
+    $sr=& $sm {param($r,$repo)Get-WorkItemStoreEffectReceipt -Path $r.storePath -EffectId $r.effectContext.effectId -RepositoryRoot $repo} $receipt $RepositoryRoot
+    if(-not $sr){
+        if($snapshot.Revision -cne $receipt.sourceRevision){throw 'CandidateRevisionWithoutOwnedStoreReceipt'}
+        $write=& $sm {param($r,$repo)Set-WorkItemStoreEntry -Path $r.storePath -Id $r.workItemId -Item $r.candidateItem -ExpectedRevision $r.sourceRevision -RepositoryRoot $repo -EffectContext $r.effectContext} $receipt $RepositoryRoot
+        $sr=$write.EffectReceipt
+    }
+    if(-not $sr -or $sr.state -cne 'published' -or $sr.previousRevision -cne $receipt.sourceRevision -or $sr.candidateRevision -cne $receipt.candidateRevision -or $sr.workItemId -cne $WorkItemId -or (Get-RecoveryHash (ConvertTo-RecoveryBytes $sr.context)) -cne (Get-RecoveryHash (ConvertTo-RecoveryBytes $receipt.effectContext))){throw 'PublishedStoreCASReceiptMismatch'}
+    $readback=& $sm {param($p,$repo)Get-WorkItemStoreResult -Path $p -RepositoryRoot $repo} $store $RepositoryRoot
+    if($readback.Revision -cne $receipt.candidateRevision){throw 'FailureStoreReadbackCASMismatch'}
+    Write-RecoveryBytes $result ([Convert]::FromBase64String($receipt.resultPayloadBase64)) -Immutable
+    $commit=[ordered]@{kind='prestart-failure-commit-v1';noSpawnReceiptPath=$paths.receipt;noSpawnReceiptHash=$receiptHash;sourceRevision=$receipt.sourceRevision;candidateRevision=$receipt.candidateRevision;resultHash=$receipt.resultHash;storeReceiptHash=$sr.receiptHash;storeReceiptPayloadBase64=$sr.receiptPayloadBase64;contextAuthorityAttempt=$receipt.contextAuthorityAttempt}
+    Write-RecoveryBytes $paths.commit (ConvertTo-RecoveryBytes $commit) -Immutable
+    $commitHash=Get-RecoveryHash ([IO.File]::ReadAllBytes($paths.commit))
+    foreach($pair in @(@('state','failed'),@('failureRecordPath',$paths.receipt),@('resultPath',$result),@('failureCommitPath',$paths.commit),@('failureCommitHash',$commitHash),@('noSpawnReceiptHash',$receiptHash))){$binding|Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] -Force}
+    Write-RecoveryBytes $paths.binding (ConvertTo-RecoveryBytes $binding)
+    foreach($pair in @(@('state','failed'),@('failure_record_path',$paths.receipt),@('failure_commit_path',$paths.commit),@('failure_commit_hash',$commitHash),@('no_spawn_receipt_hash',$receiptHash))){$reservation|Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] -Force}
+    Write-RecoveryBytes $paths.reservation (ConvertTo-RecoveryBytes $reservation)
+    $saved=[pscustomobject]@{persisted=$true;outcome='failed';revision=$receipt.candidateRevision;recordPath=$paths.receipt;noSpawnReceiptPath=$paths.receipt;noSpawnReceiptHash=$receiptHash;failureCommitPath=$paths.commit;failureCommitHash=$commitHash;resultHash=$receipt.resultHash;workItemId=$WorkItemId;executionId=$ExecutionId}
+    $verified=Assert-PrestartFailureCommit $paths.receipt $receiptHash $paths.commit $commitHash $RepositoryRoot
+    $completion=Complete-PrestartReceiptGroup $saved $RepositoryRoot
+    $saved|Add-Member -NotePropertyName completion -NotePropertyValue $completion
+    $saved
+}finally{if($lock){$lock.Dispose()}}

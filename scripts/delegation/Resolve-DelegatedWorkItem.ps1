@@ -4,10 +4,13 @@ param(
     [Parameter(Mandatory)][string]$WorkItemId,
     [Parameter(Mandatory)][string]$ParentTaskId,
     [Parameter(Mandatory)][string]$AccountingDirectory,
+    [string]$ParentContextPath,
+    [string]$ParentContextHash,
     [string]$ResumeAssessment,
     [string]$RepositoryRoot
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
 $utf8 = New-Object Text.UTF8Encoding($false, $true)
 function Read-StrictJson([string]$File) {
     return ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($File)) -ErrorAction Stop
@@ -24,9 +27,16 @@ if ($parent.task_id -cne $parentId -or -not $parent.role -or [IO.Path]::GetFullP
 $activePath = $parentJobPath + '.active.json'
 if (-not (Test-Path -LiteralPath $activePath -PathType Leaf)) { throw 'Persistierte aktive Eltern-Thread/Turn-Bindung fehlt.' }
 $active = Read-StrictJson $activePath
-if ($active.task_id -cne $parent.task_id -or $active.role -cne $parent.role -or [IO.Path]::GetFullPath($active.accounting_directory) -cne $accounting -or [string]::IsNullOrWhiteSpace([string]$active.thread_id) -or [string]::IsNullOrWhiteSpace([string]$active.turn_id)) { throw 'Aktive Eltern-Thread/Turn-Bindung widerspruechlich.' }
+if ($ParentContextPath -or $ParentContextHash) {
+    if(-not $ParentContextPath -or -not $ParentContextHash){throw 'Immutable parent context path/hash must be paired.'}
+    $cm=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
+    $context=& $cm {param($p,$h,$j,$t,$s,$a) Assert-ExecutionContext $p $h $j $t $s $a} ([IO.Path]::GetFullPath($ParentContextPath)) $ParentContextHash $parentJobPath $ParentTaskId $storePath $accounting
+    $historicalRoot=& $cm {param($p,$h,$s,$a) Assert-ExecutionAncestors $p $h $s $a -MaxLevels 2} ([IO.Path]::GetFullPath($ParentContextPath)) $ParentContextHash $storePath $accounting
+    if($context.role -cne $parent.role -or $context.workItemId -cne $parent.work_item_id){throw 'Historical parent context does not match persisted job identity.'}
+    $active=[pscustomobject]@{thread_id=$context.threadId;turn_id=$context.turnId;task_id=$context.taskId;role=$context.role;accounting_directory=$context.accountingDirectory}
+} elseif ($active.task_id -cne $parent.task_id -or $active.role -cne $parent.role -or [IO.Path]::GetFullPath($active.accounting_directory) -cne $accounting -or [string]::IsNullOrWhiteSpace([string]$active.thread_id) -or [string]::IsNullOrWhiteSpace([string]$active.turn_id)) { throw 'Aktive Eltern-Thread/Turn-Bindung widerspruechlich.' }
 $chainJob = $parent; $chainPath = $parentJobPath; $agentLevels = 2
-while ($chainJob.parent_task_id) {
+while ($chainJob.parent_task_id -and -not $ParentContextPath) {
     if ($chainJob.role -ceq 'koordinator') { throw 'Coordinator must be the root of the delegation chain.' }
     if (-not $chainJob.parent_job_path -or -not (Test-Path -LiteralPath $chainJob.parent_job_path -PathType Leaf)) { throw 'Persistierter Vorfahrenjob in der Delegationskette fehlt.' }
     $ancestorPath = [IO.Path]::GetFullPath($chainJob.parent_job_path)
@@ -42,7 +52,8 @@ while ($chainJob.parent_task_id) {
     $agentLevels++; if ($agentLevels -gt 3) { throw 'Maximal drei Agentenebenen in der Kette.' }
     $chainJob = $ancestor; $chainPath = $ancestorPath
 }
-if ($chainJob.role -cne 'koordinator') { throw 'Delegationskette muss beim Koordinator enden.' }
+$rootRole=if($ParentContextPath){$historicalRoot.role}else{$chainJob.role}
+if ($rootRole -cne 'koordinator') { throw 'Delegationskette muss beim Koordinator enden.' }
 $isCoordinator = $parent.role -ceq 'koordinator'
 $isLeader = $parent.role -cmatch '^teamleiter_[a-z][a-z0-9_]*$'
 if (-not ($isCoordinator -or $isLeader)) { throw 'Nur Koordinator oder Teamleiter duerfen delegieren.' }
@@ -117,9 +128,10 @@ if ($isCoordinator) {
 }
 if ($item.status -notin @('planned','in_progress','rework','blocked')) { throw "WorkItem ist nicht ausfuehrbar: $($item.status)" }
 if ($null -ne $item.humanInteraction -and $null -eq $item.humanInteraction.response) { throw 'Unbeantwortete humanInteraction blockiert Resume.' }
-if ($item.status -ceq 'blocked' -and [string]::IsNullOrWhiteSpace($ResumeAssessment)) { throw 'Blocked Resume braucht eine explizite fachliche Bewertung.' }
+if($item.status -ceq 'blocked'){throw 'Blocked WorkItem remains locked until a terminal propose_resume CAS decision.'}
+[void](Assert-LCResume $ResumeAssessment $item $snapshot.Revision $storePath $RepositoryRoot)
 foreach ($dependency in $item.dependencies) {
     $dep = @($snapshot.Document.items | Where-Object { $_.id -ceq $dependency })
     if ($dep.Count -ne 1 -or $dep[0].status -cne 'accepted') { throw "WorkItem-Abhaengigkeit ist nicht akzeptiert: $dependency" }
 }
-[pscustomobject]@{ item = $item; revision = $snapshot.Revision; role = $role; callerRole = $parent.role; parentTaskId = $parentId; parentJobPath = $parentJobPath; parentThreadId=$active.thread_id; parentTurnId=$active.turn_id; storePath = $storePath; accountingDirectory = $accounting } | ConvertTo-Json -Depth 40 -Compress
+[pscustomobject]@{ item = $item; revision = $snapshot.Revision; role = $role; callerRole = $parent.role; parentTaskId = $parentId; parentJobPath = $parentJobPath; parentThreadId=$active.thread_id; parentTurnId=$active.turn_id; parentContextPath=$(if($ParentContextPath){[IO.Path]::GetFullPath($ParentContextPath)}else{$null});parentContextHash=$ParentContextHash;storePath = $storePath; accountingDirectory = $accounting } | ConvertTo-Json -Depth 40 -Compress
