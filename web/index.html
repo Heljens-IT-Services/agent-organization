@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>WorkItems · lokale Übersicht</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="WorkItems Übersicht">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span><strong>WorkItems</strong><small>Lokale Übersicht</small></span>
+      </a>
+      <div class="connection" aria-live="polite">
+        <span id="connection-dot" class="status-dot" aria-hidden="true"></span>
+        <span id="connection-label">Verbindung wird hergestellt</span>
+        <span class="separator">·</span><span id="data-age">Noch keine Daten</span>
+      </div>
+      <button id="refresh-button" class="button button-quiet" type="button">Jetzt aktualisieren</button>
+    </header>
+
+    <main id="overview" class="layout">
+      <aside class="sidebar" aria-label="WorkItem-Navigation">
+        <div class="section-heading"><div><p class="eyebrow">Navigation</p><h1>Arbeitsübersicht</h1></div></div>
+        <label class="search-box"><span class="sr-only">WorkItems filtern</span><span aria-hidden="true">⌕</span><input id="tree-search" type="search" placeholder="WorkItems filtern…" autocomplete="off"></label>
+        <div class="tree-header"><span>Ziele &amp; WorkItems</span><span id="item-count" class="count">—</span></div>
+        <nav id="workitem-tree" class="tree" aria-label="WorkItem-Baum"></nav>
+        <div id="tree-empty" class="empty-state compact" hidden>Keine WorkItems entsprechen dem Filter.</div>
+        <div class="sidebar-foot"><span class="legend-dot dot-green"></span>Aktueller Stand <span class="legend-dot dot-amber"></span>Aufmerksamkeit</div>
+      </aside>
+
+      <div class="content-column">
+        <section class="panel write-panel" aria-labelledby="create-title">
+          <div class="write-heading"><div><p class="eyebrow">PowerShell-Dateibrücke</p><h2 id="create-title">WorkItem anlegen</h2></div><button id="create-toggle" class="button button-quiet" type="button" hidden>Neues WorkItem</button></div>
+          <p id="write-capability-note" class="placeholder">Schreibfunktionen werden geladen.</p>
+          <div id="create-form" hidden></div>
+        </section>
+        <section class="attention-panel panel" aria-labelledby="attention-title">
+          <div class="panel-heading">
+            <div class="heading-icon attention-icon" aria-hidden="true">!</div>
+            <div><p class="eyebrow">Menschliche Aufmerksamkeit</p><h2 id="attention-title">Meine Aufmerksamkeit</h2></div>
+            <span id="attention-count" class="count count-attention">—</span>
+          </div>
+          <div class="attention-filter">
+            <span class="filter-label">Zuständigkeitsfilter nicht verfügbar</span>
+            <span class="filter-note">Der WorkItem-Vertrag weist keine verantwortliche Person für menschliche Anforderungen aus.</span>
+          </div>
+          <div id="lock-status" class="lock-status" role="status">Lockdiagnose wird geladen…</div>
+          <div id="attention-list" class="attention-list"><p class="placeholder">Warte auf den ersten Snapshot…</p></div>
+        </section>
+
+        <section id="detail-panel" class="detail-panel panel" aria-labelledby="detail-title" aria-live="polite">
+          <div class="empty-state detail-empty"><span class="empty-icon" aria-hidden="true">◫</span><h2 id="detail-title">WorkItem auswählen</h2><p>Wähle links ein Ziel oder WorkItem, um Details, Verlauf und Nachweise anzusehen.</p></div>
+        </section>
+
+        <section class="lower-grid">
+          <section class="panel auxiliary-panel" aria-labelledby="teams-title">
+            <div class="panel-heading small-heading"><div class="heading-icon team-icon" aria-hidden="true">⌘</div><div><p class="eyebrow">Organisation</p><h2 id="teams-title">Teams</h2></div></div>
+            <div id="teams-content" class="auxiliary-content"><p class="placeholder">Projektionsquelle wird geladen…</p></div>
+          </section>
+          <section class="panel auxiliary-panel" aria-labelledby="metrics-title">
+            <div class="panel-heading small-heading"><div class="heading-icon metric-icon" aria-hidden="true">↗</div><div><p class="eyebrow">Projektion</p><h2 id="metrics-title">Metriken</h2></div></div>
+            <div id="metrics-content" class="auxiliary-content"><p class="placeholder">Wähle ein WorkItem für dessen vorhandene Metrikprojektion.</p></div>
+          </section>
+        </section>
+      </div>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <footer class="page-foot"><span>Lokale WorkItem-Projektion</span><span>Menschliche Antworten bleiben gesperrt.</span></footer>
+  </body>
+</html>
