@@ -1,5 +1,12 @@
 # Eigene Elternabnahme Story #15
 
+Historischer Abnahmebericht: Die folgenden Entscheidungen, Messwerte und
+Publikationsfreigaben beziehen sich ausschließlich auf den damaligen Stand.
+Es gilt die [aktuelle Prüfregel](../AGENTS.md); frühere Test- und
+Regressionspflichten sind aufgehoben. Keine aktuelle Ausführungsanweisung und
+kein Funktionsnachweis nach dem Rückbau; unabhängige Prüfung und eigene
+Elternabnahme des aktuellen WorkItems bleiben erforderlich.
+
 Entscheidung teamleiter_softwareentwicklung am 12.10.2026: Story #15 mit Tasks #32/#33 accepted im lokalen Windows-/NTFS-Scope. Diese Kriterienentscheidung ist die eigene Elternabnahme und folgt nicht allein aus Kinderabschlüssen.
 
 Branch: feature/story15-store-recovery. Basis: 23d7b6c5a80fd7552bbec464f07cba925dbaf34a, Story14 Merge PR69. Fachbeiträge: bestehender Architekturbericht (WorkItem A), Backend und gezielte Startzeit-Rework (B), unabhängige QA (C), Betriebsanleitung und dauerhafte Belegsicherung (F). Die ursprünglichen qa-final/infra-final Runner endeten ohne terminale Abschlussdateien; ihre gesicherten Ausführungsbelege wurden übernommen, Prozesszuordnung geklärt und durch einen begrenzten unabhängigen Belegabschluss dem aktuellen Quellstand zugeordnet. Es wurden keine alten aktiven Schreiber übernommen oder beendet.

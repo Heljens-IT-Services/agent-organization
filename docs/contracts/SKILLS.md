@@ -13,8 +13,8 @@ innerhalb der Registry eindeutig. `purpose` beschreibt den fachlichen Zweck.
 `scriptPath` verwendet repo-relative Pfade mit `/`, ohne absolute Pfade,
 Rootausbruch oder Reparsepunkte; Ziel muss eine vorhandene Datei sein.
 Markdown und reine Daten sind kein ausfuehrbarer Skill. Bei den bekannten
-Kennungen powershell/python/javascript prueft der fokussierte Test die
-Endung .ps1/.py/.js. Andere Sprachen bleiben offene Kennungen; fuer sie wird
+Kennungen powershell/python/javascript sind die zugehoerigen Endungen
+.ps1/.py/.js erforderlich. Andere Sprachen bleiben offene Kennungen; fuer sie wird
 keine universelle Endungs- oder Ausfuehrbarkeitsgarantie behauptet.
 
 Fehlende `language` bedeutet `powershell`; fehlender Interpreter fuer PowerShell
@@ -42,7 +42,7 @@ case-sensitiven Top-Level-Feldern: `isSuccessful` (Boolean), `exception`
 Bei Erfolg ist exception null. Bei Fehler ist exception ein Objekt mit
 nichtleerer, nicht nur aus Leerraum bestehender String-`message`;
 weitere exception-Felder sind erlaubt. Auch bei Fehler darf result jeden
-JSON-Wert enthalten. Die originalen Issue60-Beispiele werden getestet:
+JSON-Wert enthalten. Die originalen Issue60-Beispiele lauten:
 
 ```json
 {"isSuccessful":true,"exception":null,"result":{"items":[1,2,3]}}
@@ -54,9 +54,8 @@ JSON-Wert enthalten. Die originalen Issue60-Beispiele werden getestet:
 
 Stdout enthaelt genau dieses eine JSON-Dokument, ohne Freitext/Progress/Logs.
 Diagnostik gehoert auf stderr oder in getrennte Logs. Das Schema validiert die
-geparste Struktur; die fokussierte Testfunktion prueft zusaetzlich den Text.
-Sie weist doppelte case-sensitive Top-Level-Namen vor Parsernormalisierung
-ab, einschliesslich aequivalenter Unicode-Escapes. Verschachtelte result-Namen
+geparste Struktur. Doppelte case-sensitive Top-Level-Namen sind unzulaessig,
+einschliesslich aequivalenter Unicode-Escapes. Verschachtelte result-Namen
 unterliegen keiner neuen Eindeutigkeitsregel. Syntaktisch gueltige JSON-Zahlen
 wie `1e400` sind auch verschachtelt erlaubt; es gibt keine Zahlenbereichsgrenze.
 Die [Runnerfehlervorlage](../task60-evidence/runner-error.json) ist ausschliesslich
@@ -67,8 +66,11 @@ Eine native Codex `SKILL.md` beschreibt Anweisungen und ggf. Hilfsdateien.
 Sie ist nicht automatisch ein Skill nach diesem Vertrag: erst ein Metadatensatz
 mit vorhandener Skriptdatei und definiertem Antwortvertrag erfuellt die Form.
 
-Pruefung: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
-scripts/tests/contracts/Test-SkillContracts.ps1`. Wiederverwendet wird ausschliesslich der
+## Historischer Nachweisstand (Task60)
+
+Die folgenden Angaben beschreiben damalige Belege, keine aktuelle
+Ausfuehrungsanweisung. Es gilt die [aktuelle Prüfregel](../../AGENTS.md).
+Wiederverwendet wurde ausschliesslich der
 vorhandene ContractValidation-Helfer plus eng fokussierte Skill-Invarianten.
 Der fokussierte Test verwendet vorhandenes Node/native `JSON.parse` als
 Standard-JSON-Syntaxwerkzeug, ohne Paketinstallation oder neue Projekt- oder

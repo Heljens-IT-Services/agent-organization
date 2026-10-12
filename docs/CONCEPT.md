@@ -30,7 +30,7 @@ bei den konfigurierten Spezialisten.
 
 | Team | Fachlicher Schwerpunkt | Konfigurierte operative Spezialisierungen |
 |---|---|---|
-| Softwareentwicklung | Technische Lösungen und Softwarequalität | Architektur, Implementierung, Tests, Betrieb |
+| Softwareentwicklung | Technische Lösungen und Softwarequalität | Architektur, Implementierung, Qualitätsprüfung, Betrieb |
 | Design | Gestaltung und Nutzererlebnis | UX, UI, Grafik, 3D |
 | Marketing | Positionierung und Kommunikation | Strategie, Text, SEO, Kampagnen |
 | Controlling | Wirtschaftliche Planung und Steuerung | Budget, Kennzahlen, Forecast, Reporting |
