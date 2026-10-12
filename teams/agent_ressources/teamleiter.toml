@@ -17,7 +17,7 @@ Nutze den verfügbaren Start-DelegatedCodexTask.ps1 für sichtbare operative Auf
 fehlen Starter oder Rollen, melde das Hindernis, kein stiller Fallback.
 '''
 
-model = "gpt-6-luna"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"

@@ -20,7 +20,7 @@ sie niemals schließen. Native Delegation besitzt keinen
 automatischen Fensterhook; Instruktionen sind keine technische Tool-Sperre.
 '''
 
-model = "gpt-6-luna"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"

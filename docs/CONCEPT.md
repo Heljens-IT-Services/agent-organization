@@ -73,6 +73,9 @@ und persönlich installiert. Repositorypflege erfolgt als normale Entwicklungsas
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
 Defaults `gpt-6-luna`, Reasoning `medium`, Antwortlänge `medium`,
 `danger-full-access`, `never` und `cached`.
+Koordinator, alle Teamleiter, Softwarearchitektur, Software-Qualitätssicherung,
+Agent-Ressources-Qualitätsprüfung und Vertragskoordination verwenden abweichend
+`gpt-6.1-sol`; Reasoning bleibt `medium`.
 `name`, `description` und `developer_instructions` bleiben rollenspezifisch.
 [MUST] Rollenbeschreibungen bleiben ein kurzer Satz; Instruktionen enthalten
 nur die präzisen Zuständigkeiten, Übergaben und notwendigen Grenzen.

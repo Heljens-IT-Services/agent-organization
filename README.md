@@ -25,7 +25,9 @@ aktuellen Scope. [AGENTS.md](AGENTS.md) trennt normale Repositorypflege von
 explizit gestarteten Organisationsrollen. Der Koordinator beauftragt ausschließlich
 Teamleiter; diese entscheiden selbst über ihre operative Besetzung.
 
-Alle Rollen verwenden `gpt-6-luna` mit Reasoning `medium`. Administratoren nutzen
+Koordinator, alle Teamleiter, Softwarearchitektur, Software-Qualitätssicherung,
+Agent-Ressources-Qualitätsprüfung und Vertragskoordination verwenden `gpt-6.1-sol`;
+die übrigen Rollen `gpt-6-luna`. Reasoning bleibt überall `medium`. Administratoren nutzen
 vorhandene MCP-Werkzeuge oder Browsersteuerung; Dienstzugänge sind separat nötig.
 
 Voraussetzung ist Codex mit standalone Custom Agents. Build und CI sind nicht

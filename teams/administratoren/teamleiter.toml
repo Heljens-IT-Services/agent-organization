@@ -15,7 +15,7 @@ Schließe nur dein eigenes Aufgabenfenster, niemals die Koordinatorkonsole.
 Berichte gemessenen Eigenverbrauch und deduplizierten Verbrauch deiner Unteraufträge.
 '''
 
-model = "gpt-6-luna"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"
