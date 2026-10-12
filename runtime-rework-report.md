@@ -38,3 +38,9 @@ FÃ¼r die native Probe `-RuntimeConfigPath` weglassen und `-RuntimeExecutable '
 ## B1 Fortsetzung 2026-10-12
 
 Gezielte Ã„nderungen/Begrenzungen siehe [backend-repair-report.md](C:/Users/Tom-OliverMarek/AppData/Local/Temp/story16-task34-continuation-20261012/backend-repair-report.md). Die bisherigen Hosttest-/QA-Aussagen dieses Berichts bleiben historische Belege; diese Fortsetzung fÃ¼hrte keine Hosttests aus.
+
+## Übergabesicherung #34 (2026-10-12)
+
+Aktueller Quellenstand: `scripts/Start-CoordinatorHost.ps1` und `scripts/coordinator/CoordinatorHost.Core.psm1` wurden ausschließlich aus dem Backendbeitrag übernommen und checkpointet. Es wurden keine fachlichen Codeänderungen ergänzt.
+
+Die von den eigenen unveröffentlichten Commits `c26a0fa` und `d1f7c8a` eingeführten Testartefakte `scripts/Test-CoordinatorHost.ps1` sowie `scripts/tests/coordinator/{ClientWorker.ps1,DiagnoseHostStartup.ps1,HostHarness.ps1,MockRuntime.ps1,README.md}` sind aus diesem Featurezweig entfernt. Historische QA-Aussagen und Messwerte oben bleiben unverändert und sind keine aktuellen Funktionsbelege. Für diese Übergabe wurden keine Tests ausgeführt oder erstellt; Laufzeit- und Funktionsverhalten bleibt unbelegt und ist von der Teamleitung abzunehmen.

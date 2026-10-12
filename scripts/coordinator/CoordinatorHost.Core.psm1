@@ -77,6 +77,13 @@ function Invoke-CoordinatorRuntimeRpc($Runtime, [string]$Method, $Params, [int]$
     throw 'RecoveryUnknown: Runtime RPC response timed out.'
 }
 
+function Test-CoordinatorNotificationBinding($Notification, [string]$ThreadId, [string]$TurnId) {
+    if (-not $Notification -or -not $Notification.params -or $Notification.params.threadId -cne $ThreadId) { return $false }
+    $candidate=$Notification.params.turnId
+    if ($Notification.params.turn -and $Notification.params.turn.id) { $candidate=$Notification.params.turn.id }
+    return ([string]$candidate -ceq $TurnId)
+}
+
 function Start-CoordinatorRuntime($Config) {
     if ($Config.PSObject.Properties['RuntimeFactory'] -and $Config.RuntimeFactory) { return & $Config.RuntimeFactory $Config }
     $exe = if ($Config.PSObject.Properties['RuntimeExecutable'] -and $Config.RuntimeExecutable) { $Config.RuntimeExecutable } else { (Get-Command codex.exe -ErrorAction Stop).Source }
@@ -140,7 +147,7 @@ function Initialize-CoordinatorRuntime($Runtime, $Session, [string]$SessionPath)
     foreach($pair in @(@('ResumeAttempts',0),@('LastUsage',$null),@('RequestHistory',@()),@('AccountingError',$null),@('RuntimePid',$null),@('RuntimeStartedAtUtc',$null))){if(-not $Session.PSObject.Properties[$pair[0]]){$Session|Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1]}}
     if(-not $Session.LogicalSessionId -or (-not $Session.NativeThreadId -and -not $Session.AllowProvisioning)){throw 'BlockedRecovery: required session binding missing.'}
     if ($Session.NativeThreadId) {
-        $Session.State='Resuming'; $Session.ResumeAttempts=[int]$Session.ResumeAttempts+1
+        $Session.State='Resuming'
         Write-CoordinatorAtomicJson $SessionPath $Session
         $reply=$null; $retryLimit=[int]$Runtime.ResumeRetryLimit
         for($attempt=1;$attempt -le $retryLimit;$attempt++) {
@@ -192,14 +199,14 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
         $Session.State='RunningTurn'; Write-CoordinatorAtomicJson $SessionPath $Session
         $turnTimeout=if($Runtime.TurnTimeoutMilliseconds){[int]$Runtime.TurnTimeoutMilliseconds}else{600000};$watch=[Diagnostics.Stopwatch]::StartNew(); $terminal=$false
         $usage=$null
-        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and $n.params.threadId -ceq $Session.NativeThreadId -and $n.params.turnId -ceq $Session.LastTurnId){$usage=$n.params.tokenUsage.last}; if ($n.method -eq 'turn/completed' -and $n.params.turn.id -ceq $Session.LastTurnId) { $terminal=$true } }
+        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$usage=$n.params.tokenUsage.last}; if ($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true } }
         while ($watch.ElapsedMilliseconds -lt $turnTimeout -and -not $Runtime.Process.HasExited) {
             if (-not $Runtime.PendingRead) { $Runtime.PendingRead=$Runtime.Reader.ReadLineAsync() }
-            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; if ($m.method) { [void]$Runtime.Notifications.Add($m) };if($m.method -eq 'thread/tokenUsage/updated' -and $m.params.threadId -ceq $Session.NativeThreadId -and $m.params.turnId -ceq $Session.LastTurnId){$usage=$m.params.tokenUsage.last};if ($m.method -eq 'turn/completed' -and $m.params.turn.id -ceq $Session.LastTurnId) { $terminal=$true; break } } }
+            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; if ($m.method) { if($Runtime.Notifications.Count -ge 256){$Runtime.Notifications.RemoveAt(0)};[void]$Runtime.Notifications.Add($m) };if($m.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)){$usage=$m.params.tokenUsage.last};if ($m.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true; break } } }
             if ($terminal) { break }
         }
         if (-not $terminal) { $Session.State='RecoveryUnknown'; $Session.LastOutcome='Unknown'; Write-CoordinatorAtomicJson $SessionPath $Session; return @{status='BlockedRecovery';requestId=$Request.requestId} }
-        $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){if($n.method -eq 'turn/completed' -and $n.params.turn.id -ceq $Session.LastTurnId -and $n.params.turn.status){$terminalStatus=[string]$n.params.turn.status}}
+        $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){if($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId) -and $n.params.turn.status){$terminalStatus=[string]$n.params.turn.status}}
         $Session.State='Ready'; $Session.LastOutcome=$terminalStatus; $Session.LastUsage=$usage
         $entry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$entry.turnId=$Session.LastTurnId;$entry.outcome=$terminalStatus;$entry.usage=$usage
         Write-CoordinatorAtomicJson $SessionPath $Session
@@ -243,4 +250,4 @@ function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
     }
 }
 
-Export-ModuleMember -Function Write-CoordinatorAtomicJson,Read-CoordinatorSession,Get-CoordinatorPrivateStoreModule,Invoke-CoordinatorPrivateStore,Enter-CoordinatorOwnership,Exit-CoordinatorOwnership,Invoke-CoordinatorRuntimeRpc,Start-CoordinatorRuntime,New-CoordinatorPipeServer,Initialize-CoordinatorRuntime,Invoke-CoordinatorTurn,Start-CoordinatorPipe
+Export-ModuleMember -Function Write-CoordinatorAtomicJson,Read-CoordinatorSession,Get-CoordinatorPrivateStoreModule,Invoke-CoordinatorPrivateStore,Enter-CoordinatorOwnership,Exit-CoordinatorOwnership,Invoke-CoordinatorRuntimeRpc,Test-CoordinatorNotificationBinding,Start-CoordinatorRuntime,New-CoordinatorPipeServer,Initialize-CoordinatorRuntime,Invoke-CoordinatorTurn,Start-CoordinatorPipe
