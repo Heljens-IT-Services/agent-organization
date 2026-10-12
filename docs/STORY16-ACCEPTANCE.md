@@ -26,3 +26,13 @@ Keine Tests in diesem Repository ausgeführt oder erstellt. Keine Mocks, Testfix
 
 ## Messung
 Eigenverbrauch Leitung vor terminalem Runnerabschluss unbekannt. Kinderverbrauch anhand finaler Resultate nach task_id deduplizieren; keine inklusiven Summen doppelt zählen, keine Altparentwerte als final ausgeben. Terminaler Auftragsabschluss ist eine gesicherte Übergabe, keine fachliche Vollabnahme von #34/#16.
+
+## Aktuelle eigene Elternentscheidung – 2026-10-12
+- Die neue ausdrückliche Benutzerpriorität hebt die frühere Folgebatch-/Publikationssperre auf.
+- #34 Implementierung angenommen anhand der übernommenen Quellenbewertung; keine Neuprüfung.
+- #35 Quellenintegration angenommen, einschließlich Fachreadback J.
+- Echte kontrollierte Neustartgrenze bleibt für #35/#16 offen; daher kein Closing von #35 oder #16.
+- Produktiver Autostart bleibt unregistriert.
+- Keine Tests oder Runtimeproben ausgeführt.
+- #36/#37 sind extern vorbereitet; globale Startzulassung bleibt an die offene Limitklärung gebunden.
+- Dies dokumentiert die gelieferte eigene Elternentscheidung, keine neue Fachabnahme.
