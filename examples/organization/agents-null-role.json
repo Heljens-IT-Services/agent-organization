@@ -1,0 +1,14 @@
+{
+  "team_id": "example",
+  "leader_id": "teamleiter_example",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "example_specialist",
+      "name": "Specialist",
+      "description": "An unavailable specialist.",
+      "role_file": null
+    }
+  ]
+}

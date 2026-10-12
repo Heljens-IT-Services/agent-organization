@@ -32,3 +32,13 @@ vorhandene MCP-Werkzeuge oder Browsersteuerung; Dienstzugänge sind separat nöt
 
 Voraussetzung ist Codex mit standalone Custom Agents. Build und CI sind nicht
 vorhanden; GitHub Actions sind deaktiviert.
+
+[WorkItem-Verträge](docs/contracts/WORKITEMS.md) trennen Umsetzung und Abnahme;
+[Organisationsverträge](docs/contracts/ORGANIZATION.md) validieren die bestehenden
+Indizes. [Entscheidung 0001](docs/decisions/0001-system-scope.md) legt Struktur und
+Folgeumfang fest. Prüfung unter Windows PowerShell 5.1:
+
+```powershell
+.\scripts\Test-Contracts.ps1
+.\scripts\Test-Organization.ps1
+```

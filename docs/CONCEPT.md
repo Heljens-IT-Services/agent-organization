@@ -7,10 +7,18 @@ legt Scope und Teamzuständigkeiten fest, beauftragt die passenden Teamleiter un
 bündelt deren Ergebnisse zu einer verständlichen Rückmeldung. Er arbeitet nicht
 operativ.
 
+Für die erste Heljens-Version gelten [Entscheidung 0001](decisions/0001-system-scope.md),
+der [WorkItem-Vertrag](contracts/WORKITEMS.md) und der
+[Organisationsvertrag](contracts/ORGANIZATION.md). GitHub-Issues planen die Umsetzung;
+der laufende Bestand gehört künftig in die eigene WorkItem-Verwaltung.
+
 Jeder Teamleiter plant und koordiniert die Arbeit seines Fachbereichs, vergibt
 abgegrenzte Aufträge an Spezialisten und prüft, ob die Rückgaben den Auftrag
 abdecken. Er arbeitet ebenfalls nicht operativ. Spezialisten erstellen,
 analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
+Teamleiter spezifizieren Teilziele mit erforderlichen Fachleuten. Keine Rolle
+entscheidet fachliche Architektur ohne zuständigen Spezialistenbeitrag.
+Umsetzung und Kinderabschlüsse ersetzen nicht die Prüfung eigener Elternkriterien.
 
 ## Vorgesehene Teams
 
@@ -47,9 +55,9 @@ Administratoren nutzen vorhandene MCP-Werkzeuge oder Browsersteuerung mit geeign
 
 ## Konfiguration
 
-Das Repository soll die versionierte Quelle der Organisation werden. Rollen,
+Das Repository ist die versionierte Quelle der Organisation. Rollen,
 Verantwortungen, Teamzuordnung und Mitgliedschaft sollen nachvollziehbar und
-änderbar beschrieben werden. TOML ist ein möglicher Dateityp.
+änderbar beschrieben werden. Native Rollen verwenden TOML, Kontaktindizes JSON.
 
 Zwei Ebenen sind zu unterscheiden:
 
@@ -116,7 +124,7 @@ Kontaktquelle des jeweiligen Teamleiters und wird bytegleich unter
 Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
 Änderungssatz. Fehlende operative Rollen haben `role_file: null`.
 
-[MUST] Alle Organisations-JSONs bleiben ohne `status`-Eigenschaften, auch in
+[MUST] Alle Team- und Agentenindizes bleiben ohne `status`-Eigenschaften, auch in
 verschachtelten Einträgen. Verfügbarkeit wird ausschließlich durch eine
 vorhandene Rollenreferenz oder `role_file: null` ausgedrückt; keine Ersatzflags.
 
@@ -132,6 +140,14 @@ Die TOMLs bleiben für Codex-Discovery flach im persönlichen `agents`-Verzeichn
 Lookupdaten liegen in den zugehörigen Unterordnern. Es gibt keine Aliasdateien.
 
 ## Delegation und Kapazität
+
+Maximal drei Agentenebenen: Koordinator → Teamleiter → operativer Agent.
+WorkItems bilden davon unabhängig beliebig tiefe Aufgabenbäume. Ziele enthalten
+Messgrößen und Akzeptanzkriterien; der Koordinator priorisiert, Teamleiter planen
+fachlich, Spezialisten liefern beauftragte Beiträge. Neue Besetzung wird vorgeschlagen.
+Vertrieb liegt bei Marketing (Kundengewinnung) und Geschäftsführung und Assistenz
+(Angebote, Verträge, Kundenkommunikation); Controlling unterstützt wirtschaftlich
+über den Koordinator. Es entsteht kein zusätzliches Vertriebsteam.
 
 Ein Auftrag geht vom Koordinator an einen passenden Teamleiter und von dort an
 einen oder mehrere Spezialisten. Übergaben enthalten Ziel, Scope, Nicht-Scope,
@@ -151,8 +167,9 @@ Codex-Auftrag und benötigtem Kontext. Die frühere Forderung nach einem separat
 Desktop-App-Fenster wurde damit ersetzt. Der parametrische
 [Terminalstarter](FENSTERDELEGATION.md) prüft vor Arbeitsbeginn die Zuordnung von
 Auftrag, Runner und tatsächlichem Fenster und startet erst nach bestätigter
-Sichtbarkeit. Nach terminalem Ergebnis und Sicherung schließt nur das eigene
-Fenster; Historie bleibt erhalten. Warten und Rückfragen sind kein Abschluss.
+Sichtbarkeit. Nach terminalem Ergebnis und Sicherung schließen Teamleiter und
+Spezialisten nur ihr eigenes Aufgabenfenster; die Koordinatorkonsole bleibt immer
+offen. Historie bleibt erhalten. Warten und Rückfragen sind kein Abschluss.
 
 Dieser Ablauf wurde mit einer tatsächlichen QA-Aufgabe geprüft. Die automatische
 Kopplung sämtlicher nativer Delegationen bleibt offen; ein späteres

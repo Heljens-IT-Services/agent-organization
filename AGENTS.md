@@ -13,6 +13,10 @@ Rollen oder deren Interaktionen. Jeder Teamleiter entscheidet allein über
 Besetzung und Zusammenarbeit seiner eigenen Agenten. Teamübergreifende
 Aufträge laufen über den Koordinator.
 
+Maximal drei Agentenebenen, beliebig tiefe WorkItems. Teamleiter spezifizieren
+Teilziele mit erforderlichen Fachleuten; fachliche Architektur braucht deren
+Beitrag. Umsetzung und Kinderabschlüsse ersetzen keine eigene Elternabnahme.
+
 Organisationsaufträge starten über `scripts/Start-DelegatedCodexTask.ps1` im
 bestätigten sichtbaren Terminal. Fehlt Sichtbarkeit, wird das Hindernis gemeldet.
 Die Koordinatorkonsole heißt `Koordinator` und wird niemals automatisch oder

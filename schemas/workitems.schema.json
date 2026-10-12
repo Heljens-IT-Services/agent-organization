@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:heljens:workitems:1",
+  "title": "Heljens WorkItem collection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "items"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/workItem"}}
+  },
+  "x-statusTransitions": {
+    "planned": ["in_progress", "blocked", "cancelled"],
+    "in_progress": ["blocked", "implemented", "cancelled"],
+    "blocked": ["planned", "in_progress", "implemented", "rework", "cancelled"],
+    "implemented": ["blocked", "rework", "accepted", "cancelled"],
+    "rework": ["in_progress", "blocked", "implemented", "cancelled"],
+    "accepted": [],
+    "cancelled": []
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$"},
+    "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "actor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {"type": {"enum": ["human", "agent"]}, "id": {"$ref": "#/$defs/id"}}
+    },
+    "criterion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "description": {"$ref": "#/$defs/text"}}
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["summary", "evidence"],
+      "properties": {
+        "summary": {"$ref": "#/$defs/text"},
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}}
+      }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["implementedAt", "checkedAt", "reviewer", "passed", "results"],
+      "properties": {
+        "implementedAt": {"$ref": "#/$defs/timestamp"},
+        "checkedAt": {"$ref": "#/$defs/timestamp"},
+        "reviewer": {"$ref": "#/$defs/actor"},
+        "passed": {"type": "boolean"},
+        "results": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["criterionId", "passed", "evidence"],
+            "properties": {
+              "criterionId": {"$ref": "#/$defs/id"},
+              "passed": {"type": "boolean"},
+              "evidence": {"$ref": "#/$defs/text"}
+            }
+          }
+        }
+      }
+    },
+    "humanInteraction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "description", "requestedAt", "response"],
+      "properties": {
+        "kind": {"enum": ["clarification", "approval", "action"]},
+        "description": {"$ref": "#/$defs/text"},
+        "requestedAt": {"$ref": "#/$defs/timestamp"},
+        "response": {
+          "anyOf": [
+            {"type": "null"},
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["description", "respondedAt", "respondentId"],
+              "properties": {
+                "description": {"$ref": "#/$defs/text"},
+                "respondedAt": {"$ref": "#/$defs/timestamp"},
+                "respondentId": {"$ref": "#/$defs/id"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "workItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "parentId", "title", "description", "owner", "goal", "priority", "dependencies", "specification", "acceptanceCriteria", "status", "result", "verifications", "humanInteraction", "blockReason", "createdAt", "updatedAt", "implementedAt", "acceptedAt"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "parentId": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/id"}]},
+        "title": {"$ref": "#/$defs/text"},
+        "description": {"$ref": "#/$defs/text"},
+        "owner": {"$ref": "#/$defs/actor"},
+        "goal": {
+          "type": "object", "additionalProperties": false,
+          "required": ["description", "metric", "target"],
+          "properties": {
+            "description": {"$ref": "#/$defs/text"},
+            "metric": {"$ref": "#/$defs/text"},
+            "target": {"$ref": "#/$defs/text"}
+          }
+        },
+        "dueAt": {"$ref": "#/$defs/timestamp"},
+        "priority": {"enum": ["low", "normal", "high", "urgent"]},
+        "dependencies": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "specification": {
+          "anyOf": [
+            {"type": "object", "additionalProperties": false, "required": ["inline"], "properties": {"inline": {"$ref": "#/$defs/text"}}},
+            {"type": "object", "additionalProperties": false, "required": ["markdown"], "properties": {"markdown": {"type": "string", "pattern": "^[a-zA-Z0-9_/.-]+\\.md$", "minLength": 4}}}
+          ]
+        },
+        "acceptanceCriteria": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/criterion"}},
+        "status": {"enum": ["planned", "in_progress", "blocked", "implemented", "rework", "accepted", "cancelled"]},
+        "result": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/result"}]},
+        "verifications": {"type": "array", "items": {"$ref": "#/$defs/verification"}},
+        "humanInteraction": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/humanInteraction"}]},
+        "blockReason": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/text"}]},
+        "createdAt": {"$ref": "#/$defs/timestamp"},
+        "updatedAt": {"$ref": "#/$defs/timestamp"},
+        "implementedAt": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/timestamp"}]},
+        "acceptedAt": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/timestamp"}]}
+      }
+    }
+  }
+}

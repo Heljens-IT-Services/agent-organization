@@ -1,0 +1,14 @@
+{
+  "teams": [
+    {
+      "team_id": "example",
+      "name": "Example",
+      "description": "An unavailable team leader.",
+      "tasks": [
+        "Coordinate scoped work"
+      ],
+      "leader_id": "teamleiter_example",
+      "role_file": null
+    }
+  ]
+}
