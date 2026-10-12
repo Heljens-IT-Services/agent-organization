@@ -6,9 +6,13 @@ param(
     [Parameter(Mandatory = $true)][string]$Role,
     [string]$TaskId,
     [string]$ParentTaskId,
+    [string]$WorkItemId,
+    [string]$ExecutionId,
+    [string]$StorePath,
     [Parameter(Mandatory = $true)][string]$AccountingDirectory
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
 $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
 # Explicit opt-in to this observed internal format, not a public rollout API.
 # Only metadata is read; message payloads are never returned or included in errors.
@@ -42,36 +46,47 @@ function Snapshot($Value) {
     }
     return [pscustomobject]$result
 }
-function Same-Record($Existing, $Expected) {
-    $keys = @('task_id', 'parent_task_id', 'role', 'thread_id', 'turn_id', 'token_usage', 'source')
-    if ($null -eq $Existing -or @($Existing.PSObject.Properties).Count -ne $keys.Count) { return $false }
-    foreach ($key in $keys) {
-        if ($null -eq $Existing.PSObject.Properties[$key]) { return $false }
-        if ($key -eq 'token_usage') { continue }
-        if ($null -eq $Expected.$key) { if ($null -ne $Existing.$key) { return $false } }
-        elseif ($Existing.$key -isnot [string] -or $Existing.$key -cne $Expected.$key) { return $false }
-    }
-    if ($null -eq $Expected.token_usage) { return ($null -eq $Existing.token_usage) }
-    if ($null -eq $Existing.token_usage -or @($Existing.token_usage.PSObject.Properties).Count -ne 6) { return $false }
-    foreach ($key in $ledgerFields) {
-        $number = $Existing.token_usage.$key
-        if ($null -eq $Existing.token_usage.PSObject.Properties[$key] -or
-            ($number -isnot [int] -and $number -isnot [long] -and $number -isnot [decimal] -and $number -isnot [double]) -or
-            $number -ne $Expected.token_usage.$key) { return $false }
-    }
-    return $true
-}
-function Check-Existing([string]$Path, $Expected) {
-    try { $existing = [System.IO.File]::ReadAllText($Path, $utf8) | ConvertFrom-Json } catch { throw 'Conflicting or unreadable existing usage artifact.' }
-    if (-not (Same-Record $existing $Expected)) { throw 'Conflicting existing usage artifact; not overwritten.' }
-}
 $thread = Id $ThreadId 'ThreadId'
 $turn = Id $TurnId 'TurnId'
 if (-not $PSBoundParameters.ContainsKey('TaskId')) { $TaskId = $turn }
-$task = Id $TaskId 'TaskId' 'N'
-$parent = if ($PSBoundParameters.ContainsKey('ParentTaskId')) { Id $ParentTaskId 'ParentTaskId' 'N' } else { $null }
-if ($parent -eq $task) { throw 'Task cannot be its own parent.' }
-if ([string]::IsNullOrWhiteSpace($Role)) { throw 'Role is required.' }
+$task = Get-CanonicalId $TaskId
+$parent = if ($PSBoundParameters.ContainsKey('ParentTaskId')) { Get-CanonicalId $ParentTaskId -Optional } else { $null }
+$workItem = if ($PSBoundParameters.ContainsKey('WorkItemId')) { Get-Text $WorkItemId } else { $null }
+$execution = if ($PSBoundParameters.ContainsKey('ExecutionId')) { Get-Text $ExecutionId } else { $null }
+$storeBinding = if ($PSBoundParameters.ContainsKey('StorePath')) {
+    $null = Get-CanonicalPath $StorePath
+    [IO.Path]::GetFullPath($StorePath)
+} else { $null }
+$present = @(@($workItem,$execution,$storeBinding) | Where-Object { $null -ne $_ }).Count
+if ($present -ne 0 -and $present -ne 3) { throw 'WorkItem, execution and store must be supplied together.' }
+$directory = [IO.Path]::GetFullPath($AccountingDirectory)
+$parentThread = $null; $parentTurn = $null; $initialTurns = @()
+if ($null -ne $workItem) {
+    $priorEntries = @(Read-UsageEntries $directory)
+    $state = Read-ExecutionEvidence $directory $priorEntries
+    if (-not $state.ContainsKey($execution)) { throw 'No existing execution binding.' }
+    $binding = $state[$execution]
+    if ($binding.artifactCount -eq 0 -or $binding.conflicts.Count -gt 0) { throw 'Missing or conflicting execution binding.' }
+    if ($binding.workItemId -cne $workItem -or $binding.storePath -cne (Get-CanonicalPath $storeBinding)) { throw 'WorkItem/store binding conflicts.' }
+    if ($null -ne $binding.threadId -and $binding.threadId -cne (Get-CanonicalId $thread)) { throw 'Execution thread conflicts.' }
+    if ($null -eq $binding.taskId) { throw 'Execution task binding is missing.' }
+    if ($binding.taskId -cne $task) {
+        $aliases = @($priorEntries | Where-Object {
+            $_.identity.threadId -ceq (Get-CanonicalId $thread) -and
+            $_.identity.turnId -ceq (Get-CanonicalId $turn) -and
+            $_.AliasTaskIds -ccontains $binding.taskId
+        })
+        if ($aliases.Count -ne 1) { throw 'Unproven task alias.' }
+    }
+    if ($PSBoundParameters.ContainsKey('ParentTaskId') -and $null -ne $binding.parentTaskId -and $parent -cne $binding.parentTaskId) { throw 'ParentTaskId differs from execution binding.' }
+    if (-not $PSBoundParameters.ContainsKey('ParentTaskId')) { $parent = $binding.parentTaskId }
+    if ($null -ne $binding.parentThreadId) { $parentThread = ([guid]$binding.parentThreadId).ToString('D') }
+    if ($null -ne $binding.parentTurnId) { $parentTurn = ([guid]$binding.parentTurnId).ToString('D') }
+    $initialTurns = @($binding.initialTurns)
+    # Later turns are importable, but cannot replace initial-turn coverage.
+}
+if ($parent -ceq $task) { throw 'Self-parent task.' }
+$null = Get-Text $Role
 $file = Get-Item -LiteralPath $RolloutPath
 if ($file.PSIsContainer) { throw 'RolloutPath must select one file.' }
 # Observed native filename: rollout-YYYY-MM-DDTHH-mm-ss-<thread UUID>.jsonl.
@@ -93,8 +108,8 @@ try {
         try { $data = $line | ConvertFrom-Json } catch { throw 'Malformed rollout JSON record.' }
         if ($null -eq $data -or $data -isnot [pscustomobject] -or $data.type -isnot [string] -or $data.payload -isnot [pscustomobject]) { throw 'Unknown rollout record envelope.' }
         if (@('session_meta','event_msg','response_item','turn_context','compacted','world_state','inter_agent_communication_metadata','token_usage_record') -cnotcontains $data.type) { throw 'Unknown rollout record type.' }
-        if ($data.type -eq 'session_meta' -and $data.payload.id -eq $thread) { $directMetadata++ }
-        if ($data.type -eq 'event_msg' -and $data.payload.turn_id -eq $turn) {
+        if ($data.type -eq 'session_meta' -and (Get-CanonicalId (Get-Field $data.payload 'id')) -ceq (Get-CanonicalId $thread)) { $directMetadata++ }
+        if ($data.type -eq 'event_msg' -and (Get-CanonicalId (Get-Field $data.payload 'turn_id') -Optional) -ceq (Get-CanonicalId $turn)) {
             if ($data.payload.type -eq 'task_started') {
                 if ($directStarted -or $directMetadata -ne 1) { $directError = 'Ambiguous selected native turn start.' }
                 $directStarted = $true
@@ -104,7 +119,7 @@ try {
                 $directCompleted = $true
             }
         }
-        if ($data.type -eq 'token_usage_record' -and $data.payload.thread_id -eq $thread -and $data.payload.turn_id -eq $turn) {
+        if ($data.type -eq 'token_usage_record' -and (Get-CanonicalId (Get-Field $data.payload 'thread_id')) -ceq (Get-CanonicalId $thread) -and (Get-CanonicalId (Get-Field $data.payload 'turn_id')) -ceq (Get-CanonicalId $turn)) {
             if (-not $directStarted -or $directCompleted) { throw 'Native usage outside selected turn boundaries.' }
             $next = Snapshot $data.payload.turn_token_usage
             if ($null -ne $direct) {
@@ -206,21 +221,64 @@ if ($null -ne $baseline -and $null -ne $final) {
 }
 $record = [pscustomobject][ordered]@{
     task_id = $task; parent_task_id = $parent; role = $Role; thread_id = $thread; turn_id = $turn
-    token_usage = $usage; source = $(if ($null -ne $direct) { 'local_rollout_native_turn_usage' } else { 'local_rollout_completed_turn_delta' })
+    parent_thread_id = $parentThread; parent_turn_id = $parentTurn; token_usage = $usage; final = $true; source = $(if ($null -ne $direct) { 'local_rollout_native_turn_usage' } else { 'local_rollout_completed_turn_delta' })
 }
-$directory = [System.IO.Path]::GetFullPath($AccountingDirectory)
-$null = [System.IO.Directory]::CreateDirectory($directory)
-$destination = Join-Path $directory ($task + '.usage.json')
-if ([System.IO.File]::Exists($destination)) { Check-Existing $destination $record }
-else {
-    $temporary = Join-Path $directory ($task + '.' + [guid]::NewGuid().ToString('N') + '.tmp')
-    try {
-        [System.IO.File]::WriteAllText($temporary, ($record | ConvertTo-Json -Depth 10), $utf8)
-        try { [System.IO.File]::Move($temporary, $destination) }
-        catch {
-            if (-not [System.IO.File]::Exists($destination)) { throw 'Atomic usage artifact creation failed.' }
-            Check-Existing $destination $record
+if ($null -ne $workItem) {
+    $record | Add-Member -NotePropertyName work_item_id -NotePropertyValue $workItem
+    $record | Add-Member -NotePropertyName execution_id -NotePropertyValue $execution
+    $record | Add-Member -NotePropertyName work_item_store_path -NotePropertyValue $storeBinding
+}
+$null = [IO.Directory]::CreateDirectory($directory)
+# Cooperating imports serialize conflict scan/publication. Other writers use other locks.
+$lockPath = Join-Path $directory 'accounting-import.lock'
+$lock = [IO.File]::Open($lockPath,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+try {
+    $identity = Get-UsageIdentity $record
+    $entries = @(Read-UsageEntries $directory)
+    foreach ($entry in $entries) {
+        if ($entry.AliasTaskIds -ccontains $task -and (Get-TaskBindingSignature $entry.identity) -cne (Get-TaskBindingSignature $identity)) { throw 'Cross-turn task binding conflict.' }
+        if ($entry.identity.threadId -ceq $identity.threadId -and $entry.identity.turnId -ceq $identity.turnId -and (Get-NativeSignature $entry.identity) -cne (Get-NativeSignature $identity)) {
+            throw 'Native measurement, Unknown, binding or finality conflict; existing records retained.'
         }
-    } finally { if ([System.IO.File]::Exists($temporary)) { [System.IO.File]::Delete($temporary) } }
-}
+    }
+    if ($null -ne $execution) {
+        $state = Read-ExecutionEvidence $directory $entries
+        if (-not $state.ContainsKey($execution) -or $state[$execution].artifactCount -eq 0) { throw 'Execution binding disappeared.' }
+        $canonical = Get-UsageIdentity $record
+        if ($state[$execution].taskId -cne $canonical.taskId) {
+            $same = @($entries | Where-Object { $_.native_key -ceq ($canonical.threadId+'/'+$canonical.turnId) -and $_.AliasTaskIds -ccontains $state[$execution].taskId })
+            if ($same.Count -ne 1) { throw 'Unproven task alias at publication.' }
+            $canonical.taskId = $state[$execution].taskId
+        }
+        Add-ExecutionEvidence $state $canonical 'usage' 'pending import' $null
+        if ($state[$execution].conflicts.Count -gt 0) { throw 'Execution binding conflicts at publication.' }
+        $initialTurns = @($state[$execution].initialTurns)
+    }
+    $legacyDestination = Join-Path $directory ($task+'.usage.json')
+    $turnDestination = Join-Path $directory ($task+'.'+$thread+'.'+$turn+'.usage.json')
+    $destination = $legacyDestination
+    if ($null -ne $execution -and ($initialTurns.Count -ne 1 -or $initialTurns -cnotcontains $identity.turnId)) { $destination = $turnDestination }
+    if ([IO.File]::Exists($legacyDestination)) {
+        $legacy = Get-UsageIdentity (Get-Content -LiteralPath $legacyDestination -Raw -Encoding UTF8 | ConvertFrom-Json)
+        if ($legacy.threadId -ceq $identity.threadId -and $legacy.turnId -ceq $identity.turnId) { $destination = $legacyDestination }
+        else { $destination = $turnDestination }
+    }
+    foreach ($path in @($destination,$turnDestination) | Select-Object -Unique) {
+        if (-not [IO.File]::Exists($path)) { continue }
+        $old = Get-UsageIdentity (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
+        if ($old.taskId -cne $identity.taskId -or $old.threadId -cne $identity.threadId -or $old.turnId -cne $identity.turnId -or (Get-NativeSignature $old) -cne (Get-NativeSignature $identity)) { throw 'Existing destination conflicts; no replacement.' }
+    }
+    if (-not [IO.File]::Exists($destination)) {
+        $temporary = Join-Path $directory ($task+'.'+[guid]::NewGuid().ToString('N')+'.tmp')
+        try {
+            [IO.File]::WriteAllText($temporary,($record | ConvertTo-Json -Depth 10),$utf8)
+            try { [IO.File]::Move($temporary,$destination) }
+            catch {
+                if (-not [IO.File]::Exists($destination)) { throw 'Atomic publication failed.' }
+                $raced = Get-UsageIdentity (Get-Content -LiteralPath $destination -Raw -Encoding UTF8 | ConvertFrom-Json)
+                if ($raced.taskId -cne $identity.taskId -or $raced.threadId -cne $identity.threadId -or $raced.turnId -cne $identity.turnId -or (Get-NativeSignature $raced) -cne (Get-NativeSignature $identity)) { throw 'Concurrent destination conflict.' }
+            }
+        } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
+    }
+} finally { $lock.Dispose() }
 $record

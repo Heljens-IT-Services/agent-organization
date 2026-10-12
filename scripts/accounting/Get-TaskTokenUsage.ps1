@@ -1,106 +1,94 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][string]$TaskId,
-    [Parameter(Mandatory = $true)][string]$AccountingDirectory
+    [Parameter(Mandatory)][string]$TaskId,
+    [Parameter(Mandatory)][string]$AccountingDirectory,
+    [string[]]$RootTaskIds,
+    [switch]$ExactRootTasks,
+    [string[]]$BoundWorkItemIds,
+    [string]$BoundStorePath,
+    [switch]$IncludeOwnRecords
 )
 $ErrorActionPreference = 'Stop'
-$utf8 = New-Object System.Text.UTF8Encoding($false, $true)
-$fields = @('inputTokens', 'cachedInputTokens', 'outputTokens', 'reasoningOutputTokens', 'totalTokens', 'cacheWriteInputTokens')
-function Normalize-Id($Value) {
-    $parsed = [guid]::Empty
-    if (-not [guid]::TryParse([string]$Value, [ref]$parsed)) { throw "Ungültige Task-ID: $Value" }
-    return $parsed.ToString('N')
-}
-function Normalize-Usage($Value) {
-    if ($null -eq $Value) { return $null }
-    $usage = [ordered]@{}
-    foreach ($field in $fields) {
-        $valueField = $Value.$field
-        if ($field -eq 'cacheWriteInputTokens' -and $null -eq $valueField) { $valueField = 0 }
-        if ($null -eq $valueField -or $valueField -is [string] -or $valueField -is [bool] -or
-            $valueField -lt 0 -or [decimal]$valueField -ne [decimal][long]$valueField) { throw "Ungültiger Tokenwert: $field" }
-        $usage[$field] = [long]$valueField
-    }
-    if ($usage.cachedInputTokens -gt $usage.inputTokens -or $usage.reasoningOutputTokens -gt $usage.outputTokens) { throw 'Ungültige Token-Teilmengen.' }
-    return [pscustomobject]$usage
-}
-$rootId = Normalize-Id $TaskId
-$records = @{}
-$native = @{}
-foreach ($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter '*.usage.json' -File) {
-    $record = [System.IO.File]::ReadAllText($file.FullName, $utf8) | ConvertFrom-Json
-    foreach ($field in @('task_id', 'parent_task_id', 'role', 'thread_id', 'turn_id', 'token_usage')) {
-        if ($null -eq $record.PSObject.Properties[$field]) { throw "Ledgerfeld fehlt: $field ($($file.Name))" }
-    }
-    if ($record.PSObject.Properties['status']) { throw 'Ledger darf kein status-Feld enthalten.' }
-    $id = Normalize-Id $record.task_id
-    $parent = if ($null -eq $record.parent_task_id) { $null } else { Normalize-Id $record.parent_task_id }
-    if ($record.role -isnot [string] -or [string]::IsNullOrWhiteSpace($record.role)) { throw 'Ledgerrolle fehlt oder ist ungültig.' }
-    foreach ($identity in @('thread_id', 'turn_id')) {
-        if ($null -ne $record.$identity -and $record.$identity -isnot [string]) { throw "Ungültige native Identität: $identity" }
-    }
-    if (($null -eq $record.thread_id) -ne ($null -eq $record.turn_id)) {
-        # Ein gestarteter Thread ohne gestarteten Turn ist bei fehlgeschlagenem Start erlaubt.
-        if ($null -ne $record.turn_id -or $null -ne $record.token_usage) { throw 'Unvollständige native Identität.' }
-    }
-    if ($null -ne $record.thread_id -and [string]::IsNullOrWhiteSpace($record.thread_id)) { throw 'Leere Thread-ID.' }
-    if ($null -ne $record.turn_id -and [string]::IsNullOrWhiteSpace($record.turn_id)) { throw 'Leere Turn-ID.' }
-    $usage = Normalize-Usage $record.token_usage
-    if ($null -ne $usage -and ($null -eq $record.thread_id -or $null -eq $record.turn_id)) { throw 'Tokenverbrauch ohne native Identität.' }
-    $normalized = [pscustomobject][ordered]@{ task_id = $id; parent_task_id = $parent; role = $record.role; thread_id = $record.thread_id; turn_id = $record.turn_id; token_usage = $usage }
-    $signature = $normalized | ConvertTo-Json -Depth 10 -Compress
-    if ($records.ContainsKey($id)) {
-        if ($records[$id].signature -cne $signature) { throw "Widersprüchliche Task-Duplikate: $id" }
-        continue
-    }
-    $key = if ($null -ne $record.thread_id -and $null -ne $record.turn_id) { @($record.thread_id, $record.turn_id) | ConvertTo-Json -Compress } else { $null }
-    if ($null -ne $key) {
-        $usageSignature = $usage | ConvertTo-Json -Depth 5 -Compress
-        if ($native.ContainsKey($key) -and $native[$key] -cne $usageSignature) { throw 'Widersprüchliche native Thread/Turn-Duplikate.' }
-        $native[$key] = $usageSignature
-    }
-    $records[$id] = @{ record = $normalized; signature = $signature; native_key = $key }
-}
-# Alle eingelesenen Elternketten prüfen, auch außerhalb des angefragten Teilbaums.
-foreach ($id in @($records.Keys)) {
-    $seen = @{}
-    $cursor = $id
-    while ($null -ne $cursor -and $records.ContainsKey($cursor)) {
-        if ($seen.ContainsKey($cursor)) { throw "Zyklus im Task-Ledger: $cursor" }
-        $seen[$cursor] = $true
-        $cursor = $records[$cursor].record.parent_task_id
-    }
-}
-$queue = New-Object System.Collections.Generic.Queue[string]
-$queue.Enqueue($rootId)
-$selected = @{}
+Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
+if (($BoundWorkItemIds -and -not $BoundStorePath) -or ($BoundStorePath -and -not $BoundWorkItemIds)) { throw 'Bound filters must be supplied together.' }
+$rootId = Get-CanonicalId $TaskId
+$roots = if ($RootTaskIds -and $RootTaskIds.Count) { @($RootTaskIds | ForEach-Object { Get-CanonicalId $_ } | Select-Object -Unique) } else { @($rootId) }
+$entries = @(Read-UsageEntries $AccountingDirectory)
+$selectedTasks = @{}
+$queue = New-Object 'System.Collections.Generic.Queue[string]'
+foreach ($root in $roots) { $queue.Enqueue($root) }
 while ($queue.Count -gt 0) {
     $id = $queue.Dequeue()
-    if ($selected.ContainsKey($id)) { continue }
-    $selected[$id] = $true
-    foreach ($child in $records.Keys) { if ($records[$child].record.parent_task_id -eq $id) { $queue.Enqueue($child) } }
-}
-$totals = [ordered]@{}
-foreach ($field in $fields) { $totals[$field] = [long]0 }
-$missing = 0
-$known = 0
-$counted = @{}
-foreach ($id in $selected.Keys) {
-    if (-not $records.ContainsKey($id) -or $null -eq $records[$id].record.token_usage) { $missing++; continue }
-    $entry = $records[$id]
-    if ($counted.ContainsKey($entry.native_key)) { continue }
-    $counted[$entry.native_key] = $true
-    $known++
-    foreach ($field in $fields) {
-        $sum = [decimal]$totals[$field] + [decimal]$entry.record.token_usage.$field
-        if ($sum -gt [long]::MaxValue) { throw "Token-Summenüberlauf: $field" }
-        $totals[$field] = [long]$sum
+    if ($selectedTasks.ContainsKey($id)) { continue }
+    $selectedTasks[$id] = $true
+
+    # A native thread/turn is the evidence for task-ID equivalence. Resolve every
+    # alias of a reached measurement before following local parent-task references.
+    foreach ($entry in $entries) {
+        if ($entry.AliasTaskIds -ccontains $id) {
+            foreach ($alias in $entry.AliasTaskIds) {
+                if (-not $selectedTasks.ContainsKey($alias)) { $queue.Enqueue($alias) }
+            }
+        }
+    }
+
+    # Exact roots resolve native aliases but never add children. Bound WorkItem
+    # selection is independently constrained by its explicit store/scope filter.
+    if (-not $ExactRootTasks -and -not $BoundWorkItemIds) {
+        foreach ($entry in $entries) {
+            if ($null -ne $entry.identity.parentTaskId -and $entry.identity.parentTaskId -ceq $id) {
+                foreach ($alias in $entry.AliasTaskIds) {
+                    if (-not $selectedTasks.ContainsKey($alias)) { $queue.Enqueue($alias) }
+                }
+            }
+        }
     }
 }
-$own = if ($records.ContainsKey($rootId)) { $records[$rootId].record.token_usage } else { $null }
-[pscustomobject][ordered]@{
-    task_id = $rootId; own = $own
-    inclusive = $(if ($missing -eq 0) { [pscustomobject]$totals } else { $null })
-    known_partial = [pscustomobject]$totals; missing_count = $missing
-    distinct_known_usage_count = $known; task_count = $selected.Count
+$boundStore = if ($BoundStorePath) { Get-CanonicalPath $BoundStorePath } else { $null }
+$candidate = @()
+foreach ($entry in $entries) {
+    $taskMatch = @($entry.AliasTaskIds | Where-Object { $selectedTasks.ContainsKey($_) }).Count -gt 0
+    $scopeMatch = ($BoundWorkItemIds -and $BoundWorkItemIds -ccontains $entry.identity.workItemId -and $entry.identity.storePath -ceq $boundStore -and $null -ne $entry.identity.executionId)
+    if ($BoundWorkItemIds) {
+        if ($scopeMatch) { $candidate += @($entry) }
+    } elseif ($taskMatch) { $candidate += @($entry) }
 }
+# One selection feeds sums, coverage, own and details. No broad fallback candidates.
+$missingTaskIds = @($selectedTasks.Keys | Where-Object {
+    $id = $_
+    @($candidate | Where-Object { $_.AliasTaskIds -ccontains $id }).Count -eq 0
+})
+$known = @($candidate | Where-Object { $_.identity.final -and $null -ne $_.identity.tokenUsage })
+$provisional = @($candidate | Where-Object { -not $_.identity.final }).Count
+$missing = $missingTaskIds.Count + @($candidate | Where-Object { $_.identity.final -and $null -eq $_.identity.tokenUsage }).Count
+$totals = Get-UsageSum $known
+$ownCandidate = @($candidate | Where-Object { $_.AliasTaskIds -ccontains $rootId })
+$ownKnown = @($known | Where-Object { $_.AliasTaskIds -ccontains $rootId })
+$ownTotals = Get-UsageSum $ownKnown
+$ownComplete = ($ownCandidate.Count -gt 0 -and @($ownCandidate | Where-Object { -not $_.identity.final -or $null -eq $_.identity.tokenUsage }).Count -eq 0)
+$result = [pscustomobject][ordered]@{
+    task_id=$rootId
+    own=$(if ($ownComplete) { $ownTotals } else { $null })
+    own_known_partial=$ownTotals
+    inclusive=$(if ($missing -eq 0 -and $provisional -eq 0) { $totals } else { $null })
+    known_partial=$totals; missing_count=$missing; missing_task_ids=$missingTaskIds
+    provisional_count=$provisional; distinct_known_usage_count=$known.Count; task_count=$selectedTasks.Count
+}
+if ($IncludeOwnRecords) {
+    $details = @($candidate | ForEach-Object {
+        [pscustomobject]@{
+            task_id=$_.identity.taskId; AliasTaskIds=@($_.AliasTaskIds)
+            parent_task_id=$_.identity.parentTaskId; parent_thread_id=$_.identity.parentThreadId; parent_turn_id=$_.identity.parentTurnId
+            thread_id=$_.identity.threadId; turn_id=$_.identity.turnId
+            path=$_.paths[0]; paths=@($_.paths); native_key=$_.native_key
+            work_item_id=$_.identity.workItemId; execution_id=$_.identity.executionId; work_item_store_path=$_.identity.storePath
+            token_usage=$_.identity.tokenUsage; final=$_.identity.final
+        }
+    })
+    $result | Add-Member -NotePropertyName record_details -NotePropertyValue $details
+    $result | Add-Member -NotePropertyName own_records -NotePropertyValue @($known | ForEach-Object { $_.records[0] })
+    $result | Add-Member -NotePropertyName duplicate_records -NotePropertyValue @($candidate | Where-Object { $_.paths.Count -gt 1 } | ForEach-Object {
+        [pscustomobject]@{ nativeIdentity=$_.native_key; AliasTaskIds=@($_.AliasTaskIds); paths=@($_.paths) }
+    })
+}
+$result

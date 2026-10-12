@@ -83,6 +83,13 @@ $python = 'C:/Users/Tom-OliverMarek/AppData/Roaming/uv/python/cpython-3.13-windo
   -LogPath 'C:/agent-data/logs/skill-runs.jsonl' -TimeoutSeconds 60
 ```
 
+## WorkItem Accounting
+
+Accounting reports and source-bound goal observations are documented in
+[`scripts/accounting/README.md`](scripts/accounting/README.md). They reuse the
+WorkItem store and native task ledger; they do not declare acceptance or goal
+achievement.
+
 `AccountingRoots` und `TrustedSourceRoots` begrenzen freigegebene Daten- und
 Quellpfade; `LogPath` legt das Ausführungsprotokoll fest. Der Timeout-Default
 des Skill-Runners ist 60 Sekunden. Der vollständige Coreinterpreterpfad wird
