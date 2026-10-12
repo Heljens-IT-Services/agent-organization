@@ -62,3 +62,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[t
 .stale-message::before,.response-lock::before,.lock-status::before{content:"⚠";display:inline-grid;place-items:center;margin-right:7px}
 .toast.error::before{content:"⛔";display:inline-grid;place-items:center;margin-right:7px}
 @media(prefers-color-scheme:dark){.metric-field summary:focus-visible,.projection-meta summary:focus-visible,.conflict-record summary:focus-visible{outline-color:#93C5FD}}
+
+.attention-group{margin:12px 0}.attention-group h3{margin:8px 0;color:var(--ink);font-size:14px;line-height:1.4}.attention-group .attention-card{margin-top:8px}
