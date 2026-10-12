@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
+    [Alias('task_id')]
     [string]$TaskId,
+    [Alias('accounting_directory')]
     [string]$AccountingDirectory
 )
 $ErrorActionPreference = 'Stop'

@@ -8,6 +8,11 @@ from pathlib import Path
 import sys
 
 
+class AdapterArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError(message)
+
+
 def _source_candidates():
     codex_home = os.environ.get("CODEX_HOME")
     if codex_home:
@@ -29,10 +34,10 @@ def _respond(successful, exception, result):
 
 
 def main():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--source-path")
-    args, unknown = parser.parse_known_args()
     try:
+        parser = AdapterArgumentParser(add_help=False)
+        parser.add_argument("--source-path")
+        args, unknown = parser.parse_known_args()
         if unknown:
             raise ValueError("Unbekannte Adapterargumente.")
         request = json.load(sys.stdin)
