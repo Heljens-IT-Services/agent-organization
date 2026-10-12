@@ -15,7 +15,10 @@ if (-not $PipeName) { $PipeName='agent-coordinator-'+([Convert]::ToBase64String(
 if (-not $LogicalSessionId) {
     $sessionPath=Join-Path ([IO.Path]::GetFullPath($DataDirectory)) 'session.json'
     if (-not (Test-Path -LiteralPath $sessionPath)) { throw 'Unavailable: no coordinator session.' }
-    $LogicalSessionId=([IO.File]::ReadAllText($sessionPath,$utf8)|ConvertFrom-Json).LogicalSessionId
+    $sessionStream=[IO.File]::Open($sessionPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    try { $sessionReader=New-Object IO.StreamReader($sessionStream,$utf8,$true);try{$session=($sessionReader.ReadToEnd()|ConvertFrom-Json -ErrorAction Stop)}finally{$sessionReader.Dispose()} } finally {$sessionStream.Dispose()}
+    if(-not $session.LogicalSessionId -or -not $session.NativeThreadId){throw 'BlockedRecovery: session binding missing.'}
+    $LogicalSessionId=$session.LogicalSessionId
 }
 $request=@{requestId=$RequestId;operation=$Operation;logicalSessionId=$LogicalSessionId;source=$Source}
 if ($Operation -eq 'SubmitInput') { if ($null -eq $InputText) { throw 'InputText required.' };$request.inputText=$InputText }

@@ -34,3 +34,7 @@ Für die native Probe `-RuntimeConfigPath` weglassen und `-RuntimeExecutable '<a
 - Die synchrone Pipeverarbeitung verhindert parallele Runtime-Turns. Ein garantiert begrenztes Einreihen oder ein sofortiger protokollierter `Busy`-Outcome während eines aktiven Turns ist noch nicht implementiert/belegt; Client-Connect-Timeout ist kein Busy-Protokoll.
 - Das Job Object wird nach dem Runtime-Prozessstart und vor Hostinitialisierung/Adapterfreigabe zugewiesen. Scheitert die Zuweisung, wird fail-closed beendet. Ein Test des Job-Object-Verhaltens und der Laufzeitumgebung mit verschachtelten Windows-Jobs steht aus.
 - Elternabnahme, produktive Threadübergabe und jeder sichtbare Koordinatorfensterstart bleiben außerhalb dieses Nachweises.
+
+## B1 Fortsetzung 2026-10-12
+
+Gezielte Änderungen/Begrenzungen siehe [backend-repair-report.md](C:/Users/Tom-OliverMarek/AppData/Local/Temp/story16-task34-continuation-20261012/backend-repair-report.md). Die bisherigen Hosttest-/QA-Aussagen dieses Berichts bleiben historische Belege; diese Fortsetzung führte keine Hosttests aus.

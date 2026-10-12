@@ -61,8 +61,12 @@ try {
     }
     if ($runtimeConfig -is [System.Collections.IDictionary]) { $runtimeConfig['ResumeRetryLimit']=$ResumeRetryLimit }
     else { $runtimeConfig | Add-Member -MemberType NoteProperty -Name ResumeRetryLimit -Value $ResumeRetryLimit -Force }
+    if ($runtimeConfig -is [System.Collections.IDictionary]) { $runtimeConfig['RpcTimeoutMilliseconds']=$RpcTimeoutMilliseconds; $runtimeConfig['TurnTimeoutMilliseconds']=600000 }
+    else { $runtimeConfig | Add-Member -MemberType NoteProperty -Name RpcTimeoutMilliseconds -Value $RpcTimeoutMilliseconds -Force; $runtimeConfig | Add-Member -MemberType NoteProperty -Name TurnTimeoutMilliseconds -Value 600000 -Force }
     $runtime=Start-CoordinatorRuntime $runtimeConfig
     $runtime | Add-Member -MemberType NoteProperty -Name ResumeRetryLimit -Value $ResumeRetryLimit -Force
+    $runtime | Add-Member -MemberType NoteProperty -Name RpcTimeoutMilliseconds -Value $RpcTimeoutMilliseconds -Force
+    $runtime | Add-Member -MemberType NoteProperty -Name TurnTimeoutMilliseconds -Value 600000 -Force
     if ($runtime.Process) { $session.RuntimePid=$runtime.Process.Id; $session.RuntimeStartedAtUtc=$runtime.StartedAtUtc;Write-CoordinatorAtomicJson $path $session }
     try { $session=Initialize-CoordinatorRuntime $runtime $session $path } catch { $session.State='BlockedRecovery';$session.LastError=$_.Exception.Message;Write-CoordinatorAtomicJson $path $session; throw }
     $config=[pscustomobject]@{PipeName=$PipeName;StopRequested=$false}

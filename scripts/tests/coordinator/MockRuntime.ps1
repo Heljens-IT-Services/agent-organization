@@ -8,7 +8,7 @@ $config = [IO.File]::ReadAllText($ConfigPath, $utf8) | ConvertFrom-Json
 $root = [IO.Path]::GetFullPath($config.testRoot).TrimEnd('\') + '\'
 $journal = [IO.Path]::GetFullPath($config.journal)
 if (-not $journal.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'Journal outside test root' }
-if ($config.mode -notin @('normal','auth-error','resume-error','resume-mismatch','no-response','lost-turn-ack','cli-error')) { throw 'Unknown fixture mode' }
+if ($config.mode -notin @('normal','auth-error','resume-error','resume-mismatch','no-response','start-no-response','resume-no-response','lost-turn-ack','no-turn-completion','cli-error')) { throw 'Unknown fixture mode' }
 $delay = [int]$config.turnDelayMilliseconds
 if ($delay -lt 0 -or $delay -gt 2000) { throw 'Delay outside bounded fixture range' }
 if ($config.identityPath) {
@@ -26,19 +26,31 @@ function Timing($phase,$turnId) {
 if ($config.mode -eq 'cli-error') { exit 23 }
 $threadId = 'qa-fixture-thread'
 $turnNumber = 0
+$initialized = $false
+$initializeReceived = $false
 while ($null -ne ($line = [Console]::ReadLine())) {
     if ($utf8.GetByteCount($line) -gt 1048576) { throw 'Oversized fixture request' }
     $request = $line | ConvertFrom-Json
     [IO.File]::AppendAllText($journal, (ConvertTo-Json -InputObject $request -Depth 20 -Compress) + "`n", $utf8)
-    if ($request.method -eq 'initialized') { if ($null -ne $request.id) { Emit @{id=$request.id;result=@{}} }; continue }
+    Timing ('rpc:'+$request.method) $null
+    if ($request.method -eq 'initialized') {
+        if ($request.PSObject.Properties.Name -contains 'id') { throw 'ProtocolViolation: initialized must be a notification without id (including null)' }
+        if (-not $initializeReceived -or $initialized) { throw 'ProtocolViolation: initialized out of order or repeated' }
+        $initialized = $true
+        # A notification has no response, even an empty result would mask a host bug.
+        continue
+    }
     if ($config.mode -eq 'no-response') { continue }
+    if ($request.PSObject.Properties.Name -notcontains 'id') { throw 'ProtocolViolation: RPC request missing id' }
+    if ($request.method -ne 'initialize' -and -not $initialized) { throw 'ProtocolViolation: RPC before initialized notification' }
     if ($config.mode -eq 'auth-error' -and $request.method -ne 'initialize') {
         Emit @{id=$request.id;error=@{code=-32001;message='QA fixture: authentication unavailable'}}; continue
     }
     switch ($request.method) {
-        'initialize' { Emit @{id=$request.id;result=@{userAgent='qa-protocol-fixture'}} }
-        'thread/start' { Emit @{id=$request.id;result=@{thread=@{id=$threadId;turns=@()}}} }
+        'initialize' { $initializeReceived=$true; Emit @{id=$request.id;result=@{userAgent='qa-protocol-fixture'}} }
+        'thread/start' { if ($config.mode -eq 'start-no-response') { continue }; Emit @{id=$request.id;result=@{thread=@{id=$threadId;turns=@()}}} }
         'thread/resume' {
+            if ($config.mode -eq 'resume-no-response') { continue }
             if ($config.mode -eq 'resume-error') { Emit @{id=$request.id;error=@{code=-32002;message='QA fixture: resume failed'}} }
             else {
                 $threadId = $request.params.threadId
@@ -55,6 +67,7 @@ while ($null -ne ($line = [Console]::ReadLine())) {
             if ($config.mode -eq 'lost-turn-ack') { continue }
             Emit @{id=$request.id;result=@{turn=@{id=$turnId;status='inProgress';items=@()}}}
             Emit @{method='turn/started';params=@{threadId=$threadId;turn=@{id=$turnId;status='inProgress';items=@()}}}
+            if ($config.mode -eq 'no-turn-completion') { continue }
             if ($delay) { Start-Sleep -Milliseconds $delay }
             # Repeated snapshot: a consumer must deduplicate, never add the notifications.
             $usage=@{method='thread/tokenUsage/updated';params=@{threadId=$threadId;turnId=$turnId;tokenUsage=@{last=@{totalTokens=12;inputTokens=10;cachedInputTokens=0;outputTokens=2;reasoningOutputTokens=0};total=@{totalTokens=(100+12*$turnNumber);inputTokens=(90+10*$turnNumber);cachedInputTokens=0;outputTokens=(10+2*$turnNumber);reasoningOutputTokens=0}}}}

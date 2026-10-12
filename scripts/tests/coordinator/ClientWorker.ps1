@@ -21,6 +21,7 @@ try {
         Start-Sleep -Milliseconds 10
     }
     $pipe=New-Object IO.Pipes.NamedPipeClientStream('.', $config.pipeName, [IO.Pipes.PipeDirection]::InOut, [IO.Pipes.PipeOptions]::Asynchronous)
+    $result.connectAttemptTicks=[DateTime]::UtcNow.Ticks
     $pipe.Connect($timeout)
     $payload=$utf8.GetBytes((ConvertTo-Json -InputObject $config.request -Depth 20 -Compress)+"`n")
     if ($payload.Length -gt 1048576) { throw 'Oversized IPC request' }
@@ -46,6 +47,7 @@ try {
         if ($bytes.Count -gt 1048576) { throw 'Oversized IPC response' }
     }
     $result.response=$utf8.GetString($bytes.ToArray()) | ConvertFrom-Json
+    $result.responseReceivedTicks=[DateTime]::UtcNow.Ticks
     $result.success=$true
 } catch { $result.error=$_.Exception.Message }
 finally {
