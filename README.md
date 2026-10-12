@@ -46,3 +46,5 @@ Testinfrastruktur wird nicht mehr mitgeführt. Es gilt die [aktuelle Prüfregel]
 keine Tests ausführen oder erstellen. Der produktive
 Organisationsvertragsvalidator bleibt verfügbar:
 `scripts/contracts/Test-Organization.ps1`.
+
+Betrieb, Sicherung und Wiederanlauf: [Betriebsdokumentation](docs/operations.md).
