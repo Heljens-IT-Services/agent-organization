@@ -28,4 +28,9 @@ function Write-WorkItemExecutionCorrelation {
     try { [IO.File]::Replace($temp, $Path, $null) } finally { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } }
 }
 
-Export-ModuleMember -Function Get-WorkItemExecutionCorrelationPath, Read-WorkItemExecutionCorrelation, Write-WorkItemExecutionCorrelation
+function Read-WorkItemPrestartCorrelation {
+    param([Parameter(Mandatory)][string]$NoSpawnReceiptPath,[Parameter(Mandatory)][string]$NoSpawnReceiptHash,[Parameter(Mandatory)][string]$FailureCommitPath,[Parameter(Mandatory)][string]$FailureCommitHash,[Parameter(Mandatory)][string]$RepositoryRoot)
+    $rm=Import-Module (Join-Path $PSScriptRoot 'WorkItemPrestartRecovery.psm1') -PassThru -Force
+    & $rm {param($p,$h,$c,$ch,$repo)Assert-PrestartFailureCommit $p $h $c $ch $repo} $NoSpawnReceiptPath $NoSpawnReceiptHash $FailureCommitPath $FailureCommitHash $RepositoryRoot
+}
+Export-ModuleMember -Function Get-WorkItemExecutionCorrelationPath, Read-WorkItemExecutionCorrelation, Write-WorkItemExecutionCorrelation, Read-WorkItemPrestartCorrelation

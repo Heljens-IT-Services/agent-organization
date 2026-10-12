@@ -42,6 +42,65 @@ vorhanden; GitHub Actions sind deaktiviert.
 [Organisationsverträge](docs/contracts/ORGANIZATION.md) validieren die bestehenden
 Indizes. [Entscheidung 0001](docs/decisions/0001-system-scope.md) legt Struktur und
 Folgeumfang fest. Der frühere Test-Contracts-Aufruf ist aufgehoben; technische
-Testinfrastruktur wird nicht mehr mitgeführt. Der produktive
+Testinfrastruktur wird nicht mehr mitgeführt. Es gilt die [aktuelle Prüfregel](AGENTS.md):
+keine Tests ausführen oder erstellen. Der produktive
 Organisationsvertragsvalidator bleibt verfügbar:
 `scripts/contracts/Test-Organization.ps1`.
+
+## Zentraler Skillzugriff
+
+`scripts/skills/Find-Skill.ps1` und `Invoke-Skill.ps1` verwenden den gemeinsamen
+Pythonkern `scripts/skills/skill_runtime.py`. Discovery sucht zentral in der
+Registry; mehrdeutige Zwecksuche startet keinen Skill. Für beide Aufrufe ist ein
+freigegebener Python-Interpreter als vollständiger `CoreInterpreterPath`
+anzugeben:
+
+```powershell
+$repo = (Resolve-Path '.').Path
+$python = 'C:/Users/Tom-OliverMarek/AppData/Roaming/uv/python/cpython-3.13-windows-x86_64-none/python.exe'
+
+# Zentrale Discovery
+./scripts/skills/Find-Skill.ps1 -RepositoryRoot $repo -CoreInterpreterPath $python `
+  -SkillId 'task-token-usage'
+./scripts/skills/Find-Skill.ps1 -RepositoryRoot $repo -CoreInterpreterPath $python `
+  -Purpose 'Contents-URL'
+
+# Bestehender P1-PowerShell-Adapter; Accounting-Verzeichnis freigeben.
+./scripts/skills/Invoke-Skill.ps1 -RepositoryRoot $repo -CoreInterpreterPath $python `
+  -SkillId 'task-token-usage' `
+  -ParametersJson '{"task_id":"00000000-0000-0000-0000-000000000000","accounting_directory":"C:/agent-data/ledger"}' `
+  -WorkItemRef '#63' -ExecutionRef 'run-ps-1' `
+  -AccountingRoots @('C:/agent-data/ledger') `
+  -LogPath 'C:/agent-data/logs/skill-runs.jsonl' -TimeoutSeconds 60
+
+# Bestehender P1-Python-Adapter; Quelle und Quellwurzel explizit freigeben.
+./scripts/skills/Invoke-Skill.ps1 -RepositoryRoot $repo -CoreInterpreterPath $python `
+  -SkillId 'github-contents-url' `
+  -ParametersJson '{"repo":"Heljens-IT-Services/agent-organization","path":"README.md","ref":"develop"}' `
+  -WorkItemRef '#63' -ExecutionRef 'run-py-1' `
+  -SourcePath "$env:USERPROFILE/.codex/skills/.system/skill-installer/scripts/github_utils.py" `
+  -TrustedSourceRoots @("$env:USERPROFILE/.codex/skills/.system/skill-installer/scripts") `
+  -LogPath 'C:/agent-data/logs/skill-runs.jsonl' -TimeoutSeconds 60
+```
+
+## WorkItem Accounting
+
+Accounting reports and source-bound goal observations are documented in
+[`scripts/accounting/README.md`](scripts/accounting/README.md). They reuse the
+WorkItem store and native task ledger; they do not declare acceptance or goal
+achievement.
+
+`AccountingRoots` und `TrustedSourceRoots` begrenzen freigegebene Daten- und
+Quellpfade; `LogPath` legt das Ausführungsprotokoll fest. Der Timeout-Default
+des Skill-Runners ist 60 Sekunden. Der vollständige Coreinterpreterpfad wird
+als Registry-Key und als Wert für `python` gebunden. Absolute
+Registry-Interpreter müssen identisch gebunden werden; der Coreinterpreter kann
+ein anderer sein, dann muss der Aufrufer
+`-InterpreterBindings @{ '<absoluter Registry-Pfad>' = '<Derselbe Registry-Pfad>' }`
+angeben. Nur Namensbindungen können betreibergesteuert auf eine freigegebene
+vollständige Executable zeigen. PowerShell kann explizit zugeordnet werden.
+Zusätzliche Bindungen müssen auf absolute Executablepfade zeigen. Die Anfrage wird als UTF-8-Datei an den
+Kern übergeben, damit PowerShell 5.1 kein `StandardInputEncoding` benötigt.
+Die Beispiele beschreiben Bedienung, sie sind keine aktuellen Laufzeitbelege;
+die Wrapper wurden in diesem Auftrag nicht ausgeführt.
+Betrieb, Sicherung und Wiederanlauf: [Betriebsdokumentation](docs/operations.md).

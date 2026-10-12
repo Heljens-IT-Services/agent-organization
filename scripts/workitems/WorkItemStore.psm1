@@ -1,3 +1,4 @@
+. (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
 Set-StrictMode -Version 2
 
 $script:WorkItemStoreLocks = @{}
@@ -209,11 +210,9 @@ function ConvertTo-WorkItemStoreCandidate {
     } catch { New-WorkItemStoreError 'SerializationFailed' "WorkItem document serialization failed: $($_.Exception.Message)" }
 }
 
-function Write-WorkItemStoreOutbox($Path,$Outbox) {
-    $target=$Path+'.outbox.json';$temp=$target+'.'+[Guid]::NewGuid().ToString('N')+'.writing';$utf8=New-Object Text.UTF8Encoding($false,$true)
-    try { [IO.File]::WriteAllText($temp,(ConvertTo-Json -InputObject $Outbox -Depth 30 -Compress),$utf8);if([IO.File]::Exists($target)){[IO.File]::Replace($temp,$target,$null)}else{[IO.File]::Move($temp,$target)} } finally { if([IO.File]::Exists($temp)){[IO.File]::Delete($temp)} }
-}
-function Get-WorkItemStoreOutbox($Path) { $target=$Path+'.outbox.json';if(-not [IO.File]::Exists($target)){return [pscustomobject]@{schemaVersion='1.0';intents=@()}};try{return [IO.File]::ReadAllText($target,(New-Object Text.UTF8Encoding($false,$true)))|ConvertFrom-Json -ErrorAction Stop}catch{New-WorkItemStoreError 'OutboxRecoveryRequired' "Outbox is unreadable; preserve it: $target"} }
+function Write-WorkItemStoreOutbox($Path,$Outbox){Write-LCJournal ($Path+'.outbox.json') $Outbox}
+
+function Get-WorkItemStoreOutbox($Path) { $target=$Path+'.outbox.json';if(-not [IO.File]::Exists($target)){return [pscustomobject]@{schemaVersion='1.0';intents=@()}};try{return (Read-LCArchive $target ([IO.File]::ReadAllText($target,(New-Object Text.UTF8Encoding($false,$true)))|ConvertFrom-Json -ErrorAction Stop))}catch{New-WorkItemStoreError 'OutboxRecoveryRequired' "Outbox is unreadable; preserve it: $target"} }
 function Resolve-WorkItemStoreOutbox($Path,$Snapshot) {
     $outbox=Get-WorkItemStoreOutbox $Path;if($outbox.schemaVersion -cne '1.0'){New-WorkItemStoreError 'OutboxRecoveryRequired' 'Unsupported outbox schema.'}
     foreach($intent in @($outbox.intents)){foreach($field in @('publishedAtUtc','resolvedAtUtc')){if(-not $intent.PSObject.Properties[$field]){$intent|Add-Member -NotePropertyName $field -NotePropertyValue $null}}}
@@ -295,7 +294,7 @@ function Set-WorkItemStoreEntry {
         if ($null -ne $EffectContext) {
             $required=@('effectId','executionId','requestId','threadId','turnId','eventId','inputHash','planHash','ordinal')
             foreach($field in $required){if($null -eq (Get-WorkItemStoreProperty $EffectContext $field) -or [string]::IsNullOrWhiteSpace([string](Get-WorkItemStoreProperty $EffectContext $field))){New-WorkItemStoreError 'EffectIdentityConflict' "EffectContext.$field is required."}}
-            $ctx=[ordered]@{};foreach($field in $required){$ctx[$field]=Get-WorkItemStoreProperty $EffectContext $field};$effect=[pscustomobject]$ctx
+            $ctx=[ordered]@{};foreach($field in $required){$ctx[$field]=Get-WorkItemStoreProperty $EffectContext $field};foreach($field in @('resumeEffectKind','resumeCommandHash')){if($null -ne (Get-WorkItemStoreProperty $EffectContext $field)){$ctx[$field]=Get-WorkItemStoreProperty $EffectContext $field}};$effect=[pscustomobject]$ctx
             $itemJson=ConvertTo-WorkItemStoreCanonicalJson $Item;$itemBytes=(New-Object Text.UTF8Encoding($false,$true)).GetBytes($itemJson);$itemPayloadBase64=[Convert]::ToBase64String($itemBytes)
             $opBody=[ordered]@{Id=$Id;IsNew=$IsNew;ExpectedRevision=$ExpectedRevision;Item=$Item;EffectContext=$effect};$opBytes=(New-Object Text.UTF8Encoding($false,$true)).GetBytes((ConvertTo-WorkItemStoreCanonicalJson $opBody));$operationHash=Get-WorkItemStoreSha256 $opBytes
             $outbox=Get-WorkItemStoreOutbox $path;$known=@()
@@ -361,4 +360,23 @@ function Set-WorkItemStoreEntry {
     }
 }
 
-Export-ModuleMember -Function Get-WorkItemStoreResult, Set-WorkItemStoreEntry, Get-WorkItemStoreEffectReceipt
+
+function Get-WorkItemStoreResumeRequirement {
+    param([string]$Path,$Item,[string]$RepositoryRoot)
+    $path=Resolve-WorkItemStorePath $Path $RepositoryRoot;$lock=Enter-WorkItemStoreLock $path 5000
+    try{
+        $snapshot=Get-WorkItemStoreSnapshot $path $RepositoryRoot;Resolve-WorkItemStoreOutbox $path $snapshot
+        $outbox=Get-WorkItemStoreOutbox $path;$records=@($outbox.intents)+@(Get-WorkItemStoreProperty $outbox 'effectReceipts');$found=@()
+        foreach($entry in $records){
+            $ctx=Get-WorkItemStoreProperty $entry 'effectContext';if(-not $ctx){$ctx=Get-WorkItemStoreProperty $entry 'context'}
+            if((Get-WorkItemStoreProperty $ctx 'resumeEffectKind') -cne 'propose_resume'){continue}
+            $r=ConvertTo-WorkItemStoreReceipt $entry
+            if($r.state -cne 'published' -or $r.workItemId -cne $Item.id){continue}
+            $saved=ConvertFrom-Json -InputObject ([Text.UTF8Encoding]::new($false,$true).GetString([Convert]::FromBase64String($r.itemPayloadBase64)))
+            if($saved.status -in @('planned','rework','in_progress') -and (Get-LCResumeContent $saved) -ceq (Get-LCResumeContent $Item)){$found+=,$r}
+        }
+        return $found
+    }finally{Exit-WorkItemStoreLock $lock}
+}
+
+Export-ModuleMember -Function Get-WorkItemStoreResumeRequirement,Get-WorkItemStoreResult, Set-WorkItemStoreEntry, Get-WorkItemStoreEffectReceipt

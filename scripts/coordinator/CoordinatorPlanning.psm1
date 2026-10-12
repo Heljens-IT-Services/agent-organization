@@ -1,5 +1,7 @@
+. (Join-Path $PSScriptRoot 'Lifecycle.Persistence.ps1')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CoordinatorAdmission.psm1') -Force
 
 function Get-PlanningValue($Object,[string]$Name,$Default=$null) {
     if($null -eq $Object){return $Default}
@@ -15,6 +17,8 @@ function Get-CoordinatorPlanningDecision {
         [Parameter(Mandatory=$true)][ValidateRange(1,100)][int]$Capacity,
         [object[]]$ActiveExecutions = @(),
         [string[]]$WakeEventIds = @(),
+        [string[]]$ResumeRequiredWorkItemIds = @(),
+        [Collections.IDictionary]$ResumeAssessments = @{},
         [string]$StateDirectory,
         [DateTime]$NowUtc = [DateTime]::UtcNow
     )
@@ -24,19 +28,15 @@ function Get-CoordinatorPlanningDecision {
         if (-not $id -or $byId.ContainsKey($id)) { throw 'InvalidOrDuplicateWorkItemId' }
         $byId[$id] = $item
     }
-    $executions = @{}; $executionAliases=@{}; $unknown = $false
-    foreach ($entry in @($ActiveExecutions)) {
-        if (-not $entry) { $unknown=$true; continue }
-        if ([string]$entry.state -in @('terminal','completed','released')) { continue }
-        if (-not $entry.executionId -or [string]$entry.state -eq 'unknown') { $unknown=$true; continue }
-        $aliases=@([string]$entry.executionId); if($entry.taskId){$aliases+='task:'+[string]$entry.taskId};if($entry.nativeThreadId){$aliases+='thread:'+[string]$entry.nativeThreadId}
-        $canonical=$null;foreach($alias in $aliases){if($executionAliases.ContainsKey($alias)){$canonical=$executionAliases[$alias];break}};if(-not $canonical){$canonical=[string]$entry.executionId;$executions[$canonical]=$true};foreach($alias in $aliases){$executionAliases[$alias]=$canonical}
-    }
-    if ($unknown) { $available=0 } else { $available=[Math]::Max(0,$Capacity-$executions.Count) }
+    $admissionCount=Get-AdmissionCount @($ActiveExecutions)
+    $unknown=$admissionCount.CapacityUnknown
+    if($unknown){$available=0}else{$available=[Math]::Max(0,$Capacity-$admissionCount.Count)}
     $wakeSet=@{}; foreach($id in $WakeEventIds){$wakeSet[[string]$id]=$true}
     $ready=@(); $waiting=@()
     foreach($item in $items){
-        if ($item.status -notin @('planned','rework')) { continue }
+        if ($item.status -notin @('planned','rework','in_progress')) { continue }
+        if($item.status -ceq 'in_progress' -and $ResumeRequiredWorkItemIds -cnotcontains [string]$item.id){continue}
+        if($ResumeRequiredWorkItemIds -ccontains [string]$item.id -and (-not $ResumeAssessments.Contains([string]$item.id) -or -not $ResumeAssessments[[string]$item.id])){$waiting+=[pscustomobject]@{item=$item;reason='resume-receipt';wake=$null};continue}
         $root=$item; $parent=$item; $valid=$true
         while((Get-PlanningValue $parent 'parentId')){
             $pid=[string](Get-PlanningValue $parent 'parentId')
@@ -62,7 +62,12 @@ function Get-CoordinatorPlanningDecision {
     $cursorPath=if($StateDirectory){Join-Path $StateDirectory 'planning-root-cursors.json'}else{$null};$cursors=@{};if($cursorPath -and (Test-Path -LiteralPath $cursorPath)){try{$oldCursor=([IO.File]::ReadAllText($cursorPath,[Text.Encoding]::UTF8)|ConvertFrom-Json);foreach($p in $oldCursor.PSObject.Properties){$cursors[$p.Name]=[string]$p.Value}}catch{throw 'PlanningRootCursorUnreadable'}}
     $fair=@(); foreach($band in 0..4){$bandItems=@($ordered | Where-Object { $p=[string](Get-PlanningValue $_ 'priority'); $n=if($rank.ContainsKey($p)){$rank[$p]}else{4}; $n -eq $band }); $groups=@{}; foreach($x in $bandItems){$r=$x;while((Get-PlanningValue $r 'parentId') -and $byId.ContainsKey([string](Get-PlanningValue $r 'parentId'))){$r=$byId[[string](Get-PlanningValue $r 'parentId')]};$k=[string]$r.id;if(-not $groups.ContainsKey($k)){$groups[$k]=[System.Collections.Generic.Queue[object]]::new()};$groups[$k].Enqueue($x)}; $keys=@($groups.Keys | Sort-Object);if($keys.Count -and $cursors.ContainsKey([string]$band)){$last=[array]::IndexOf($keys,$cursors[[string]$band]);if($last -ge 0 -and $keys.Count -gt 1){$tail=@();if($last -lt $keys.Count - 1){$tail=@($keys[($last+1)..($keys.Count-1)])};$keys=$tail+@($keys[0..$last])}}; do{$progress=$false;foreach($k in $keys){if($groups[$k].Count){$fair += $groups[$k].Dequeue();$progress=$true}}}while($progress)}
     $selected=@($fair | Select-Object -First $available)
-    if($unknown){foreach($item in $ready){$waiting += [pscustomobject]@{item=$item;reason='capacity-unknown';wake=$null}}}
+    $selectedIds=@{};foreach($item in $selected){$selectedIds[[string]$item.id]=$true}
+    foreach($item in $fair){
+        if(-not $selectedIds.ContainsKey([string]$item.id)){
+            $waiting += [pscustomobject]@{item=$item;reason=$(if($unknown){'capacity-unknown'}else{'capacity'});wake=$null}
+        }
+    }
     if($StateDirectory){
         [void][IO.Directory]::CreateDirectory($StateDirectory)
         $sidecar=Join-Path $StateDirectory 'planning-waiting.json'
@@ -76,8 +81,8 @@ function Get-CoordinatorPlanningDecision {
         if($oldJson -cne $json){$tmp=$sidecar+'.'+[guid]::NewGuid().ToString('N')+'.tmp';[IO.File]::WriteAllText($tmp,$json,[Text.UTF8Encoding]::new($false));if(Test-Path -LiteralPath $sidecar){[IO.File]::Replace($tmp,$sidecar,$null)}else{[IO.File]::Move($tmp,$sidecar)}}
     }
     $nextWake=$null;$nextWakeEntry=$waiting|Where-Object{$null -ne $_.wake}|Sort-Object wake|Select-Object -First 1;if($null -ne $nextWakeEntry){$nextWake=$nextWakeEntry.wake}
-    return [pscustomobject]@{Capacity=$Capacity;ActiveExecutions=$executions.Count;AvailableSlots=$available;CapacityUnknown=$unknown;ReadyWorkItemIds=@($fair|ForEach-Object{[string]$_.id});SelectedWorkItemIds=@($selected|ForEach-Object{[string]$_.id});WaitingWorkItemIds=@($waiting|ForEach-Object{[string]$_.item.id});NextWakeUtc=$nextWake}
+    return [pscustomobject]@{Capacity=$Capacity;ActiveExecutions=$admissionCount.Count;AvailableSlots=$available;CapacityUnknown=$unknown;ReadyWorkItemIds=@($fair|ForEach-Object{[string]$_.id});SelectedWorkItemIds=@($selected|ForEach-Object{[string]$_.id});WaitingWorkItemIds=@($waiting|ForEach-Object{[string]$_.item.id});NextWakeUtc=$nextWake}
 }
-function Get-CoordinatorReadyWork { [CmdletBinding()] param([Parameter(Mandatory=$true)][object[]]$WorkItems,[Parameter(Mandatory=$true)][ValidateRange(1,100)][int]$Capacity,[object[]]$ActiveExecutions=@(),[string[]]$WakeEventIds=@(),[string]$StateDirectory); Get-CoordinatorPlanningDecision @PSBoundParameters }
+function Get-CoordinatorReadyWork { [CmdletBinding()] param([Parameter(Mandatory=$true)][object[]]$WorkItems,[Parameter(Mandatory=$true)][ValidateRange(1,100)][int]$Capacity,[object[]]$ActiveExecutions=@(),[string[]]$WakeEventIds=@(),[string[]]$ResumeRequiredWorkItemIds=@(),[Collections.IDictionary]$ResumeAssessments=@{},[string]$StateDirectory); Get-CoordinatorPlanningDecision @PSBoundParameters }
 function Advance-CoordinatorRootCursor { [CmdletBinding()] param([Parameter(Mandatory=$true)][string]$StateDirectory,[Parameter(Mandatory=$true)][string]$Priority,[Parameter(Mandatory=$true)][string]$StartedRootId);$rank=@{urgent=0;high=1;normal=2;low=3};$band=if($rank.ContainsKey($Priority)){$rank[$Priority]}else{4};[void][IO.Directory]::CreateDirectory($StateDirectory);$path=Join-Path $StateDirectory 'planning-root-cursors.json';$state=[ordered]@{};if(Test-Path -LiteralPath $path){$old=([IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)|ConvertFrom-Json);foreach($p in $old.PSObject.Properties){$state[$p.Name]=[string]$p.Value}};$state[[string]$band]=$StartedRootId;$tmp=$path+'.'+[guid]::NewGuid().ToString('N')+'.tmp';[IO.File]::WriteAllText($tmp,(ConvertTo-Json -InputObject $state -Compress),[Text.UTF8Encoding]::new($false));if(Test-Path -LiteralPath $path){[IO.File]::Replace($tmp,$path,$null)}else{[IO.File]::Move($tmp,$path)} }
 Export-ModuleMember -Function Get-CoordinatorPlanningDecision,Get-CoordinatorReadyWork,Advance-CoordinatorRootCursor

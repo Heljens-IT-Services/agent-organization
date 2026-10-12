@@ -5,6 +5,13 @@ param(
     [Parameter(ParameterSetName = 'Start')][string]$ExecutionId,
     [Parameter(ParameterSetName = 'Start')][string]$WorkItemStorePath,
     [Parameter(ParameterSetName = 'Start')][string]$WorkItemRequestPath,
+    [Parameter(ParameterSetName = 'Start')][string]$ParentContextPath,
+    [Parameter(ParameterSetName = 'Start')][string]$ParentContextHash,
+    [Parameter(ParameterSetName = 'Start')][string]$ParentJobPath,
+    [Parameter(ParameterSetName = 'Start')][string]$StartIntentPath,
+    [Parameter(ParameterSetName = 'Start')][string]$StartIntentHash,
+    [Parameter(ParameterSetName = 'Start')][string]$AdmissionReservationJson,
+    [Parameter(ParameterSetName = 'Start')][string]$CoordinatorLaunchConfigPath,
     [Parameter(ParameterSetName = 'Start')][string]$ResumeAssessment,
     [Parameter(ParameterSetName = 'Start')][ValidateScript({ ($_ -split '\s+' | Where-Object { $_ }).Count -eq 3 -and $_ -notmatch '[\r\n]' })][string]$TaskTitle,
     [Parameter(ParameterSetName = 'Start')][ValidateScript({ $_ -notmatch '[\r\n]' })][string]$RoleDisplayName,
@@ -27,6 +34,8 @@ param(
     [Parameter(Mandatory = $true, ParameterSetName = 'Runner')][string]$JobFile
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
+Import-Module (Join-Path $PSScriptRoot '..\coordinator\CoordinatorAdmission.psm1') -Force
 $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
 if (-not ('AgentTerminalWindow' -as [type])) { Add-Type @'
@@ -50,7 +59,23 @@ public static class AgentTerminalWindow {
 function Write-Json([string]$Path, $Value) {
     $temporary = $Path + '.' + [guid]::NewGuid().ToString('N') + '.writing'
     [System.IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Depth 30), $utf8)
-    if ([IO.File]::Exists($Path)) { [IO.File]::Replace($temporary, $Path, $null) } else { [IO.File]::Move($temporary, $Path) }
+    if ([IO.File]::Exists($Path)) {
+        try {
+            [IO.File]::Replace($temporary, $Path, [System.Management.Automation.Language.NullString]::Value)
+        }
+        catch {
+            $replaceError = $_
+            $replaceInvocation = $replaceError.InvocationInfo
+            Write-Host ('File.Replace Fehlerposition: Skript={0}; Zeile={1}; Spalte={2}' -f $replaceInvocation.ScriptName, $replaceInvocation.ScriptLineNumber, $replaceInvocation.OffsetInLine)
+            if ($replaceError.ScriptStackTrace) {
+                Write-Host 'File.Replace ScriptStackTrace:'
+                Write-Host $replaceError.ScriptStackTrace
+            }
+            throw
+        }
+    } else {
+        [IO.File]::Move($temporary, $Path)
+    }
 }
 function Read-RoleString([string]$Text, [string]$Key) {
     $match = [regex]::Match($Text, '(?m)^' + [regex]::Escape($Key) + '\s*=\s*"([^"\r\n]*)"\s*$')
@@ -319,10 +344,19 @@ function Write-ProgressDisplay([string]$Text) {
     Write-Event 'display' @{ text = ''; thread_id = $evidence.thread_id; turn_id = $evidence.turn_id }
 }
 # H5: technical terminality is separate from SSOT transfer and acceptance.
+function Invoke-BoundNoSpawnRecovery($BoundJob,[string]$Reason) {
+    $rm=Import-Module (Join-Path $PSScriptRoot '..\workitems\WorkItemPrestartRecovery.psm1') -PassThru -Force
+    $parameters=& $rm {param($j,$repo,$why)Get-PrestartSaveParameters $j $repo $why} $BoundJob $RepositoryRoot $Reason
+    & (Join-Path $RepositoryRoot 'scripts\workitems\Save-WorkItemPrestartFailure.ps1') @parameters
+}
 function Complete-BoundRegistryJob($BoundJob) {
     if (-not [IO.File]::Exists([string]$BoundJob.result_file)) { throw 'Bound result missing; reservation retained.' }
     $terminal = [IO.File]::ReadAllText($BoundJob.result_file,$utf8) | ConvertFrom-Json
     if ($terminal.task_id -cne $BoundJob.task_id -or ($terminal.dispatch_id -and $terminal.dispatch_id -cne $BoundJob.dispatch_id) -or $terminal.terminal_outcome -notin @('completed','failed','interrupted')) { throw 'Bound terminal identity missing; reservation retained.' }
+    if($terminal.model_started -eq $false){
+        Invoke-BoundNoSpawnRecovery $BoundJob ([string]$terminal.error)|Out-Null
+        return
+    }
     if ($BoundJob.dispatch_journal_path) {
         $dm = Import-Module (Join-Path $PSScriptRoot '..\coordinator\CoordinatorDispatch.psm1') -PassThru -Force
         $entry = & $dm { param($j,$id) Get-CoordinatorDispatch -JournalPath $j -ExecutionId $id } $BoundJob.dispatch_journal_path $BoundJob.dispatch_id
@@ -344,18 +378,26 @@ function Resume-BoundWorkItemResult($BoundJob) {
     $workItemReservationPath=Join-Path $BoundJob.accounting_directory ('execution-'+$key+'.json')
     if (-not [IO.File]::Exists($workItemReservationPath)) { throw 'Execution reservation missing; no duplicate start.' }
     $saved=[IO.File]::ReadAllText($workItemReservationPath,$utf8)|ConvertFrom-Json
-    if ($saved.executionId -cne $BoundJob.execution_id -or $saved.workItemId -cne $BoundJob.work_item_id -or $saved.task_id -cne $BoundJob.task_id -or $saved.parent_task_id -cne $BoundJob.parent_task_id -or [IO.Path]::GetFullPath($saved.store_path) -cne [IO.Path]::GetFullPath($BoundJob.work_item_store_path) -or [IO.Path]::GetFullPath($saved.result_path) -cne [IO.Path]::GetFullPath($BoundJob.result_file) -or [IO.Path]::GetFullPath($saved.parent_job_path) -cne [IO.Path]::GetFullPath($BoundJob.parent_job_path) -or $saved.parent_thread_id -cne $BoundJob.parent_thread_id -or $saved.parent_turn_id -cne $BoundJob.parent_turn_id -or [string]$saved.resume_assessment_path -cne [string]$BoundJob.resume_assessment_path) { throw 'Saved execution/job binding mismatch.' }
+    if ($saved.executionId -cne $BoundJob.execution_id -or $saved.workItemId -cne $BoundJob.work_item_id -or $saved.task_id -cne $BoundJob.task_id -or $saved.parent_task_id -cne $BoundJob.parent_task_id -or [IO.Path]::GetFullPath($saved.store_path) -cne [IO.Path]::GetFullPath($BoundJob.work_item_store_path) -or [IO.Path]::GetFullPath($saved.result_path) -cne [IO.Path]::GetFullPath($BoundJob.result_file) -or [IO.Path]::GetFullPath($saved.parent_job_path) -cne [IO.Path]::GetFullPath($BoundJob.parent_job_path) -or $saved.parent_thread_id -cne $BoundJob.parent_thread_id -or $saved.parent_turn_id -cne $BoundJob.parent_turn_id -or [string]$saved.resume_assessment_path -cne [string]$BoundJob.resume_assessment_path -or [string](Get-LCValue $saved 'resume_assessment_hash') -cne [string](Get-LCValue $BoundJob 'resume_assessment_hash')) { throw 'Saved execution/job binding mismatch.' }
+    $recoveryModule=Import-Module (Join-Path $PSScriptRoot '..\workitems\WorkItemPrestartRecovery.psm1') -PassThru -Force
+    $proofPath=Join-Path $BoundJob.accounting_directory ('prestart-intent-'+$key+'.json.nospawn.json')
+    if([IO.File]::Exists($proofPath)){
+        $proof=& $recoveryModule {param($p)Read-RecoveryJson $p} $proofPath
+        if($proof.phase -cne 'NoSpawnConfirmed' -or -not $proof.noSpawnProof.failure){throw 'PrestartImmutableProofInvalid'}
+        Invoke-BoundNoSpawnRecovery $BoundJob ([string]$proof.noSpawnProof.failure)|Out-Null
+        return
+    }
     $failurePath=if($saved.failure_record_path){[string]$saved.failure_record_path}else{Join-Path $BoundJob.accounting_directory ('prestart-failure-'+$key+'.json')}
     if ([IO.File]::Exists($failurePath)) {
         $failure=[IO.File]::ReadAllText($failurePath,$utf8)|ConvertFrom-Json
         if ($failure.kind -cne 'prestart-failure' -or $failure.executionId -cne $saved.executionId -or $failure.workItemId -cne $saved.workItemId -or $failure.taskId -cne $saved.task_id -or $failure.parentTaskId -cne $saved.parent_task_id -or [IO.Path]::GetFullPath($failure.resultPath) -cne [IO.Path]::GetFullPath($saved.result_path)) { throw 'Prestart failure record binding mismatch.' }
-        & (Join-Path $RepositoryRoot 'scripts\workitems\Save-WorkItemPrestartFailure.ps1') -StorePath $BoundJob.work_item_store_path -RepositoryRoot $RepositoryRoot -WorkItemId $BoundJob.work_item_id -TaskId $BoundJob.task_id -ParentTaskId $BoundJob.parent_task_id -ExecutionId $BoundJob.execution_id -ResultPath $BoundJob.result_file -ParentJobPath $BoundJob.parent_job_path -AccountingDirectory $BoundJob.accounting_directory -Reason $failure.reason | Out-Null
+        Invoke-BoundNoSpawnRecovery $BoundJob ([string]$failure.reason) | Out-Null
     } elseif ([IO.File]::Exists([string]$BoundJob.result_file)) {
         $savedEvidence=[IO.File]::ReadAllText($BoundJob.result_file,$utf8)|ConvertFrom-Json
         if ($savedEvidence.task_id -cne $BoundJob.task_id -or $savedEvidence.execution_id -cne $BoundJob.execution_id -or $savedEvidence.work_item_id -cne $BoundJob.work_item_id -or $savedEvidence.parent_job_task_id -cne $BoundJob.parent_task_id -or $savedEvidence.parent_thread_id -cne $BoundJob.parent_thread_id -or $savedEvidence.parent_turn_id -cne $BoundJob.parent_turn_id -or [IO.Path]::GetFullPath($savedEvidence.parent_job_path) -cne [IO.Path]::GetFullPath($BoundJob.parent_job_path) -or [IO.Path]::GetFullPath($savedEvidence.work_item_store_path) -cne [IO.Path]::GetFullPath($BoundJob.work_item_store_path) -or [IO.Path]::GetFullPath($savedEvidence.accounting_directory) -cne [IO.Path]::GetFullPath($BoundJob.accounting_directory)) { throw 'Saved technical evidence correlation mismatch.' }
         if ($savedEvidence.model_started -eq $false) {
             if (-not $savedEvidence.error) { throw 'Prestart reason missing; recovery required.' }
-            & (Join-Path $RepositoryRoot 'scripts\workitems\Save-WorkItemPrestartFailure.ps1') -StorePath $BoundJob.work_item_store_path -RepositoryRoot $RepositoryRoot -WorkItemId $BoundJob.work_item_id -TaskId $BoundJob.task_id -ParentTaskId $BoundJob.parent_task_id -ExecutionId $BoundJob.execution_id -ResultPath $BoundJob.result_file -ParentJobPath $BoundJob.parent_job_path -AccountingDirectory $BoundJob.accounting_directory -Reason $savedEvidence.error | Out-Null
+        Invoke-BoundNoSpawnRecovery $BoundJob ([string]$savedEvidence.error) | Out-Null
         } else {
             if ($savedEvidence.model_started -ne $true -or -not $savedEvidence.thread_id -or -not $savedEvidence.turn_id -or $savedEvidence.terminal_outcome -notin @('completed','failed','interrupted')) { throw 'Saved execution is not conclusively terminal; no transfer.' }
             if ($saved.state -eq 'reserved') {
@@ -375,8 +417,8 @@ function Test-DelegatedJobSsotBinding {
     return ($present -eq $fields.Count)
 }
 
-if ($PSCmdlet.ParameterSetName -eq 'Start') {
-    # A coordinator console is user-owned: it is never automatically closed.
+if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-owned: it is never automatically closed.
+    $contextModule=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
     if ($Role -ceq 'koordinator') { $KeepWindowOpen = $true }
     $resultFile = [System.IO.Path]::GetFullPath($ResultPath)
     # H1: explicit input conflicts are rejected before recovering saved bindings.
@@ -384,7 +426,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $oldJob=$null
     if ([IO.File]::Exists($existingJob)) {
         $oldJob=[IO.File]::ReadAllText($existingJob,$utf8)|ConvertFrom-Json
-        $bindings=[ordered]@{Role='role';Task='task';ContextFile='context_file';ExecutionId='execution_id';WorkItemId='dispatch_work_item_id';WorkItemStorePath='work_item_store_path';WorkItemRequestPath='work_item_request_path';ResumeAssessment='resume_assessment';ParentTaskId='parent_task_id';AccountingDirectory='accounting_directory';Purpose='purpose';Generation='generation';DispatchJournalPath='dispatch_journal_path';DispatchId='dispatch_id';StableTaskId='task_id';WorkingDirectory='cwd';ResultPath='result_file';TaskTitle='task_title';RoleDisplayName='role_display_name';TimeoutSeconds='timeout_seconds';KeepWindowOpen='keep_window_open';AdmissionCapacity='admission_capacity';CoordinatorDataDirectory='coordinator_data_directory'}
+        $bindings=[ordered]@{Role='role';Task='task';ContextFile='context_file';ExecutionId='execution_id';WorkItemId='dispatch_work_item_id';WorkItemStorePath='work_item_store_path';WorkItemRequestPath='work_item_request_path';ResumeAssessment='resume_assessment';ParentTaskId='parent_task_id';AccountingDirectory='accounting_directory';Purpose='purpose';Generation='generation';DispatchJournalPath='dispatch_journal_path';DispatchId='dispatch_id';StableTaskId='task_id';WorkingDirectory='cwd';ResultPath='result_file';TaskTitle='task_title';RoleDisplayName='role_display_name';TimeoutSeconds='timeout_seconds';KeepWindowOpen='keep_window_open';AdmissionCapacity='admission_capacity';CoordinatorDataDirectory='coordinator_data_directory';CoordinatorLaunchConfigPath='coordinator_launch.inputPath';ParentContextPath='parent_context_path';ParentContextHash='parent_context_hash';StartIntentPath='start_intent_path';StartIntentHash='start_intent_hash'}
         foreach ($name in $bindings.Keys) {
             $field=$bindings[$name]; $savedValue=$oldJob.$field
             if ($name -eq 'WorkItemId' -and -not $oldJob.PSObject.Properties['dispatch_work_item_id']) { $savedValue=$oldJob.work_item_id }
@@ -406,6 +448,8 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     if ($modePresent -ne 0 -and $modePresent -ne 3) { throw 'IncompleteWorkItemStart; recovery required.' }
     if ($ResumeAssessment -and $modePresent -ne 3) { throw 'IncompleteWorkItemStart; recovery required.' }
     $workItemMode=($modePresent -eq 3)
+    $rootCoordinatorMode=($Role -ceq 'koordinator' -and -not $workItemMode)
+    if($rootCoordinatorMode -and (-not $CoordinatorLaunchConfigPath -or $ParentTaskId)){throw 'Root coordinator requires an explicit launch input and must be parentless.'}
     $journalMode=[bool]$Purpose -or [bool]$Generation -or [bool]$DispatchJournalPath
     if ($WorkItemId -and -not $workItemMode -and -not $journalMode) { throw 'IncompleteWorkItemStart' }
     if ($journalMode -and (-not $WorkItemId -or -not $Purpose -or $Generation -lt 1 -or -not $DispatchJournalPath)) { throw 'WorkItemIdPurposeGenerationAndDispatchJournalPathRequired' }
@@ -443,25 +487,45 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         try { $executionKey=([BitConverter]::ToString($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($ExecutionId)))).Replace('-','').ToLowerInvariant() } finally { $h.Dispose() }
         if ([IO.File]::Exists((Join-Path $AccountingDirectory ('execution-'+$executionKey+'.json')))) { throw 'Execution reservation without matching saved job; recovery required, no duplicate start.' }
         if ([IO.File]::Exists($WorkItemRequestPath)) { throw 'Request locator exists without matching job; preserve for recovery.' }
-        $resolved=& (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ParentTaskId $ParentTaskId -AccountingDirectory $AccountingDirectory -ResumeAssessment $ResumeAssessment
+        $resolved=& (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ParentTaskId $ParentTaskId -AccountingDirectory $AccountingDirectory -ParentContextPath $ParentContextPath -ParentContextHash $ParentContextHash -ResumeAssessment $ResumeAssessment
         $resolved=$resolved|ConvertFrom-Json
         if ($Role -and $Role -cne $resolved.role) { throw 'RoleOverrideConflict' }
         $Role=[string]$resolved.role
         $parentThreadId=[string]$resolved.parentThreadId; $parentTurnId=[string]$resolved.parentTurnId
         $Task='Read the JSON request file and retrieve the current authoritative WorkItem using the documented store API. Return only a structured LTC result.'
     }
+    if($workItemMode){
+        foreach($required in @($ParentContextPath,$ParentContextHash,$StartIntentPath,$StartIntentHash)){if([string]::IsNullOrWhiteSpace($required)){throw 'SSOT start requires immutable parent context and pinned start authority.'}}
+        $ParentContextPath=[IO.Path]::GetFullPath($ParentContextPath);$StartIntentPath=[IO.Path]::GetFullPath($StartIntentPath)
+        if(-not $ParentJobPath){$ParentJobPath=$env:AGENT_ORG_PARENT_JOB_FILE};$ParentJobPath=[IO.Path]::GetFullPath($ParentJobPath)
+        $parentContext=& $contextModule {param($p,$h,$j,$t,$s,$a) Assert-ExecutionContext $p $h $j $t $s $a} $ParentContextPath $ParentContextHash $ParentJobPath $ParentTaskId $WorkItemStorePath $AccountingDirectory
+        & $contextModule {param($p,$h,$s,$a) Assert-ExecutionAncestors $p $h $s $a|Out-Null} $ParentContextPath $ParentContextHash $WorkItemStorePath $AccountingDirectory
+        $startAuthority=& $contextModule {param($p,$h) Read-DelegatedStartAuthority $p $h} $StartIntentPath $StartIntentHash
+        if($startAuthority.parentContextPath -cne $ParentContextPath -or $startAuthority.parentContextHash -cne $ParentContextHash -or $startAuthority.parentJobPath -cne $ParentJobPath){throw 'Pinned start authority parent binding mismatch.'}
+        $ap=[ordered]@{};foreach($property in $startAuthority.parameters.PSObject.Properties){$ap[$property.Name]=$property.Value}
+        if([string]$startAuthority.storeRevision -cne [string]$resolved.revision){throw 'StartAuthorityStoreRevisionConflict'}
+        if([string](Get-LCValue $ap 'ResumeAssessment') -cne [string]$ResumeAssessment){throw 'Start authority ResumeAssessment conflict'}
+        if($ResumeAssessment){$rd=Assert-LCResume $ResumeAssessment $resolved.item $resolved.revision $WorkItemStorePath $RepositoryRoot;if($rd.nextExecutionId -cne $ExecutionId -or [int]$rd.generation -ne $Generation){throw 'ResumeGenerationBindingConflict'}}
+        foreach($pair in @(@('Role',$Role),@('WorkItemId',$WorkItemId),@('ExecutionId',$ExecutionId),@('Purpose',$Purpose),@('Generation',$Generation),@('StableTaskId',$StableTaskId),@('DispatchId',$DispatchId),@('TimeoutSeconds',$TimeoutSeconds),@('KeepWindowOpen',[bool]$KeepWindowOpen),@('AdmissionCapacity',$AdmissionCapacity),@('DetachedAfterVisibleAck',[bool]$DetachedAfterVisibleAck))){if([string]$ap[$pair[0]] -cne [string]$pair[1]){throw ('Start authority mismatch: '+$pair[0])}}
+        foreach($pair in @(@('WorkItemStorePath',$WorkItemStorePath),@('WorkItemRequestPath',$WorkItemRequestPath),@('AccountingDirectory',$AccountingDirectory),@('ResultPath',$resultFile),@('WorkingDirectory',(Resolve-Path -LiteralPath $WorkingDirectory).Path),@('DispatchJournalPath',$DispatchJournalPath),@('CoordinatorDataDirectory',$CoordinatorDataDirectory))){if([IO.Path]::GetFullPath([string]$ap[$pair[0]]) -cne [IO.Path]::GetFullPath([string]$pair[1])){throw ('Start authority mismatch: '+$pair[0])}}
+    }
     if ($Role -ceq 'koordinator') { $KeepWindowOpen=$true }
+    $launchInput=$null
+    if($rootCoordinatorMode){
+        $CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)
+        $launchInput=ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($CoordinatorLaunchConfigPath)) -ErrorAction Stop
+        foreach($field in @('kind','workItemStorePath','eventJournalPath','registryDirectory','resultDirectories','runtimeExecutable','runtimeArguments','codexHome')){if(-not $launchInput.PSObject.Properties[$field]){throw "Coordinator launch input missing $field"}}
+        if($launchInput.kind -cne 'coordinator-launch-input-v1' -or -not @($launchInput.resultDirectories).Count -or -not (Test-Path -LiteralPath $launchInput.runtimeExecutable -PathType Leaf)){throw 'Invalid coordinator launch input.'}
+    }
     $workdir = (Resolve-Path -LiteralPath $WorkingDirectory).Path
     if (-not (Test-Path -LiteralPath $workdir -PathType Container)) { throw 'WorkingDirectory ist kein Verzeichnis.' }
     New-Item -ItemType Directory -Path (Split-Path -Parent $resultFile) -Force | Out-Null
     $agentHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
     if (-not $RoleDisplayName) {
         $RoleDisplayName = $Role
-        if ($Role -eq 'koordinator') { $RoleDisplayName = 'Koordinator' }
-        elseif ($Role.StartsWith('teamleiter_')) {
-            $team = ([IO.File]::ReadAllText((Join-Path $agentHome 'agents\koordinator\teams.json'), $utf8) | ConvertFrom-Json).teams | Where-Object { $_.leader_id -ceq $Role }
-            if (@($team).Count -eq 1) { $RoleDisplayName = 'Teamleiter ' + $team.name }
-        } else {
+        if ($workItemMode) { $RoleDisplayName = $Role }
+        elseif ($Role -eq 'koordinator') { $RoleDisplayName = 'Koordinator' }
+        elseif (-not $Role.StartsWith('teamleiter_')) {
             $ownTeam = Get-ChildItem -LiteralPath (Join-Path $agentHome 'agents') -Directory | Where-Object { $Role.StartsWith($_.Name + '_') } | Sort-Object { $_.Name.Length } -Descending | Select-Object -First 1
             if ($ownTeam -and (Test-Path -LiteralPath (Join-Path $ownTeam.FullName 'agenten.json'))) {
                 $entry = ([IO.File]::ReadAllText((Join-Path $ownTeam.FullName 'agenten.json'), $utf8) | ConvertFrom-Json).agents | Where-Object { $_.agent_id -ceq $Role }
@@ -483,6 +547,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     $context = if ($ContextFile -and -not $workItemMode) { [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $ContextFile).Path, $utf8) } else { '' }
     if (-not $PSBoundParameters.ContainsKey('ParentTaskId')) { $ParentTaskId = $env:AGENT_ORG_PARENT_TASK_ID }
     if ($ParentTaskId) { $ParentTaskId = ([guid]$ParentTaskId).ToString('N') }
+    if($rootCoordinatorMode -and ($ParentTaskId -or $oldJob -and ($oldJob.parent_task_id -or $oldJob.parent_job_path -or $oldJob.work_item_id -or $oldJob.execution_id -or $oldJob.work_item_request_path))){throw 'Root coordinator job must have no parent or delegated WorkItem binding.'}
     if (-not $PSBoundParameters.ContainsKey('AccountingDirectory')) { $AccountingDirectory = $env:AGENT_ORG_ACCOUNTING_DIRECTORY }
     if (-not $AccountingDirectory) { $AccountingDirectory = Join-Path (Split-Path -Parent $resultFile) 'token-accounting' }
     $AccountingDirectory = [System.IO.Path]::GetFullPath($AccountingDirectory)
@@ -491,16 +556,16 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     if($journalMode){$payloadText += "`n"+$WorkItemId+"`n"+$Purpose+"`n"+$Generation+"`n"+[IO.Path]::GetFullPath($DispatchJournalPath)}
     if ($workItemMode) { $payloadText += "`n" + (ConvertTo-Json -InputObject ([ordered]@{ executionId=$ExecutionId; storePath=[IO.Path]::GetFullPath($WorkItemStorePath); requestPath=[IO.Path]::GetFullPath($WorkItemRequestPath); accountingDirectory=$AccountingDirectory; parentJobPath=[IO.Path]::GetFullPath($resolved.parentJobPath); parentThreadId=$parentThreadId; parentTurnId=$parentTurnId; resumeAssessment=$ResumeAssessment }) -Compress) }
     $sha = [Security.Cryptography.SHA256]::Create()
-    try { $payloadHash = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payloadText)))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+    try { $payloadHash = if($workItemMode){$StartIntentHash}else{([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payloadText)))).Replace('-', '').ToLowerInvariant()} } finally { $sha.Dispose() }
     foreach ($suffix in @('', '.window.json', '.go.json', '.events.jsonl', '.public.txt')) {
         if (Test-Path -LiteralPath ($resultFile + $suffix)) { throw "Vorhandenes Artefakt oder unklare Startabsicht bleibt erhalten: $resultFile$suffix" }
     }
     if($env:AGENT_ORG_ADMISSION_CAPACITY -and -not $PSBoundParameters.ContainsKey('AdmissionCapacity')){$AdmissionCapacity=[int]$env:AGENT_ORG_ADMISSION_CAPACITY}
     $executionDirectory = if ($CoordinatorDataDirectory) { [IO.Path]::GetFullPath($CoordinatorDataDirectory) } elseif ($env:AGENT_ORG_COORDINATOR_DATA_DIRECTORY) { [IO.Path]::GetFullPath($env:AGENT_ORG_COORDINATOR_DATA_DIRECTORY) } else { Join-Path $env:LOCALAPPDATA 'AgentOrganization\Coordinator' }
     $spec = @{
-        task_id = $(if ($StableTaskId) { $StableTaskId } elseif($DispatchId -match '^[0-9a-fA-F-]{36}$') { ([guid]$DispatchId).ToString('N') } else { $DispatchId }); dispatch_id = $DispatchId; payload_hash = $payloadHash; work_item_id=$WorkItemId;dispatch_work_item_id=$WorkItemId;execution_id=$ExecutionId;work_item_store_path=$WorkItemStorePath;work_item_request_path=$WorkItemRequestPath;resume_assessment=$ResumeAssessment;purpose=$Purpose;generation=$(if($Generation){$Generation}else{$null});dispatch_journal_path=$DispatchJournalPath; role = $Role; task = $Task; context = $context
-        parent_job_path=$(if($workItemMode){[IO.Path]::GetFullPath($resolved.parentJobPath)}elseif($ParentTaskId){$env:AGENT_ORG_PARENT_JOB_FILE}else{$null})
-        parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId; resume_assessment_path=$null
+        task_id = $(if ($StableTaskId) { $StableTaskId } elseif($DispatchId -match '^[0-9a-fA-F-]{36}$') { ([guid]$DispatchId).ToString('N') } else { $DispatchId }); dispatch_id = $DispatchId; payload_hash = $payloadHash; request_hash=$(if($workItemMode){$startAuthority.requestPayloadHash}else{$null}); work_item_id=$WorkItemId;dispatch_work_item_id=$WorkItemId;execution_id=$ExecutionId;work_item_store_path=$WorkItemStorePath;work_item_request_path=$WorkItemRequestPath;resume_assessment=$ResumeAssessment;purpose=$Purpose;generation=$(if($Generation){$Generation}else{$null});dispatch_journal_path=$DispatchJournalPath; role = $Role; task = $Task; context = $context
+        parent_job_path=$(if($workItemMode){[IO.Path]::GetFullPath($resolved.parentJobPath)}elseif($ParentTaskId){if($ParentJobPath){[IO.Path]::GetFullPath($ParentJobPath)}else{$env:AGENT_ORG_PARENT_JOB_FILE}}else{$null});parent_job_hash=$(if($workItemMode){$startAuthority.parentJobHash}else{$null})
+        parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId; parent_context_path=$(if($workItemMode){$ParentContextPath}else{$null});parent_context_hash=$(if($workItemMode){$ParentContextHash}else{$null});start_intent_path=$(if($workItemMode){$StartIntentPath}else{$null});start_intent_hash=$(if($workItemMode){$StartIntentHash}else{$null});resume_assessment_path=$null;resume_assessment_hash=$null
         role_display_name = $RoleDisplayName; task_title = $TaskTitle; window_title = $(if ($Role -ceq 'koordinator') { 'Koordinator' } else { $RoleDisplayName + ' - ' + $TaskTitle })
         context_file = $(if ($ContextFile) { (Resolve-Path -LiteralPath $ContextFile).Path } else { $null })
         parent_task_id = $(if ($ParentTaskId) { $ParentTaskId } else { $null }); accounting_directory = $AccountingDirectory
@@ -510,23 +575,71 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
         approval_policy = (Read-RoleString $roleText 'approval_policy')
     }
+    if($rootCoordinatorMode){
+        foreach($field in @('workItemStorePath','eventJournalPath','registryDirectory','runtimeExecutable','codexHome')){if([string]::IsNullOrWhiteSpace([string]$launchInput.$field)){throw "Coordinator launch input $field must be explicit."}}
+        if(-not $launchInput.runtimeArguments -or -not $launchInput.resultDirectories -or -not $spec.admission_capacity -or -not $spec.coordinator_data_directory){throw 'Coordinator launch capacity, result roots, arguments, and data directory must be explicitly bound.'}
+        $launchInput.workItemStorePath=[IO.Path]::GetFullPath($launchInput.workItemStorePath);$launchInput.eventJournalPath=[IO.Path]::GetFullPath($launchInput.eventJournalPath);$launchInput.registryDirectory=[IO.Path]::GetFullPath($launchInput.registryDirectory);$launchInput.runtimeExecutable=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath $launchInput.runtimeExecutable -ErrorAction Stop).Path);$launchInput.codexHome=[IO.Path]::GetFullPath($launchInput.codexHome);$launchInput.resultDirectories=@($launchInput.resultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)})
+        $policy=Get-AdmissionField $launchInput 'admissionPolicy';if((Get-AdmissionField $policy 'snapshotReuse' $false) -ne $false -or [int](Get-AdmissionField $policy 'scanBudgetMilliseconds' 10000) -le 0){throw 'AdmissionPolicyInvalid'}
+        $spec.work_item_store_path=$launchInput.workItemStorePath;$spec.coordinator_launch=[ordered]@{inputPath=$CoordinatorLaunchConfigPath;inputHash=(& $contextModule {param($b)Get-ContextHash $b} ([IO.File]::ReadAllBytes($CoordinatorLaunchConfigPath)));dataDirectory=$spec.coordinator_data_directory;capacity=$spec.admission_capacity}
+    }
+    if($rootCoordinatorMode){
+        $spec.coordinator_launch.admissionPolicy=[ordered]@{snapshotReuse=$false;scanBudgetMilliseconds=[int](Get-AdmissionField $policy 'scanBudgetMilliseconds' 10000)}
+        $installed=Read-AdmissionJson (Join-Path $PSScriptRoot '..\coordinator\AdmissionInstalledContract.json')
+        $spec.coordinator_launch.runtimeBinding=[ordered]@{executable=$launchInput.runtimeExecutable;executableHash=(Get-AdmissionHash ([IO.File]::ReadAllBytes($launchInput.runtimeExecutable)));arguments=@($launchInput.runtimeArguments);codexHome=$launchInput.codexHome;sourceContractHash=(Get-AdmissionHash ([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot '..\coordinator\AdmissionInstalledContract.json'))));version=$installed.version}
+    }
     $registry = Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1'
-    $registryReservation = & $registry -Action Reserve -DataDirectory $executionDirectory -TaskId $spec.task_id -DispatchId $DispatchId -PayloadHash $payloadHash -Role $Role -ResultPath $resultFile -DispatchJournalPath $DispatchJournalPath -Capacity $AdmissionCapacity
+    $startAttemptPath=$null;$startAttemptHash=$null;$startAttemptRecord=$null;$preparedAttemptPath=$null;$preparedAttemptHash=$null
+    if($workItemMode){$intentModule=Import-Module (Join-Path $PSScriptRoot '..\workitems\WorkItemPrestartIntent.psm1') -PassThru -Force;$startAttemptPath=& $intentModule {param($a,$e)Get-WorkItemPrestartIntentPath $a $e} $AccountingDirectory $ExecutionId;$startAttemptRecord=[ordered]@{kind='workitem-prestart-attempt-v1';phase='Prepared';executionId=$ExecutionId;taskId=$spec.task_id;parentTaskId=$ParentTaskId;parentJobPath=$spec.parent_job_path;parentJobHash=$startAuthority.parentJobHash;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash;parentThreadId=$parentThreadId;parentTurnId=$parentTurnId;startIntentPath=$StartIntentPath;startIntentHash=$StartIntentHash;payloadHash=$payloadHash;requestPath=$WorkItemRequestPath;requestHash=$startAuthority.requestPayloadHash;storePath=$WorkItemStorePath;workItemId=$WorkItemId;storeRevision=$resolved.revision;role=$Role;resultPath=$resultFile;dispatchJournalPath=$DispatchJournalPath;dispatchId=$DispatchId;noSpawnProof=$null;createdAtUtc=[DateTime]::UtcNow.ToString('o')};$startAttemptHash=& $intentModule {param($p,$r)Save-WorkItemPrestartIntent $p $r $null -Create} $startAttemptPath $startAttemptRecord;$recoveryModule=Import-Module (Join-Path $PSScriptRoot '..\workitems\WorkItemPrestartRecovery.psm1') -PassThru -Force;$preparedAttemptPath=$startAttemptPath+'.prepared.json';$preparedAttemptHash=$startAttemptHash;& $recoveryModule {param($p,$r)Write-RecoveryBytes $p (ConvertTo-RecoveryBytes $r) -Immutable} $preparedAttemptPath $startAttemptRecord;$spec.start_attempt_path=$preparedAttemptPath;$spec.start_attempt_hash=$preparedAttemptHash;$spec.no_spawn_attempt_path=$null;$spec.no_spawn_attempt_hash=$null}
+    if($workItemMode){
+        $dispatchInput=[ordered]@{authorityPath=$StartIntentPath;authorityHash=$StartIntentHash;parentJobPath=$spec.parent_job_path;parentJobHash=$startAuthority.parentJobHash;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash;payloadHash=$payloadHash;resultPath=$resultFile;role=$Role;workItemId=$WorkItemId;purpose=$Purpose;generation=$Generation}
+        $prepared=& $dispatchModule {param($j,$w,$p,$g,$i)Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i} $DispatchJournalPath $WorkItemId $Purpose $Generation $dispatchInput
+        if($prepared.state -cne 'Prepared'){throw 'ExistingDispatchRecoveryClosed'}
+    }
+    if($rootCoordinatorMode){
+        # Persist actual root intent before enrollment; no inventory or TestMode bypass.
+        $spec.registry_directory=$executionDirectory;$spec.registry_dispatch_id=$DispatchId
+        Write-Json ($resultFile+'.job.json') $spec
+        $enrollment=& $registry -Action EnrollRoot -DataDirectory $executionDirectory -RootJobPath ($resultFile+'.job.json')
+        if((Get-AdmissionField $enrollment 'AdmissionAllowed' $false) -ne $true){throw ('AdmissionUnknown: '+(Get-AdmissionField $enrollment 'reason' 'RootEnrollmentNotGranted'))}
+        $registryReservation=$enrollment
+    }else{
+        if(-not $workItemMode){
+            if(-not $spec.parent_job_path -or -not $ParentContextPath -or -not $ParentContextHash){throw 'AdmissionUnknown: LegacyActualHistoricalContextRequired'}
+            $parent=Read-AdmissionJson $spec.parent_job_path;$context=Read-AdmissionJson $ParentContextPath
+            if((Get-AdmissionHash ([IO.File]::ReadAllBytes($ParentContextPath))) -cne $ParentContextHash -or $context.taskId -cne $parent.task_id -or $context.jobPath -cne [IO.Path]::GetFullPath($spec.parent_job_path) -or $context.outcome -notin @('Running','Completed')){throw 'AdmissionUnknown: LegacyHistoricalContextMismatch'}
+            if(-not $StartIntentPath){
+                $authorityParameters=[ordered]@{StableTaskId=$spec.task_id;DispatchId=$DispatchId;ResultPath=$resultFile;Role=$Role;DispatchJournalPath=$DispatchJournalPath;CoordinatorDataDirectory=$executionDirectory;AdmissionCapacity=$AdmissionCapacity}
+                $legacyAuthority=[ordered]@{kind='admission-legacy-start-authority-v1';parameters=$authorityParameters;payloadHash=$payloadHash;parentJobPath=$spec.parent_job_path;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash}
+                $StartIntentHash=Get-AdmissionObjectHash $legacyAuthority
+                $StartIntentPath=Join-Path (Join-Path $AccountingDirectory 'start-authorities') ($StartIntentHash+'.json')
+                if(-not [IO.File]::Exists($StartIntentPath)){[void](Write-AdmissionJson $StartIntentPath $legacyAuthority -Immutable)}
+            }
+            $spec.start_intent_path=$StartIntentPath;$spec.start_intent_hash=$StartIntentHash;$spec.parent_context_path=$ParentContextPath;$spec.parent_context_hash=$ParentContextHash
+        }
+        if(-not $spec.parent_job_path -or -not $StartIntentPath -or -not $StartIntentHash){throw 'AdmissionUnknown: ActualAncestorAndStartAuthorityRequired'}
+        $admissionRoot=Get-AdmissionRoot $spec.parent_job_path
+        $rootLaunch=Read-AdmissionJson $admissionRoot.Job.coordinator_launch.inputPath
+        if([IO.Path]::GetFullPath($rootLaunch.registryDirectory) -cne $executionDirectory -or [int]$admissionRoot.Job.admission_capacity -ne $AdmissionCapacity){throw 'AdmissionUnknown: InheritedRootScopeMismatch'}
+        $target=[ordered]@{taskId=$spec.task_id;dispatchId=$DispatchId;payloadHash=$payloadHash;resultPath=$resultFile;role=$Role;dispatchJournalPath=$DispatchJournalPath;startIntentPath=$StartIntentPath;startIntentHash=$StartIntentHash;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash}
+        if($AdmissionReservationJson){$provided=ConvertFrom-Json -InputObject $AdmissionReservationJson -ErrorAction Stop}
+        else{$provided=Request-CoordinatorAdmission $admissionRoot.Path $target ([int](Get-AdmissionField (Get-AdmissionField $rootLaunch 'admissionPolicy') 'scanBudgetMilliseconds' 10000))}
+        $registryReservation=& $registry -Action ReadAdmissionReservation -DataDirectory $executionDirectory -TargetJson (ConvertTo-Json -InputObject $target -Depth 50 -Compress) -AdmissionRequestHash $provided.admission.requestHash
+        $spec.admission=$registryReservation.admission
+        $spec.admission_runtime=@{executable=$rootLaunch.runtimeExecutable;arguments=@($rootLaunch.runtimeArguments);codexHome=$rootLaunch.codexHome;binaryHash=(Get-AdmissionHash ([IO.File]::ReadAllBytes($rootLaunch.runtimeExecutable)))}
+    }
     if ($registryReservation.Reused) { Write-Output ('Vorhandene Execution bleibt belegt; keine erneute Ausfuehrung: TaskId ' + $spec.task_id + '; DispatchId ' + $DispatchId); return }
     $jobPath=$resultFile+'.job.json'
     $spec.registry_directory=$executionDirectory; $spec.registry_dispatch_id=$DispatchId
     $spawnAttempted=$false
     try {
         # Registry admission already succeeded. Durable job precedes SSOT mutation.
-        if ($workItemMode -and $ResumeAssessment) { $spec.resume_assessment_path=Join-Path $AccountingDirectory ('resume-'+$executionKey+'.json') }
-        Write-Json $jobPath $spec
     if ($workItemMode) {
         $hash = [Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($ExecutionId))
         $executionKey = ([BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant()
         $workItemReservationPath = Join-Path $AccountingDirectory ('execution-' + $executionKey + '.json')
         $resumeAssessmentPath = Join-Path $AccountingDirectory ('resume-' + $executionKey + '.json')
-        if ($ResumeAssessment) { $spec.resume_assessment_path = $resumeAssessmentPath }
-        $reservationJson = [ordered]@{ executionId = $ExecutionId; workItemId = $WorkItemId; store_path = $WorkItemStorePath; task_id = $spec.task_id; role=$Role; parent_task_id = $ParentTaskId; parent_job_path = $spec.parent_job_path; parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId; resume_assessment_path=$(if ($ResumeAssessment) { $resumeAssessmentPath } else { $null }); result_path = $resultFile; state = 'reserved'; reserved_at = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json -Compress
+        if($ResumeAssessment){$loc=ConvertFrom-Json -InputObject $ResumeAssessment;$resumeAssessmentPath=$loc.path;$spec.resume_assessment_path=$loc.path;$spec.resume_assessment_hash=$loc.hash}
+        $reservationJson = [ordered]@{ executionId = $ExecutionId; workItemId = $WorkItemId; store_path = $WorkItemStorePath; task_id = $spec.task_id; role=$Role; parent_task_id = $ParentTaskId; parent_job_path = $spec.parent_job_path; parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId;parent_context_path=$ParentContextPath;parent_context_hash=$ParentContextHash;start_intent_path=$StartIntentPath;start_intent_hash=$StartIntentHash;start_attempt_path=$preparedAttemptPath;start_attempt_hash=$preparedAttemptHash;no_spawn_attempt_path=$null;no_spawn_attempt_hash=$null;startingRevision=$resolved.revision;startingSnapshot=$resolved.item;startingOwnerId=$Role;current_binding_path=(& $recoveryModule {param($a,$e,$s,$w)(Get-PrestartRecoveryPaths $a $e $s $w).binding} $AccountingDirectory $ExecutionId $WorkItemStorePath $WorkItemId);request_path=$WorkItemRequestPath;request_hash=$startAuthority.requestPayloadHash;payload_hash=$payloadHash;resume_assessment_path=$(if ($ResumeAssessment) { $resumeAssessmentPath } else { $null });resume_assessment_hash=$(if($ResumeAssessment){$loc.hash}else{$null}); result_path = $resultFile; state = 'reserved'; reserved_at = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json -Depth 100 -Compress
         try {
             $stream = [IO.File]::Open($workItemReservationPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
             try { $bytes = $utf8.GetBytes($reservationJson); $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true) } finally { $stream.Dispose() }
@@ -534,15 +647,19 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         $module = Join-Path $RepositoryRoot 'scripts\workitems\WorkItemStore.psm1'; Import-Module $module -Force
         $currentStart = Get-WorkItemStoreResult -Path $WorkItemStorePath -RepositoryRoot $RepositoryRoot
         $startItem = @($currentStart.Document.items | Where-Object { $_.id -ceq $WorkItemId })
+        if ($currentStart.Revision -cne $resolved.revision) { throw 'ReservationStartingCASMismatch' }
+        Write-Json $jobPath $spec
         if ($startItem.Count -ne 1 -or $startItem[0].owner.id -cne $Role) { throw 'WorkItem changed after execution reservation.' }
         if ($startItem[0].status -notin @('planned','in_progress','rework','blocked')) { throw 'WorkItem became non-executable after reservation.' }
         if ($null -ne $startItem[0].humanInteraction -and $null -eq $startItem[0].humanInteraction.response) { throw 'Unanswered humanInteraction blocks execution.' }
-        if ($startItem[0].status -eq 'blocked' -and [string]::IsNullOrWhiteSpace($ResumeAssessment)) { throw 'Blocked resume needs an explicit persisted assessment.' }
+        if($startItem[0].status -ceq 'blocked'){throw 'Blocked resume requires prior terminal effect CAS'}
+        [void](Assert-LCResume $ResumeAssessment $startItem[0] $currentStart.Revision $WorkItemStorePath $RepositoryRoot -BeforeCAS)
         foreach ($dependencyId in $startItem[0].dependencies) {
             $dependencyItem = @($currentStart.Document.items | Where-Object { $_.id -ceq $dependencyId })
             if ($dependencyItem.Count -ne 1 -or $dependencyItem[0].status -cne 'accepted') { throw 'WorkItem dependency is no longer accepted.' }
         }
-        $currentBinding = & (Join-Path $PSScriptRoot 'Register-WorkItemExecution.ps1') -AccountingDirectory $AccountingDirectory -StorePath $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ExecutionId $ExecutionId -TaskId $spec.task_id -ParentTaskId $ParentTaskId -ParentJobPath $spec.parent_job_path
+        $reservationData=[IO.File]::ReadAllText($workItemReservationPath,$utf8)|ConvertFrom-Json;if($reservationData.startingRevision -cne $currentStart.Revision){throw 'SecuredReservationChanged'}
+        $currentBinding = & (Join-Path $PSScriptRoot 'Register-WorkItemExecution.ps1') -AccountingDirectory $AccountingDirectory -StorePath $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ExecutionId $ExecutionId -TaskId $spec.task_id -ParentTaskId $ParentTaskId -ParentJobPath $spec.parent_job_path -ParentContextPath $ParentContextPath -ParentContextHash $ParentContextHash -StartIntentPath $StartIntentPath -StartIntentHash $StartIntentHash -ParentThreadId $parentThreadId -ParentTurnId $parentTurnId -PayloadHash $payloadHash -RequestPath $WorkItemRequestPath -RequestHash $startAuthority.requestPayloadHash -StartAttemptPath $preparedAttemptPath -StartAttemptHash $preparedAttemptHash
         $spec.work_item_binding_path = [string]$currentBinding.path
         $reservationData = [IO.File]::ReadAllText($workItemReservationPath, $utf8) | ConvertFrom-Json
         $reservationData.current_binding_path = [string]$currentBinding.path
@@ -550,25 +667,31 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         Write-Json $jobPath $spec
         if ($startItem[0].status -ne 'in_progress') {
             $itemToStart = $startItem[0]
-            if ($itemToStart.status -eq 'blocked') {
-                if ([IO.File]::Exists($resumeAssessmentPath)) { throw 'Resume assessment already exists for this execution.' }
-                $resumeEvidence = [ordered]@{ kind='resume-assessment'; workItemId=$WorkItemId; executionId=$ExecutionId; storePath=$WorkItemStorePath; revision=$currentStart.Revision; requestedAt=$(if ($itemToStart.humanInteraction) { $itemToStart.humanInteraction.requestedAt } else { $null }); response=$(if ($itemToStart.humanInteraction) { $itemToStart.humanInteraction.response } else { $null }); assessment=$ResumeAssessment; dependencies=@($itemToStart.dependencies); implementedAt=$itemToStart.implementedAt; result=$itemToStart.result; assessedAt=[DateTime]::UtcNow.ToString('o') }
-                Write-Json $resumeAssessmentPath $resumeEvidence
-            }
             $itemToStart.status = 'in_progress'; $itemToStart.blockReason = $null; $itemToStart.updatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
-            Set-WorkItemStoreEntry -Path $WorkItemStorePath -Id $WorkItemId -Item $itemToStart -ExpectedRevision $currentStart.Revision -RepositoryRoot $RepositoryRoot | Out-Null
+            $startEffect=[ordered]@{effectId=('prestart-start:'+ $ExecutionId);executionId=$ExecutionId;requestId=(& $contextModule {param($p,$h)(Read-ContextJson $p).requestId} $ParentContextPath $ParentContextHash);threadId=$parentThreadId;turnId=$parentTurnId;eventId=('prestart-start:'+ $ExecutionId);inputHash=$StartIntentHash;planHash=$preparedAttemptHash;ordinal=1}
+            $startDocument=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $currentStart.Document -Depth 100)
+            for($i=0;$i -lt @($startDocument.items).Count;$i++){if($startDocument.items[$i].id -ceq $WorkItemId){$startDocument.items[$i]=$itemToStart}}
+            $storeModule=Get-Module WorkItemStore
+            $startCandidate=& $storeModule {param($d) ,(ConvertTo-WorkItemStoreCandidate $d)} $startDocument
+            $startCandidateHash=& $recoveryModule {param($b)Get-RecoveryHash $b} $startCandidate
+            $startCAS=[ordered]@{sourceRevision=$currentStart.Revision;candidateRevision=('sha256:'+$startCandidateHash);effectContext=$startEffect}
+            $reservationData|Add-Member -NotePropertyName startingCAS -NotePropertyValue $startCAS -Force
+            Write-Json $workItemReservationPath $reservationData
+            Set-WorkItemStoreEntry -Path $WorkItemStorePath -Id $WorkItemId -Item $itemToStart -IsNew $false -ExpectedRevision $currentStart.Revision -RepositoryRoot $RepositoryRoot -TimeoutMilliseconds 5000 -EffectContext $startEffect | Out-Null
         }
     }
         Write-Json $jobPath $spec
         if ($workItemMode) {
-            $requestObject=[ordered]@{kind='request';workItemId=$WorkItemId;executionId=$ExecutionId}
+            $requestBytes=[Convert]::FromBase64String([string]$startAuthority.requestPayloadBase64)
+            if((& $contextModule {param($b)Get-ContextHash $b} $requestBytes) -cne $startAuthority.requestPayloadHash){throw 'Pinned request locator byte hash mismatch.'}
             $stream=[IO.File]::Open($WorkItemRequestPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
-            try { $bytes=$utf8.GetBytes(($requestObject|ConvertTo-Json -Compress));$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true) } finally { $stream.Dispose() }
+            try { $stream.Write($requestBytes,0,$requestBytes.Length);$stream.Flush($true) } finally { $stream.Dispose() }
         }
         if ($journalMode) {
-            $prepared=& $dispatchModule { param($j,$w,$p,$g,$i) Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i } $DispatchJournalPath $WorkItemId $Purpose $Generation ([ordered]@{task=$Task;context=$context;role=$Role;workingDirectory=$workdir;resultPath=$resultFile;payloadHash=$payloadHash})
-            if ($prepared.state -cne 'Prepared') { throw 'DispatchReplayNoNewProcess' }
-            [void](& $dispatchModule { param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent } $DispatchJournalPath $DispatchId)
+            $dispatchInput=if($workItemMode){[ordered]@{authorityPath=$StartIntentPath;authorityHash=$StartIntentHash;parentJobPath=$spec.parent_job_path;parentJobHash=$startAuthority.parentJobHash;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash;payloadHash=$payloadHash;resultPath=$resultFile;role=$Role;workItemId=$WorkItemId;purpose=$Purpose;generation=$Generation}}else{[ordered]@{task=$Task;context=$context;role=$Role;workingDirectory=$workdir;resultPath=$resultFile;payloadHash=$payloadHash}}
+            $prepared=& $dispatchModule { param($j,$w,$p,$g,$i) Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i } $DispatchJournalPath $WorkItemId $Purpose $Generation $dispatchInput
+            if($workItemMode){$startAttemptRecord.phase='LaunchIntent';$startAttemptRecord.launchIntentAtUtc=[DateTime]::UtcNow.ToString('o');$startAttemptHash=& $intentModule {param($p,$r,$h)Save-WorkItemPrestartIntent $p $r $h} $startAttemptPath $startAttemptRecord $startAttemptHash}
+            if($prepared.state -eq 'Prepared'){[void](& $dispatchModule { param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent } $DispatchJournalPath $DispatchId)}elseif($prepared.state -ne 'LaunchIntent'){throw 'DispatchReplayNoNewProcess'}
         }
     $protected = @(Get-Process -Name ChatGPT,powershell,conhost,WindowsTerminal -ErrorAction SilentlyContinue | ForEach-Object { [AgentTerminalWindow]::ForPid([uint32]$_.Id) } | Select-Object -Unique)
     # Explicit console host avoids Windows Terminal's non-owning pseudohandle.
@@ -608,9 +731,18 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     }
     } catch {
         $failureReason='Starter prestart failed: '+$_.Exception.Message
-        if (-not $spawnAttempted -and $workItemMode -and $spec.work_item_binding_path) {
+        if (-not $spawnAttempted -and $workItemMode -and $startAttemptPath) {
             try {
-                & (Join-Path $RepositoryRoot 'scripts\workitems\Save-WorkItemPrestartFailure.ps1') -StorePath $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -TaskId $spec.task_id -ParentTaskId $ParentTaskId -ExecutionId $ExecutionId -ResultPath $resultFile -ParentJobPath $spec.parent_job_path -AccountingDirectory $AccountingDirectory -Reason $failureReason | Out-Null
+                $startAttemptRecord.noSpawnProof=[ordered]@{kind='synchronous-launcher-exception';spawnCallEntered=$false;launcherProcessId=$PID;launcherStartedAtUtc=([Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToString('o'));failure=$failureReason;recordedAtUtc=[DateTime]::UtcNow.ToString('o')};$startAttemptRecord.phase='NoSpawnConfirmed';$startAttemptHash=& $intentModule {param($p,$r,$h)Save-WorkItemPrestartIntent $p $r $h} $startAttemptPath $startAttemptRecord $startAttemptHash
+                $noSpawnAttemptPath=$startAttemptPath+'.nospawn.json'
+                & $recoveryModule {param($p,$r)Write-RecoveryBytes $p (ConvertTo-RecoveryBytes $r) -Immutable} $noSpawnAttemptPath $startAttemptRecord
+                $spec.no_spawn_attempt_path=$noSpawnAttemptPath;$spec.no_spawn_attempt_hash=$startAttemptHash
+                $reservationData=[IO.File]::ReadAllText($workItemReservationPath,$utf8)|ConvertFrom-Json
+                $reservationData|Add-Member -NotePropertyName no_spawn_attempt_path -NotePropertyValue $noSpawnAttemptPath -Force
+                $reservationData|Add-Member -NotePropertyName no_spawn_attempt_hash -NotePropertyValue $startAttemptHash -Force
+                Write-Json $workItemReservationPath $reservationData
+                try { Write-Json $jobPath $spec } catch { Write-Warning ('NoSpawn job readback unavailable; reservation proof retained: '+$_.Exception.Message) }
+                Invoke-BoundNoSpawnRecovery ([pscustomobject]$spec) $failureReason | Out-Null
                 try { Complete-BoundRegistryJob ([pscustomobject]$spec) } catch { Write-Warning ('Prestart reservation retained: '+$_.Exception.Message) }
             } catch { Write-Warning ('Secured prestart transfer rejected; recovery required: '+$_.Exception.Message) }
         }
@@ -671,13 +803,17 @@ $layoutWidth = 88
 try { $layoutWidth = [Math]::Min(88, $host.UI.RawUI.WindowSize.Width - 1) } catch { }
 foreach ($line in (Format-DelegatedStartLayout $job.role_display_name $job.task $job.context $layoutWidth $startState)) { Write-Host $line }
 Write-Host 'Arbeit beginnt nach bestätigtem Fenster und zehn Sekunden zum Mitlesen.'
+$terminalContext=$null
 $evidence = [ordered]@{
     task_id = $job.task_id; dispatch_id=$job.dispatch_id; result_path=$resultFile; role = $job.role; runner_pid = $PID; window_handle = $handle.ToInt64(); title = $title
     work_item_id = $job.work_item_id; execution_id = $job.execution_id
     work_item_request_path = $job.work_item_request_path; work_item_store_path = $job.work_item_store_path
     parent_job_path = $job.parent_job_path; parent_job_task_id = $job.parent_task_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id
-    resume_assessment_path=$job.resume_assessment_path
+    resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash
     model_started = $false; thread_id = $null; turn_id = $null; terminal_outcome = $null; output = $null; success = $false; error = $null
+    parent_job_hash=$job.parent_job_hash
+    parent_context_path=$job.parent_context_path;parent_context_hash=$job.parent_context_hash;request_hash=$job.request_hash
+    start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash
     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
 }
 $notifications = New-Object System.Collections.Generic.List[object]
@@ -696,30 +832,83 @@ function Write-Event([string]$Kind, $Data) {
     [System.IO.File]::AppendAllText($resultFile + '.events.jsonl', $line + "`n", $utf8)
 }
 function Send-Rpc([string]$Method, $Params, [int]$Id) {
-    $message = @{ method = $Method; params = $Params }
+    $message=@{method=$Method};if($null -ne $Params){$message.params=$Params}
     if ($Id -gt 0) { $message.id = $Id }
     $bytes = $utf8.GetBytes(($message | ConvertTo-Json -Depth 20 -Compress) + "`n")
+    if($Id -gt 0){$script:admissionRequests[[string]$Id]=@{method=$Method;id=$Id;requestBase64=[Convert]::ToBase64String($bytes);requestBytesHash=(Get-AdmissionHash $bytes);replyBase64=$null;replyBytesHash=$null;startedUtc=[DateTime]::UtcNow.ToString('o');endedUtc=$null}}
     $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
     $process.StandardInput.BaseStream.Flush()
     Write-Event 'request' @{ method = $Method; id = $Id }
 }
+$script:admissionPendingRead=$null
+$script:admissionPumping=$false
+$script:admissionWaitingResponse=$false
+$script:admissionResponses=@{}
+$script:admissionNextRpc=100000
+$script:admissionMutation=[long]0
+$script:admissionGap=[long]0
+$script:admissionProvider=$null
+$script:admissionRpcDeadline=$null
+$script:admissionRequests=@{}
+$script:admissionLastRpcReceipt=$null
+function Invoke-RunnerAdmissionRpc([string]$Method,$Params,[int]$Milliseconds){
+    $id=$script:admissionNextRpc;$script:admissionNextRpc++
+    $prior=$script:admissionRpcDeadline;$script:admissionRpcDeadline=[DateTime]::UtcNow.AddMilliseconds($Milliseconds)
+    try{Send-Rpc $Method $Params $id;Wait-Rpc $id}finally{$script:admissionRpcDeadline=$prior}
+}
+function Invoke-RunnerWaitRpcPump {
+    if($script:admissionPumping -or -not $script:admissionProvider){return}
+    $script:admissionPumping=$true
+    try{
+        $remaining=[int][Math]::Max(1,($deadline-[DateTime]::UtcNow).TotalMilliseconds)
+        $budget=New-AdmissionBudget $remaining
+        $rpc={param($m,$p,$ms)Invoke-RunnerAdmissionRpc $m $p $ms}
+        $markers={@{mutation=$script:admissionMutation;gap=$script:admissionGap;rpc=$script:admissionLastRpcReceipt}}
+        Invoke-AdmissionCallerPump $job.registry_directory $script:admissionProvider $budget $rpc $markers $script:admissionWaitingResponse
+    }finally{$script:admissionPumping=$false}
+}
 function Read-Rpc {
-    $remaining = [int][Math]::Max(1, ($deadline - [DateTime]::UtcNow).TotalMilliseconds)
-    $read = $process.StandardOutput.ReadLineAsync()
-    if (-not $read.Wait($remaining)) { throw 'Timeout beim Warten auf App-server.' }
-    if ($null -eq $read.Result) { throw 'App-server hat seinen Ausgabestrom geschlossen.' }
-    $message = $read.Result | ConvertFrom-Json
-    if ($message.error) { throw ('App-server-Fehler: ' + $message.error.message) }
-    if ($message.method) {
+    if(-not $script:admissionPendingRead){$script:admissionPendingRead=$process.StandardOutput.ReadLineAsync()}
+    while(-not $script:admissionPendingRead.IsCompleted){
+        Invoke-RunnerWaitRpcPump
+        if(-not $script:admissionPendingRead){$script:admissionPendingRead=$process.StandardOutput.ReadLineAsync()}
+        $end=$deadline;if($script:admissionRpcDeadline -and $script:admissionRpcDeadline -lt $end){$end=$script:admissionRpcDeadline}
+        $remaining=[int][Math]::Max(0,($end-[DateTime]::UtcNow).TotalMilliseconds)
+        if($remaining -le 0){$script:admissionGap++;throw 'AdmissionUnknown: RunnerReaderDeadline'}
+        [void]$script:admissionPendingRead.Wait([int][Math]::Min(20,$remaining))
+    }
+    $line=$script:admissionPendingRead.Result;$script:admissionPendingRead=$null
+    if($null -eq $line){$script:admissionGap++;throw 'App-server hat seinen Ausgabestrom geschlossen.'}
+    $message=ConvertFrom-Json -InputObject $line -ErrorAction Stop
+    if(Get-AdmissionField $message 'method'){
+        $script:admissionMutation++
         Write-Event 'notification' $message
         $notifications.Add($message)
         Update-NativeUsage $message
-        if ($message.id) { throw ('Interaktive Serveranforderung: ' + $message.method) }
-        Get-PublicProgress $message $evidence.thread_id $evidence.turn_id $progressState | ForEach-Object { Write-ProgressDisplay $_ }
-    }
+        if(Get-AdmissionField $message 'id'){$script:admissionGap++;throw ('Interaktive Serveranforderung: '+$message.method)}
+        Get-PublicProgress $message $evidence.thread_id $evidence.turn_id $progressState | ForEach-Object {Write-ProgressDisplay $_}
+    }elseif($null -ne (Get-AdmissionField $message 'id')){
+        $key=[string]$message.id
+        if(-not $script:admissionRequests.ContainsKey($key)){$script:admissionGap++;throw 'AdmissionUnknown: UnexpectedOrLateRpcResponse'}
+        if($script:admissionResponses.ContainsKey($key)){$script:admissionGap++;throw 'AdmissionUnknown: DuplicateRpcResponse'}
+        $script:admissionResponses[$key]=$message
+        $req=$script:admissionRequests[$key];$replyBytes=$utf8.GetBytes($line)
+        $req.replyBase64=[Convert]::ToBase64String($replyBytes);$req.replyBytesHash=Get-AdmissionHash $replyBytes;$req.endedUtc=[DateTime]::UtcNow.ToString('o')
+    }else{$script:admissionGap++;throw 'AdmissionUnknown: UncorrelatedRpcMessage'}
     return $message
 }
-function Wait-Rpc([int]$Id) { do { $message = Read-Rpc } while ($message.id -ne $Id); return $message.result }
+function Wait-Rpc([int]$Id) {
+    $prior=$script:admissionWaitingResponse;$script:admissionWaitingResponse=$true
+    try{
+        while(-not $script:admissionResponses.ContainsKey([string]$Id)){[void](Read-Rpc)}
+        $message=$script:admissionResponses[[string]$Id];$script:admissionResponses.Remove([string]$Id)
+        if(Get-AdmissionField $message 'error'){throw ('App-server-Fehler: '+$message.error.message)}
+        if(-not $message.PSObject.Properties['result']){throw 'AdmissionUnknown: RpcResultMissing'}
+        $script:admissionLastRpcReceipt=$script:admissionRequests[[string]$Id];$script:admissionRequests.Remove([string]$Id)
+        return $message.result
+    }finally{$script:admissionWaitingResponse=$prior}
+}
+
 try {
     if ($handle -eq [IntPtr]::Zero -or -not [AgentTerminalWindow]::IsWindowVisible($handle)) { throw 'Eigenes sichtbares Konsolenfenster nicht verfügbar; kein Modellstart.' }
     Write-Json ($resultFile + '.window.json') @{ task_id = $job.task_id; runner_pid = $PID; window_handle = $handle.ToInt64(); window_pid = $windowPid; title = $title }
@@ -744,16 +933,17 @@ try {
         $consoleScript = Join-Path (Split-Path -Parent $PSCommandPath) '..\Start-CoordinatorConsole.ps1'
         if (-not (Test-Path -LiteralPath $consoleScript -PathType Leaf)) { throw 'Coordinator console entrypoint missing.' }
         Write-Host 'Koordinator-Host ist aktiv; das bestätigte Fenster bleibt geöffnet.'
-        $runtimeExecutable=(Get-Command codex.exe -ErrorAction Stop).Source
-        $codexHome=if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
-        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -RuntimeExecutable $runtimeExecutable -CodexHome $codexHome -TaskId $job.task_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory
+        $launchPath=[IO.Path]::GetFullPath([string]$job.coordinator_launch.inputPath)
+        if(-not $launchPath -or (& $contextModule {param($b)Get-ContextHash $b} ([IO.File]::ReadAllBytes($launchPath))) -cne $job.coordinator_launch.inputHash){throw 'Coordinator launch input changed after root job persistence.'}
+        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -TaskId $job.task_id -AccountingDirectory $job.accounting_directory -CoordinatorJobPath ([IO.Path]::GetFullPath($env:AGENT_ORG_PARENT_JOB_FILE)) -CoordinatorLaunchConfigPath $launchPath -CoordinatorLaunchConfigHash $job.coordinator_launch.inputHash
         return
     }
     $deadline = [DateTime]::UtcNow.AddSeconds([int]$job.timeout_seconds)
-    $command = Get-Command codex.cmd -ErrorAction Stop
+    if(-not $job.admission_runtime -or (Get-AdmissionHash ([IO.File]::ReadAllBytes($job.admission_runtime.executable))) -cne $job.admission_runtime.binaryHash){throw 'AdmissionUnknown: EffectivePinnedBinaryRequired'}
     $start = New-Object System.Diagnostics.ProcessStartInfo
-    $start.FileName = $env:ComSpec
-    $start.Arguments = '/d /s /c ""' + $command.Source + '" app-server --stdio"'
+    $start.FileName = $job.admission_runtime.executable
+    $start.Arguments = (@($job.admission_runtime.arguments|ForEach-Object{'"'+([string]$_).Replace('"','\"')+'"'}) -join ' ')
+    $start.EnvironmentVariables['CODEX_HOME']=$job.admission_runtime.codexHome
     $start.WorkingDirectory = $job.cwd
     $start.UseShellExecute = $false; $start.CreateNoWindow = $true
     $start.RedirectStandardInput = $true; $start.RedirectStandardOutput = $true; $start.RedirectStandardError = $true
@@ -763,13 +953,24 @@ try {
     [void]$process.Start()
     $stderr = $process.StandardError.ReadToEndAsync()
     Send-Rpc 'initialize' @{ clientInfo = @{ name = 'agent_organization_terminal'; version = '0.1.0' } } 1
-    [void](Wait-Rpc 1)
+    $initializeReply=Wait-Rpc 1
+    $rootForRunner=Get-AdmissionRoot $JobFile
+    $runnerSessionPath=Join-Path $rootForRunner.Job.coordinator_data_directory 'session.json'
+    $providerReceipt=New-AdmissionProviderReceipt $process $JobFile $rootForRunner.Path $runnerSessionPath $job.admission_runtime.executable @($job.admission_runtime.arguments) $job.admission_runtime.codexHome $initializeReply 'cli'
+    [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action BindProvider -DataDirectory $job.registry_directory -TaskId $job.task_id -ProviderBindingJson (ConvertTo-Json -InputObject $providerReceipt -Depth 60 -Compress))
+    $script:admissionProvider=$providerReceipt.receipt
+    $capability=Get-AdmissionInstalledContract $script:admissionProvider
+    if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}
     Send-Rpc 'initialized' @{} 0
     Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
     $thread = Wait-Rpc 2
     $evidence.thread_id = $thread.thread.id
+    if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
+    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
+    $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
+    $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
     if ($job.registry_directory) {
-        [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action RegisterNative -DataDirectory $job.registry_directory -TaskId $job.task_id -DispatchId $job.registry_dispatch_id -NativeThreadId $evidence.thread_id -Role $job.role -State active)
+        [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action RegisterNative -DataDirectory $job.registry_directory -TaskId $job.task_id -DispatchId $job.registry_dispatch_id -NativeThreadId $evidence.thread_id -Role $job.role -State active -NativeAckPath $nativeAckPath -NativeAckHash $nativeAckHash)
     }
     Write-Host 'Eigene Sitzung ist bereit.'
     Write-Event 'thread_created' @{ thread_id = $evidence.thread_id }
@@ -777,8 +978,9 @@ try {
     if ($jobSsotMode) {
         $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.parent_task_id
         $env:AGENT_ORG_PARENT_JOB_FILE = $parentJobPath
-        $current = & (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $job.work_item_store_path -WorkItemId $job.work_item_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory -ResumeAssessment $job.resume_assessment
+        $current = & (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot -WorkItemId $job.work_item_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory -ParentContextPath $job.parent_context_path -ParentContextHash $job.parent_context_hash -ResumeAssessment $job.resume_assessment
         $current = $current | ConvertFrom-Json
+        if($job.resume_assessment){$rd=Assert-LCResume $job.resume_assessment $current.item $current.revision $job.work_item_store_path $RepositoryRoot;if($rd.nextExecutionId -cne $job.execution_id -or [int]$rd.generation -ne [int]$job.generation){throw 'RunnerResumeGenerationConflict'};$loc=ConvertFrom-Json -InputObject $job.resume_assessment;if($loc.path -cne $job.resume_assessment_path -or $loc.hash -cne $job.resume_assessment_hash){throw 'RunnerResumeReceiptConflict'}}
         if ($current.role -cne $job.role) { throw 'WorkItem owner changed after routing; refusing start.' }
         if ([IO.Path]::GetFullPath($current.parentJobPath) -cne [IO.Path]::GetFullPath($parentJobPath) -or $current.parentThreadId -cne $job.parent_thread_id -or $current.parentTurnId -cne $job.parent_turn_id) { throw 'Parent job/thread/turn binding changed after reservation; refusing start.' }
         $storeHint = ([string]$job.work_item_store_path).Replace("'", "''")
@@ -789,13 +991,22 @@ try {
     if ($jobSsotMode) {
         $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id
         $env:AGENT_ORG_PARENT_JOB_FILE = $resultFile + '.job.json'
+        $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash
     }
     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } 3
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
+    $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
+    if($jobSsotMode -and $job.work_item_store_path -and $job.payload_hash){
+        $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
+        $payloadBytes=[Text.Encoding]::UTF8.GetBytes([string]$job.payload_hash);$turnAuthorityHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $payloadBytes
+        $ackBytes=$utf8.GetBytes(($turn|ConvertTo-Json -Depth 50 -Compress));$ackHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $ackBytes
+        $turnContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome Running -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id ([string]$job.execution_id) ([string]$job.task_id) $turnAuthorityHash $ackHash
+        $env:AGENT_ORG_PARENT_CONTEXT_PATH=$turnContext.path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=$turnContext.hash;$env:AGENT_ORG_PARENT_THREAD_ID=$evidence.thread_id;$env:AGENT_ORG_PARENT_TURN_ID=$evidence.turn_id
+    }
     if ($jobSsotMode) {
-        Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; store_path=$job.work_item_store_path; accounting_directory=$job.accounting_directory; recorded_at=[DateTime]::UtcNow.ToString('o') })
+        Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; job_hash=$(if($turnContext){$turnContext.record.jobHash}else{$null});thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; store_path=$job.work_item_store_path; accounting_directory=$job.accounting_directory;state='RunningTurn';context_path=$(if($turnContext){$turnContext.path}else{$null});context_hash=$(if($turnContext){$turnContext.hash}else{$null});recorded_at=[DateTime]::UtcNow.ToString('o') })
     } else {
         Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$null; execution_id=$null; store_path=$null; accounting_directory=$job.accounting_directory; recorded_at=[DateTime]::UtcNow.ToString('o') })
     }
@@ -810,10 +1021,12 @@ try {
         if ($null -eq $completion) { [void](Read-Rpc) }
     }
     $evidence.terminal_outcome = $completion.params.turn.status
+    if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id ([string]$job.execution_id) ([string]$job.task_id) $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
-    # Unterstützter Roundtrip: auch nach turn/completed noch eintreffende Usage lesen.
     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }
+    # Unterstützter Roundtrip: auch nach turn/completed noch eintreffende Usage lesen.
+
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     Send-Rpc 'thread/read' @{ threadId = $evidence.thread_id; includeTurns = $false } 5
     [void](Wait-Rpc 5)
@@ -822,6 +1035,7 @@ try {
     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }
     $evidence.success = ($evidence.terminal_outcome -eq 'completed')
+    if($terminalContext){$technicalTerminalPath=$resultFile+'.job.json.active.json';Write-Json $technicalTerminalPath ([ordered]@{task_id=$job.task_id;role=$job.role;job_hash=$terminalContext.record.jobHash;thread_id=$evidence.thread_id;turn_id=$evidence.turn_id;work_item_id=$job.work_item_id;execution_id=$job.execution_id;store_path=$job.work_item_store_path;accounting_directory=$job.accounting_directory;state=$terminalOutcome;context_path=$terminalContext.path;context_hash=$terminalContext.hash;recorded_at=[DateTime]::UtcNow.ToString('o')})}
     Write-Event 'terminal' @{ outcome = $evidence.terminal_outcome; thread_id = $evidence.thread_id }
     # Public final_answer items were displayed once above. Keep raw output in
     # the result contract without replaying commentary or unknown phases here.
@@ -835,9 +1049,10 @@ try {
 } finally {
     try {
     try {
+        if($terminalContext){$evidence.own_context_path=$terminalContext.path;$evidence.own_context_hash=$terminalContext.hash}
         Write-Json (Join-Path $job.accounting_directory ($job.task_id + '.usage.json')) ([ordered]@{
             task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
-            thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path; token_usage = (Get-FinalLedgerUsage $evidence)
+            thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
         })
         $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
     } catch {
@@ -854,14 +1069,7 @@ try {
             if ($reservationData.task_id -cne $job.task_id -or $reservationData.workItemId -cne $job.work_item_id -or $reservationData.executionId -cne $job.execution_id) { throw 'Execution reservation mismatch before transfer.' }
             if (-not $evidence.model_started) {
                 $failureReason = if ($evidence.error) { [string]$evidence.error } else { 'Runner failed before model start.' }
-                $prestartSaveError = $null
-                try { & (Join-Path $RepositoryRoot 'scripts\workitems\Save-WorkItemPrestartFailure.ps1') -StorePath $job.work_item_store_path -RepositoryRoot $RepositoryRoot -WorkItemId $job.work_item_id -TaskId $job.task_id -ParentTaskId $job.parent_task_id -ExecutionId $job.execution_id -ResultPath $resultFile -ParentJobPath $job.parent_job_path -AccountingDirectory $job.accounting_directory -Reason $failureReason | Out-Null } catch { $prestartSaveError = $_.Exception.Message }
-                if ($prestartSaveError) { throw ('Prestart evidence API rejected the runner binding: ' + $prestartSaveError) }
-                Write-Json $resultFile $evidence
-                $reservationData = [IO.File]::ReadAllText($workItemReservationPath, $utf8) | ConvertFrom-Json
-                $reservationData.state = 'failed'
-                $reservationData.failure_recorded_at = [DateTime]::UtcNow.ToString('o')
-                Write-Json $workItemReservationPath $reservationData
+                throw 'RunnerProcessExists; NoSpawn recovery is prohibited. Reservation remains closed.'
             } else {
                 if (-not $evidence.thread_id -or -not $evidence.turn_id) { throw 'Started model execution lacks persisted thread/turn identity; no result transfer.' }
                 $reservationData.state = 'result_saved'; $reservationData.thread_id = $evidence.thread_id; $reservationData.turn_id = $evidence.turn_id

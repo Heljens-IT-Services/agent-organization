@@ -1,5 +1,12 @@
 # Eigene Gesamtabnahme Epic #6
 
+Historischer Abnahmebericht: Die folgenden Entscheidungen, Messwerte und
+Publikationsfreigaben beziehen sich ausschließlich auf den damaligen Stand.
+Es gilt die [aktuelle Prüfregel](../AGENTS.md); frühere Test- und
+Regressionspflichten sind aufgehoben. Keine aktuelle Ausführungsanweisung und
+kein Funktionsnachweis nach dem Rückbau; unabhängige Prüfung und eigene
+Elternabnahme des aktuellen WorkItems bleiben erforderlich.
+
 Entscheidung teamleiter_softwareentwicklung am 12.10.2026: Epic #6 accepted im abgegrenzten lokalen Windows-/NTFS-Prozessfehlermodell. Eigenständige Prüfung beider Epic-Kriterien; geschlossene Kinder allein ersetzen diese Entscheidung nicht.
 
 ## Eigene Kriterienentscheidung

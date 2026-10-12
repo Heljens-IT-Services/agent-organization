@@ -60,12 +60,13 @@ nicht zum Umgehen der Blockade gelöscht werden. Andere Blockaden nutzen
 `blockReason`, das bei Wiederaufnahme entfernt wird. Antworttexte müssen fachlich
 ausgewertet werden und erteilen keine pauschale Dienst- oder Änderungsfreigabe.
 
-## Prüfung
+## Produktive Validierung
+
+Es gilt die [aktuelle Prüfregel](../../AGENTS.md): keine Tests ausführen oder erstellen.
 
 ```powershell
 .\scripts\workitems\Test-WorkItems.ps1 -Path .\examples\workitems\goal-with-children.json
 .\scripts\workitems\Test-WorkItems.ps1 -Path next.json -PreviousPath current.json
-.\scripts\tests\contracts\Test-Contracts.ps1 -ResultPath "$env:TEMP\contract-tests.json"
 ```
 
 Geprüft werden Struktur, IDs, Rollen/Markdown, Eltern-/Abhängigkeitszyklen und
