@@ -1,4 +1,4 @@
-﻿[CmdletBinding(DefaultParameterSetName = 'Start')]
+[CmdletBinding(DefaultParameterSetName = 'Start')]
 param(
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][ValidatePattern('^[a-z][a-z0-9_]*$')][string]$Role,
     [Parameter(Mandatory = $true, ParameterSetName = 'Start')][string]$Task,
@@ -11,6 +11,7 @@ param(
     [Parameter(ParameterSetName = 'Start')][switch]$KeepWindowOpen,
     [Parameter(ParameterSetName = 'Start')][string]$ParentTaskId,
     [Parameter(ParameterSetName = 'Start')][string]$AccountingDirectory,
+    [Parameter(ParameterSetName = 'Start')][string]$CoordinatorDataDirectory,
     [Parameter(Mandatory = $true, ParameterSetName = 'Runner')][string]$JobFile
 )
 $ErrorActionPreference = 'Stop'
@@ -352,6 +353,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         context_file = $(if ($ContextFile) { (Resolve-Path -LiteralPath $ContextFile).Path } else { $null })
         parent_task_id = $(if ($ParentTaskId) { $ParentTaskId } else { $null }); accounting_directory = $AccountingDirectory
         cwd = $workdir; result_file = $resultFile; timeout_seconds = $TimeoutSeconds; keep_window_open = [bool]$KeepWindowOpen
+        coordinator_data_directory = $(if ($Role -ceq 'koordinator') { if ($CoordinatorDataDirectory) { [IO.Path]::GetFullPath($CoordinatorDataDirectory) } else { Join-Path $env:LOCALAPPDATA 'AgentOrganization\Coordinator' } } else { $null })
         developer_instructions = ('Explizit zugewiesene Rolle: ' + $Role + ".`n" + $instructions.Groups[1].Value); config = $config
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
         approval_policy = (Read-RoleString $roleText 'approval_policy')
@@ -496,6 +498,15 @@ try {
     # Nur dieser Runner und seine eigenen Kindprozesse erhalten den Elternkontext.
     $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id
     $env:AGENT_ORG_ACCOUNTING_DIRECTORY = [string]$job.accounting_directory
+    if ($job.role -ceq 'koordinator') {
+        $consoleScript = Join-Path (Split-Path -Parent $PSCommandPath) '..\Start-CoordinatorConsole.ps1'
+        if (-not (Test-Path -LiteralPath $consoleScript -PathType Leaf)) { throw 'Coordinator console entrypoint missing.' }
+        Write-Host 'Koordinator-Host ist aktiv; das bestätigte Fenster bleibt geöffnet.'
+        $runtimeExecutable=(Get-Command codex.exe -ErrorAction Stop).Source
+        $codexHome=if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -RuntimeExecutable $runtimeExecutable -CodexHome $codexHome -TaskId $job.task_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory
+        return
+    }
     $deadline = [DateTime]::UtcNow.AddSeconds([int]$job.timeout_seconds)
     $command = Get-Command codex.cmd -ErrorAction Stop
     $start = New-Object System.Diagnostics.ProcessStartInfo
