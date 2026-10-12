@@ -1,0 +1,1649 @@
+{
+  "task": 60,
+  "recipient": "teamleiter_agent_ressources",
+  "role": "agent_ressources_optimierer",
+  "createdAt": "2026-10-12T10:21:17Z",
+  "purpose": "Durable summary of independent QA and focused remediation self-check, for PRReview",
+  "originalIndependentQA": {
+    "sourceArtifactNames": [
+      "task60-qa.json",
+      "QA-REPORT.md"
+    ],
+    "suite": {
+      "runs": 1,
+      "total": 74,
+      "passed": 74
+    },
+    "provenanceAttested": false,
+    "taskId": "4a4084a6a1714032bd9b9e037b870f72",
+    "scope": "Read-only hash-identical copy; no source modifications",
+    "outcome": "BLOCKER",
+    "role": "agent_ressources_qualitaetspruefung",
+    "counterprobes": {
+      "expected": 9,
+      "contractDeviations": 2,
+      "total": 11
+    },
+    "historical": true
+  },
+  "findings": [
+    {
+      "fix": "Temporary Python print statement and JS console.log statement; node --check integrated",
+      "original": "Test-SkillContracts.ps1:74,80-84 used # comment for JS and Python; node --check rejected JS",
+      "independentReReview": "PASS",
+      "selfCheck": "PASS",
+      "id": "B1"
+    },
+    {
+      "id": "B2",
+      "fix": "Ordinal top-level key set before JSON.parse; decoded key names catch equivalent Unicode escapes; nested duplicates unrestricted",
+      "tests": [
+        "duplicate-response tests for all three keys and escaped result",
+        "qa-original-duplicate",
+        "qa-escaped-duplicate"
+      ],
+      "selfCheck": "PASS",
+      "independentReReview": "PASS",
+      "original": "Test-SkillContracts.ps1:49-66 normalized duplicate isSuccessful fields before schema checks"
+    },
+    {
+      "id": "B3",
+      "fix": "Native JSON.parse syntax check; result payload projected to null before PS5/schema helper; remaining numbers use type-preserving placeholders",
+      "tests": [
+        "unrestricted-result tests",
+        "failure-result-large-number",
+        "qa-large-number",
+        "qa-nested-large-numbers",
+        "qa-invalid-large-number"
+      ],
+      "selfCheck": "PASS",
+      "independentReReview": "PASS",
+      "original": "PS5/.NET parsers rejected valid result 1e400 although result schema is empty"
+    }
+  ],
+  "focusedRun": {
+    "total": 87,
+    "javascriptSyntax": "PASS: node --check, syntax only",
+    "resultPath": "docs/task60-evidence/test-results.json",
+    "passed": 87,
+    "nodeVersion": "v24.19.0",
+    "pythonRuntime": "Historical run: NOT_RUN; managed Python 3.13.15 later confirmed. Compile-only PASS; Skillruntime NOT_RUN.",
+    "runtime": "5.1.26100.9549",
+    "failed": 0,
+    "runs": 1
+  },
+  "focusedCounterprobes": [
+    {
+      "id": "qa-original-duplicate",
+      "input": "{\"isSuccessful\":false,\"isSuccessful\":true,\"exception\":null,\"result\":null}",
+      "expectedAcceptance": false,
+      "actualAcceptance": false,
+      "passed": true,
+      "detail": "Duplicate top-level response key: isSuccessful"
+    },
+    {
+      "id": "qa-escaped-duplicate",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":0,\"\\u0072esult\":1}",
+      "expectedAcceptance": false,
+      "actualAcceptance": false,
+      "passed": true,
+      "detail": "Duplicate top-level response key: result"
+    },
+    {
+      "id": "qa-case-distinct-extra",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":0,\"Result\":1}",
+      "expectedAcceptance": false,
+      "actualAcceptance": false,
+      "passed": true,
+      "detail": "Die JSON-Zeichenfolge kann nicht konvertiert werden, weil ein aus der Zeichenfolge konvertiertes WÃ¶rterbuch die doppelten SchlÃ¼ssel \"result\" und \"Result\" enthÃ¤lt."
+    },
+    {
+      "id": "qa-large-number",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400}",
+      "expectedAcceptance": true,
+      "actualAcceptance": true,
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "id": "qa-nested-large-numbers",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":{\"a\":[1e400,-1e400,{\"b\":1e9999}]}}",
+      "expectedAcceptance": true,
+      "actualAcceptance": true,
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "id": "qa-nested-duplicate-and-escaped-string",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":{\"x\":1,\"x\":2,\"s\":\"\\\"result\\\":1e400\"}}",
+      "expectedAcceptance": true,
+      "actualAcceptance": true,
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "id": "qa-invalid-large-number",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400e2}",
+      "expectedAcceptance": false,
+      "actualAcceptance": false,
+      "passed": true,
+      "detail": "Non-JSON syntax on stdout."
+    },
+    {
+      "id": "qa-trailing-document",
+      "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400} {}",
+      "expectedAcceptance": false,
+      "actualAcceptance": false,
+      "passed": true,
+      "detail": "Native JSON.parse rejected stdout: <anonymous_script>:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":1e400} {}\r\n                                                      ^\r\n\r\nSyntaxError: Unexpected non-whitespace character after JSON at position 54 (line 1 column 55)\r\n    at JSON.parse (<anonymous>)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n"
+    }
+  ],
+  "approvalProvenance": {
+    "origin": "Original human user instruction to teamleader, attested by teamleiter_agent_ressources based on original message",
+    "firstVisibleWindowConfirmedAt": "2026-10-12T09:57:40Z",
+    "additionalAuthorization": false,
+    "originalExcerpts": [
+      "Paralleler, abgegrenzter naechster Schritt des autorisierten Ziels alle Issues: NUR Task60 (ElternStory57, Epic56) minimalen Skillvertrag und Registry-Schema definieren.",
+      "Organisations-/Vertragsaenderungen gemaess geltendem freigegebenem Improvementpfad innerhalb Agent Ressources."
+    ],
+    "precedesFirstVisibleDelegation": true,
+    "userInstructionIssuedAt": "UNKNOWN",
+    "qaAttestsOrigin": false,
+    "requestedAtRespondedAtMeaning": "2026-10-12T10:07:14Z are evidence recording times, not independently measured human response times"
+  },
+  "limits": [
+    "No Skillruntime, Runner, payload roundtrip, StoreGraph, runtime store registration or installation evidence.",
+    "Node JSON.parse may represent 1e400 as Infinity; syntax acceptance is not lossless numeric roundtrip.",
+    "Result projection is test-only for the empty result schema; no payload schema validation claimed.",
+    "Managed Python 3.13.15 present; Python compile-only PASS. jsonschema 4.25.1 used only in isolated external Temp uv cache, no project dependency.",
+    "No productive registry, implementation61-68, migration or installation; 61/67 circle deferred.",
+    "Story57/61/Epic56 remain OPEN and not accepted; Issue60 remains OPEN until merge.",
+    "Own measured token usage UNKNOWN; child inclusive token sums are not counted again."
+  ],
+  "acceptances": {
+    "task": "ACCEPTED",
+    "teamLeader": "ACCEPTED",
+    "independentRemediationReview": "PASS",
+    "story57": "NOT_ACCEPTED / OPEN",
+    "task61": "NOT_ACCEPTED / OPEN",
+    "epic56": "NOT_ACCEPTED / OPEN"
+  },
+  "counterprobeNote": "All eight behaviors matched the contract on their single execution. The invalid-large-number probe initially expected a native parser diagnostic; the existing lexical gate correctly rejected it earlier. Diagnostic expectation corrected from recorded evidence; no rerun.",
+  "counterprobeSummary": {
+    "failed": 0,
+    "runs": 1,
+    "total": 8,
+    "passed": 8
+  },
+  "independentRemediationReview": {
+    "task": 60,
+    "role": "agent_ressources_qualitaetspruefung",
+    "recipient": "teamleiter_agent_ressources",
+    "outcome": "PASS",
+    "scope": "Independent remediation review of B1/B2/B3, approval evidence and known limits only",
+    "createdAt": "2026-10-12T10:25:50.9201826Z",
+    "resultPath": "C:/Users/Tom-OliverMarek/AppData/Local/Temp/task60-rereview-10eabbc7627a46f48086c47275092824/result.json",
+    "externalCopyRoot": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-rereview-10eabbc7627a46f48086c47275092824\\copy",
+    "fullSuiteRerun": false,
+    "reportedSelfChecks": {
+      "independentRerun": false,
+      "counterprobes": "8/8",
+      "focusedSuite": "87/87"
+    },
+    "fixtures": {
+      "python": {
+        "runtime": "NOT_RUN",
+        "content": "print('temporary fixture')\n",
+        "minimalLanguageSourceConfirmed": true
+      },
+      "javascript": {
+        "diagnostic": "",
+        "source": "[IO.File]::WriteAllText((Join-Path $fixtureRoot 'fixture.js'), \"console.log('temporary fixture');`n\")",
+        "nativeSyntaxPassed": true
+      }
+    },
+    "targetedCounterprobes": {
+      "probes": [
+        {
+          "id": "B2-original-duplicate",
+          "input": "{\"isSuccessful\":false,\"isSuccessful\":true,\"exception\":null,\"result\":null}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: isSuccessful",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-exception-duplicate",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"exception\":null,\"result\":null}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: exception",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-result-duplicate",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1,\"result\":2}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: result",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-escaped-isSuccessful",
+          "input": "{\"isSuccessful\":true,\"\\u0069sSuccessful\":true,\"exception\":null,\"result\":null}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: isSuccessful",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-escaped-exception",
+          "input": "{\"isSuccessful\":true,\"\\u0065xception\":null,\"exception\":null,\"result\":null}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: exception",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-escaped-result",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1,\"\\u0072esult\":2}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Duplicate top-level response key: result",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-case-distinct",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":null,\"Result\":null}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Die JSON-Zeichenfolge kann nicht konvertiert werden, weil ein aus der Zeichenfolge konvertiertes WÃ¶rterbuch die doppelten SchlÃ¼ssel \"result\" und \"Result\" enthÃ¤lt.",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B2-valid-escaped-required-key",
+          "input": "{\"\\u0069sSuccessful\":true,\"exception\":null,\"\\u0072esult\":null}",
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "passed": true,
+          "detail": "accepted",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-large-number",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400}",
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "passed": true,
+          "detail": "accepted",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-nested-unrestricted",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":{\"a\":[1e400,-1e400,{\"tiny\":1e-4000}],\"x\":1,\"\\u0078\":2,\"Result\":true,\"result\":false,\"s\":\"\\\"result\\\":1e400\"}}",
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "passed": true,
+          "detail": "accepted",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-failure-large-number",
+          "input": "{\"isSuccessful\":false,\"exception\":{\"message\":\"failed\"},\"result\":1e400}",
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "passed": true,
+          "detail": "accepted",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-native-syntax-missing-comma",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":[1e400 2]}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Native JSON.parse rejected stdout: <anonymous_script>:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":[1e400 2]}\r\n                                                      ^\r\n\r\nSyntaxError: Expected ',' or ']' after array element in JSON at position 54 (line 1 column 55)\r\n    at JSON.parse (<anonymous>)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-native-syntax-trailing-document",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400} {}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Native JSON.parse rejected stdout: <anonymous_script>:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":1e400} {}\r\n                                                      ^\r\n\r\nSyntaxError: Unexpected non-whitespace character after JSON at position 54 (line 1 column 55)\r\n    at JSON.parse (<anonymous>)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n",
+          "returnedValueCount": 0
+        },
+        {
+          "id": "B3-lexical-invalid-number",
+          "input": "{\"isSuccessful\":true,\"exception\":null,\"result\":1e400e2}",
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "passed": true,
+          "detail": "Non-JSON syntax on stdout.",
+          "returnedValueCount": 0
+        }
+      ],
+      "total": 14,
+      "passed": 14
+    },
+    "sourceHashes": [
+      {
+        "path": "schemas/skills.schema.json",
+        "sourceBefore": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "copy": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "copyIdentical": true,
+        "sourceAfter": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "schemas/skill-response.schema.json",
+        "sourceBefore": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "copy": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "copyIdentical": true,
+        "sourceAfter": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/contracts/SKILLS.md",
+        "sourceBefore": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "copy": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "copyIdentical": true,
+        "sourceAfter": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/contracts/TASK60-EVIDENCE.md",
+        "sourceBefore": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "copy": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "copyIdentical": true,
+        "sourceAfter": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "scripts/Test-SkillContracts.ps1",
+        "sourceBefore": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "copy": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "copyIdentical": true,
+        "sourceAfter": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/runner-error.json",
+        "sourceBefore": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "copy": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "copyIdentical": true,
+        "sourceAfter": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/test-results.json",
+        "sourceBefore": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "copy": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "copyIdentical": true,
+        "sourceAfter": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/workitem-preflight.json",
+        "sourceBefore": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "copy": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "copyIdentical": true,
+        "sourceAfter": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/workitem.json",
+        "sourceBefore": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "copy": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "copyIdentical": true,
+        "sourceAfter": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/scope-check.json",
+        "sourceBefore": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "copy": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "copyIdentical": true,
+        "sourceAfter": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/qa-review.json",
+        "sourceBefore": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "copy": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "copyIdentical": true,
+        "sourceAfter": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "sourceUnchanged": true
+      },
+      {
+        "path": "scripts/contracts/ContractValidation.ps1",
+        "sourceBefore": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "copy": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "copyIdentical": true,
+        "sourceAfter": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "sourceUnchanged": true
+      }
+    ],
+    "findings": {
+      "B2": "PASS: ordinal decoded top-level duplicates and Unicode-equivalent keys rejected; Result/result are distinct at duplicate gate, then rejected by PS5 case-collision conversion, as required for an extra response field",
+      "B3": "PASS: large and nested arbitrary result syntax accepted, invalid original result syntax rejected natively, no contract payload returned",
+      "B1": "PASS: language-appropriate temporary source; native JavaScript syntax passes, Python runtime NOT_RUN"
+    },
+    "approval": {
+      "qaAttestsOrigin": false,
+      "requestedAtRespondedAt": "2026-10-12T10:07:14Z evidence recording only",
+      "userInstructionIssuedAt": "UNKNOWN",
+      "origin": "Teamleader attestation based on original human user instruction",
+      "assessment": "Consistent scoped provenance evidence; exact human instruction time and original origin not independently attested by QA; no broader authorization inferred"
+    },
+    "workitem": {
+      "formalEvidence": "Separate documented artifact and supplied preflight",
+      "runtimeStoreRegistered": false,
+      "newFormalValidation": "NOT_RUN: outside this limited re-review",
+      "storeGraph": "NOT_RUN"
+    },
+    "limits": [
+      "Draft-2020-12 metaschema NOT_RUN",
+      "Python runtime and multi-language skill execution NOT_RUN",
+      "No lossless numeric conversion, payload roundtrip, runner or project dependency installation evidence; existing Node is syntax test tool only",
+      "No runtime store/graph verification",
+      "PS5 representation limits outside unconstrained result remain outside review",
+      "No task/story/epic acceptance; teamleader decides independently",
+      "No changes to models, reasoning or standard speed; no delegation or Git operations",
+      "Own measured token consumption UNKNOWN"
+    ],
+    "acceptances": {
+      "story57": "NOT_ASSESSED",
+      "task": "NOT_ASSESSED",
+      "teamleader": "PENDING",
+      "epic56": "NOT_ASSESSED"
+    },
+    "counterprobeNote": "14 counterprobes executed once. Case-distinct extra field was correctly rejected by PS5 case-collision conversion rather than schema; diagnostic expectation corrected from recorded result without rerun. Two harness setup attempts stopped before any counterprobe execution.",
+    "artifactSHA256": "73E13537CA003DCB264653621AB3C2C62548918C45E1D0AE5BEA8C4DBF5AA072",
+    "historicalSnapshotNote": "Source hashes, workitem/acceptance and metaschema NOT_RUN fields reflect the review time; superseded by metaschemaReview and teamLeaderAcceptance below."
+  },
+  "metaschemaReview": {
+    "task": 60,
+    "role": "agent_ressources_qualitaetspruefung",
+    "recipient": "teamleiter_agent_ressources",
+    "outcome": "PASS",
+    "scope": "Missing Draft2020-12 metaschema evidence and read-only requirement mapping only",
+    "capturedAt": "2026-10-12T10:34:52.732608+00:00",
+    "versions": {
+      "python": "3.13.15",
+      "executable": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\uv-cache\\builds-v0\\.tmpD3eKLw\\Scripts\\python.exe",
+      "jsonschema": "4.25.1",
+      "uv": "0.12.9"
+    },
+    "managedPython": {
+      "exists": true,
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+      "version": "3.13.15",
+      "sha256": "D7D8F0813D9D4002839B775ED13FC7EB57A756BDCB102E85AB61537003EF8616"
+    },
+    "newChecks": {
+      "runs": 1,
+      "total": 20,
+      "passed": 20,
+      "metaschema": "2/2",
+      "schemaFixtures": "16/16",
+      "defaultNoInjection": "1/1",
+      "pythonCompileOnly": "1/1",
+      "validatorResult": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\validator-result.json"
+    },
+    "existingEvidence": {
+      "independentCounterprobes": {
+        "total": 14,
+        "passed": 14,
+        "rerun": false
+      },
+      "focusedSelfChecks": {
+        "total": 87,
+        "passed": 87,
+        "recordCount": 87,
+        "passedRecords": 87,
+        "rerun": false
+      },
+      "selfCounterprobes": {
+        "failed": 0,
+        "runs": 1,
+        "total": 8,
+        "passed": 8
+      },
+      "artifactHashes": [
+        {
+          "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-qa-final.json",
+          "sha256": "7437EC7A06F0E4A5112F036E27820E2C8A9E54656E0391D5613FF69209B6D127"
+        },
+        {
+          "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-fixes.json",
+          "sha256": "854806E4B1775FBEF2BB078EDEB9127027039210607418CEEA031F6AA0829A16"
+        },
+        {
+          "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-rereview-10eabbc7627a46f48086c47275092824\\result.json",
+          "sha256": "73E13537CA003DCB264653621AB3C2C62548918C45E1D0AE5BEA8C4DBF5AA072"
+        }
+      ]
+    },
+    "criteriaMapping": [
+      {
+        "requirement": "Metadaten Skill-ID, Zweck, Skriptpfad, optionale Sprache/Interpreter, Parameter/Ergebnis, Voraussetzungen",
+        "status": "PASS",
+        "sources": [
+          "schemas/skills.schema.json",
+          "docs/contracts/SKILLS.md"
+        ],
+        "existingTests": [
+          "powershell-default",
+          "language-python",
+          "language-javascript",
+          "language-open_language",
+          "missing-id",
+          "missing-purpose",
+          "missing-scriptPath",
+          "missing-parameters",
+          "missing-result",
+          "missing-prerequisites",
+          "duplicate-id",
+          "duplicate-parameter",
+          "unknown-parameter-ref",
+          "default-type"
+        ],
+        "newEvidence": "2 metaschema checks; registry independent fixtures",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "AC1 beide Originalbeispiele; fehlende Schluessel, Schreibweisen, Typen und Nicht-JSON abweisen",
+        "status": "PASS",
+        "sources": [
+          "schemas/skill-response.schema.json",
+          "scripts/Test-SkillContracts.ps1"
+        ],
+        "existingTests": [
+          "issue60-original-success",
+          "issue60-original-failure",
+          "response-key-case-distinct",
+          "invalid-response-0",
+          "invalid-response-1",
+          "invalid-response-2",
+          "invalid-response-3",
+          "invalid-response-4",
+          "invalid-response-5",
+          "invalid-response-6",
+          "invalid-response-7",
+          "invalid-response-8",
+          "invalid-response-9",
+          "invalid-response-10",
+          "invalid-response-11",
+          "invalid-response-12",
+          "invalid-response-13",
+          "invalid-response-14",
+          "invalid-response-15",
+          "invalid-response-16",
+          "invalid-response-17",
+          "invalid-response-18",
+          "invalid-response-19",
+          "invalid-response-20",
+          "invalid-response-21",
+          "invalid-response-22",
+          "invalid-response-23"
+        ],
+        "independentEvidence": "Existing 14/14 review plus new response schema fixtures; parsed-structure validation alone does not validate stdout text",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "AC2 kein Skill ohne Skript; gueltige PowerShell/Python/JavaScript-Beispiele",
+        "status": "PASS_WITH_RUNTIME_LIMIT",
+        "existingTests": [
+          "missing-scriptPath",
+          "path-missing.ps1",
+          "path-docs/contracts/WORKITEMS.md",
+          "path-scripts",
+          "path-../outside.ps1",
+          "powershell-default",
+          "language-python",
+          "language-javascript",
+          "javascript-fixture-syntax"
+        ],
+        "newEvidence": "Python syntax compile 1/1 only; managed interpreter existence/version verified",
+        "limit": "Metadata/file/syntax validation only; no Skillruntime, Runner or roundtrip",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "result beliebiger JSON-Wert, case-sensitive Pflichtfelder, Erfolgs-/Fehlersemantik",
+        "status": "PASS",
+        "existingTests": [
+          "response-null",
+          "response-boolean",
+          "response-number",
+          "response-string",
+          "response-object",
+          "response-array",
+          "failure-result-arbitrary",
+          "failure-result-large-number"
+        ],
+        "independentEvidence": "Existing 14/14 duplicate/Unicode/large-result/native-syntax probes; new anyOf and arbitrary Decimal schema fixtures",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "Abhaengigkeit Issue13",
+        "status": "PASS",
+        "source": "issue-13.json",
+        "state": "CLOSED",
+        "closedAt": "2026-10-12T08:14:13Z",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "Abschlussnachweis im Issue dokumentieren",
+        "status": "OPEN_DELIVERY_ITEM",
+        "source": "issue-60.json",
+        "evidence": "Issue60 body has unchecked acceptance criteria; no comments. Local and external evidence exists but is not documented in Issue60. Read-only scope does not authorize publication.",
+        "existingTestsVerified": true
+      },
+      {
+        "requirement": "Taskabschluss ersetzt keine Elternabnahme",
+        "status": "PRESERVED",
+        "evidence": "Issues57/61/56 OPEN; no task or parent acceptance performed",
+        "existingTestsVerified": true
+      }
+    ],
+    "issues": {
+      "60": {
+        "number": 60,
+        "title": "[Task] Minimalen Skillvertrag und Registry-Schema definieren",
+        "state": "OPEN",
+        "url": "https://github.com/Heljens-IT-Services/agent-organization/issues/60",
+        "closedAt": null,
+        "updatedAt": "2026-10-12T06:58:48Z"
+      },
+      "13": {
+        "number": 13,
+        "title": "[Story] Bestehende Organisationskonfiguration verbindlich beschreiben",
+        "state": "CLOSED",
+        "url": "https://github.com/Heljens-IT-Services/agent-organization/issues/13",
+        "closedAt": "2026-10-12T08:14:13Z",
+        "updatedAt": "2026-10-12T08:14:13Z"
+      },
+      "57": {
+        "number": 57,
+        "title": "[Story] Skillvertrag und Skriptstruktur festlegen",
+        "state": "OPEN",
+        "url": "https://github.com/Heljens-IT-Services/agent-organization/issues/57",
+        "closedAt": null,
+        "updatedAt": "2026-10-12T06:58:41Z"
+      },
+      "61": {
+        "number": 61,
+        "title": "[Task] Skillverzeichnis und Beispielskripte bereitstellen",
+        "state": "OPEN",
+        "url": "https://github.com/Heljens-IT-Services/agent-organization/issues/61",
+        "closedAt": null,
+        "updatedAt": "2026-10-12T07:57:47Z"
+      },
+      "56": {
+        "number": 56,
+        "title": "[Epic] Deterministisch ausführbare Skills etablieren",
+        "state": "OPEN",
+        "url": "https://github.com/Heljens-IT-Services/agent-organization/issues/56",
+        "closedAt": null,
+        "updatedAt": "2026-10-12T07:57:42Z"
+      }
+    },
+    "sourceHashes": [
+      {
+        "path": "schemas/skills.schema.json",
+        "prior": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "before": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "after": "7C9879136F55D15FBFF6B5750E9D1BB8213C4904C1EFFD00551AADE15BEB9080",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "schemas/skill-response.schema.json",
+        "prior": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "before": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "after": "D5D20505A8F8FA1A778FBF475914298FF1D353F016A90A3E3688B87160F06A2A",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/contracts/SKILLS.md",
+        "prior": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "before": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "after": "448D96AD9E11632C30DD32D912C554B8713C241723CD71455D0BB2C9187F7049",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/contracts/TASK60-EVIDENCE.md",
+        "prior": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "before": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "after": "08B6B1613779333554DC3E0C94D48BBEAB7451686971B47405F97BA82EF80612",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "scripts/Test-SkillContracts.ps1",
+        "prior": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "before": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "after": "2EF1E1400D75411D017CEDAE55C2B666FECC036898CD18E509AE01D4090E141B",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/runner-error.json",
+        "prior": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "before": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "after": "7E42FDC56E20EF0899073E7158115B43D07D8A9D9A4BBF118EFC596A5C2F8C56",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/test-results.json",
+        "prior": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "before": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "after": "9E6876361094431DD98F185E4F6D0FAC5986DBD8F53BAC0A47A9E35833000E58",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/workitem-preflight.json",
+        "prior": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "before": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "after": "07EBD23F36B1FC4165C57601E1038A13B4E25D94A600CC790DC8518FCE720E79",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/workitem.json",
+        "prior": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "before": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "after": "FE22CE6B6EE571BFA71A077C7DF0096D9E0483D403D612C86314A32860BBB38A",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/scope-check.json",
+        "prior": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "before": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "after": "05F50A740BA740F5A812A3A4686037C0FCCC3582F55253471FC9AE093E78ED6B",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "docs/task60-evidence/qa-review.json",
+        "prior": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "before": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "after": "374EDB7D2D6DB0877B3B3547079656C5237FDE0B2C91DCC9BE2E16EA0AB4FFDE",
+        "priorMatches": true,
+        "unchanged": true
+      },
+      {
+        "path": "scripts/contracts/ContractValidation.ps1",
+        "prior": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "before": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "after": "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+        "priorMatches": true,
+        "unchanged": true
+      }
+    ],
+    "readOnly": {
+      "sourceHashesUnchanged": true,
+      "previousEvidenceMatchesCurrent": true,
+      "gitStatusUnchanged": true,
+      "branch": "improvement/task60-preparation-20261012",
+      "head": "46c1da60dc0c4502f37eae9667ec7662605f4a81",
+      "repoWrites": false,
+      "gitMutations": false,
+      "delegation": false,
+      "authChanges": false,
+      "dependencyScope": "One isolated uv invocation; packages/cache only in external temporary root; no project or runtime dependency introduced"
+    },
+    "ci": {
+      "workflowCount": 0,
+      "checkRunCount": 0,
+      "statusCount": 0,
+      "state": "pending",
+      "assessment": "No remote CI checks reported; not green CI. No workflows changed or enabled."
+    },
+    "approval": {
+      "origin": "ORIGINALER Benutzerauftrag alleIssues, teamleader attestation; QA does not independently attest origin",
+      "userInstructionIssuedAt": "UNKNOWN",
+      "requestedAtRespondedAt": "2026-10-12T10:07:14Z evidence recording only; not response time",
+      "noBroaderAuthorization": true
+    },
+    "openPoints": [
+      "Issue60 closure evidence not yet published (read-only delivery limit)",
+      "Repository documentation still contains older NOT_RUN metaschema / unavailable Python and PENDING QA statements; external evidence supplements it without modifying repository"
+    ],
+    "limits": {
+      "StoreGraph": "NOT_RUN / outside scope",
+      "Skillruntime": "NOT_RUN",
+      "Runner": "NOT_RUN",
+      "payloadRoundtrip": "NOT_RUN",
+      "NodeSyntax": "Existing syntax evidence only; not runner/roundtrip evidence",
+      "taskAcceptance": "NOT_ASSESSED",
+      "teamleaderAcceptance": "PENDING",
+      "story57Acceptance": "NOT_ASSESSED",
+      "epic56Acceptance": "NOT_ASSESSED",
+      "ownMeasuredTokens": "UNKNOWN"
+    },
+    "evidenceFiles": [
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\branch.txt",
+        "sha256": "942383B42E10E3D8EFBCD6183259592323D62AEBA330F0C6298153109013FCCE"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\check-runs.json",
+        "sha256": "D76AD27D6D8CE616CBCF04735E647A89D456A0D71C571828D4E45A8B7684EA36"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\commit-status.json",
+        "sha256": "FFC2DF18F295AF968F80ED9A5CBE37DC5554010C55B4EB9C768C4FF4A309159C"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\finalize.py",
+        "sha256": "D6D4202F812C044DE805EA71A60B8FC53A94C24110F31A0AF0F5EA5C0D2780CA"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\fixture.py",
+        "sha256": "2C1EB57A5FEA6CC6E2A4BFF43B6DCD76789CE5958EFC5FE4E009EEDF76F5D741"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\git-after.txt",
+        "sha256": "009DA87AF9E69B3E491780BA27C566C0242753836C98BF62A6BA31BCF083DDB3"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\git-before.txt",
+        "sha256": "009DA87AF9E69B3E491780BA27C566C0242753836C98BF62A6BA31BCF083DDB3"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\head.txt",
+        "sha256": "0A4E9E986A6FE07799A30E4C68C006A65C810CEE966175A13276BA7DC08478BE"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\issue-13.json",
+        "sha256": "3AAD14F1F2C1BCC22C5BBB52E0482EA88DF75E959FB9C222CC492446A1CF0CBA"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\issue-56.json",
+        "sha256": "16DA8C6818E8C78501ACD0C74BEA206FF60CAB25A147A6CEBE1488929C2ADAFB"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\issue-57.json",
+        "sha256": "54517C5F58CC46C50265D17BA95CF94E75B8B960F940457ED651D3BA1FAEDDC2"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\issue-60.json",
+        "sha256": "A3C3E92C47D665017010655D4A484DCF64C0E024E7D2B7C38349A407155CD7C7"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\issue-61.json",
+        "sha256": "8A8C109E67EAD6A380A0CFD30BFE88C4E6139882530123B21B05EF3D90E34FB7"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\source-before.json",
+        "sha256": "BC99DD3FFAB31F385FE56ECE207388D1E3D81E36E591031935BA490300DEA0FD"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\validate.py",
+        "sha256": "5244C61A5C66C8E5E603D136A6B9CB7FB2700CD76EE719D2B60D04B749EDEA7B"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\validator-result.json",
+        "sha256": "5051BDA24B3444BB33FBE80AFC3F895661ED7C48D78E079A79F075BBFAC1AC43"
+      },
+      {
+        "path": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\workflows.json",
+        "sha256": "BF67CDB91DE078FD523DF71D71354D67D54645BAC6027FF37F0D1AC5D62EF26A"
+      }
+    ],
+    "validatorEvidence": {
+      "outcome": "PASS",
+      "versions": {
+        "python": "3.13.15",
+        "executable": "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp\\task60-metaschema-5385a7c167df490ab61126e5d79af911\\uv-cache\\builds-v0\\.tmpD3eKLw\\Scripts\\python.exe",
+        "jsonschema": "4.25.1",
+        "uv": "0.12.9"
+      },
+      "validator": "jsonschema.Draft202012Validator",
+      "metaschemaChecks": {
+        "total": 2,
+        "passed": 2
+      },
+      "schemaFixtures": {
+        "total": 16,
+        "passed": 16
+      },
+      "defaultNonMutationAssertions": 1,
+      "pythonSyntaxCompiles": 1,
+      "total": 20,
+      "passed": 20,
+      "checks": [
+        {
+          "id": "metaschema:skills.schema.json",
+          "passed": true,
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "sha256": "7c9879136f55d15fbff6b5750e9d1bb8213c4904c1effd00551aade15beb9080"
+        },
+        {
+          "id": "metaschema:skill-response.schema.json",
+          "passed": true,
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "sha256": "d5d20505a8f8fa1a778fbf475914298ff1d353f016a90a3e3688b87160f06a2a"
+        },
+        {
+          "id": "registry-local-refs",
+          "passed": true,
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "id": "registry-unique-result-refs",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value",
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": [
+            {
+              "path": [
+                "skills",
+                0,
+                "result",
+                "parameterRefs"
+              ],
+              "message": "['value', 'value'] has non-unique elements",
+              "validator": "uniqueItems"
+            }
+          ]
+        },
+        {
+          "id": "registry-unique-prerequisites",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": [
+                  "same",
+                  "same"
+                ]
+              }
+            ]
+          },
+          "errors": [
+            {
+              "path": [
+                "skills",
+                0,
+                "prerequisites"
+              ],
+              "message": "['same', 'same'] has non-unique elements",
+              "validator": "uniqueItems"
+            }
+          ]
+        },
+        {
+          "id": "registry-json-type-enum",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "business-type",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": [
+            {
+              "path": [
+                "skills",
+                0,
+                "parameters",
+                0,
+                "type"
+              ],
+              "message": "'business-type' is not one of ['null', 'boolean', 'integer', 'number', 'string', 'object', 'array']",
+              "validator": "enum"
+            }
+          ]
+        },
+        {
+          "id": "registry-nested-additional-property",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    },
+                    "unknown": true
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": [
+            {
+              "path": [
+                "skills",
+                0,
+                "parameters",
+                0
+              ],
+              "message": "Additional properties are not allowed ('unknown' was unexpected)",
+              "validator": "additionalProperties"
+            }
+          ]
+        },
+        {
+          "id": "registry-whitespace-purpose",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": " \t\n",
+                "scriptPath": "fixture.py",
+                "language": "python",
+                "interpreter": "python.exe",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": [
+            {
+              "path": [
+                "skills",
+                0,
+                "purpose"
+              ],
+              "message": "' \\t\\n' does not match '\\\\S'",
+              "validator": "pattern"
+            }
+          ]
+        },
+        {
+          "id": "registry-open-language",
+          "passed": true,
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "language": "future_lang",
+                "interpreter": "custom-runtime",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "id": "registry-default-no-injection",
+          "passed": true,
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "input": {
+            "schemaVersion": "1.0",
+            "skills": [
+              {
+                "id": "fixture",
+                "purpose": "metadata",
+                "scriptPath": "fixture.py",
+                "parameters": [
+                  {
+                    "name": "value",
+                    "type": "object",
+                    "required": false,
+                    "default": {
+                      "nested": [
+                        null,
+                        true,
+                        2
+                      ]
+                    }
+                  }
+                ],
+                "result": {
+                  "description": "any JSON",
+                  "parameterRefs": [
+                    "value"
+                  ]
+                },
+                "prerequisites": []
+              }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "id": "schema-does-not-inject-defaults",
+          "passed": true
+        },
+        {
+          "id": "response-anyof-success",
+          "passed": true,
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "input": {
+            "isSuccessful": true,
+            "exception": null,
+            "result": {
+              "nested": [
+                null,
+                true,
+                2,
+                "text"
+              ]
+            }
+          },
+          "errors": []
+        },
+        {
+          "id": "response-anyof-failure-extra-detail",
+          "passed": true,
+          "expectedAcceptance": true,
+          "actualAcceptance": true,
+          "input": {
+            "isSuccessful": false,
+            "exception": {
+              "message": "failed",
+              "code": "X"
+            },
+            "result": [
+              1,
+              2
+            ]
+          },
+          "errors": []
+        },
+        {
+          "id": "response-success-exception-conflict",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "isSuccessful": true,
+            "exception": {
+              "message": "failed"
+            },
+            "result": null
+          },
+          "errors": [
+            {
+              "path": [],
+              "message": "{'isSuccessful': True, 'exception': {'message': 'failed'}, 'result': None} is not valid under any of the given schemas",
+              "validator": "anyOf"
+            }
+          ]
+        },
+        {
+          "id": "response-failure-null-conflict",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "isSuccessful": false,
+            "exception": null,
+            "result": null
+          },
+          "errors": [
+            {
+              "path": [],
+              "message": "{'isSuccessful': False, 'exception': None, 'result': None} is not valid under any of the given schemas",
+              "validator": "anyOf"
+            }
+          ]
+        },
+        {
+          "id": "response-failure-whitespace",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "isSuccessful": false,
+            "exception": {
+              "message": " \t\n"
+            },
+            "result": null
+          },
+          "errors": [
+            {
+              "path": [],
+              "message": "{'isSuccessful': False, 'exception': {'message': ' \\t\\n'}, 'result': None} is not valid under any of the given schemas",
+              "validator": "anyOf"
+            }
+          ]
+        },
+        {
+          "id": "response-failure-missing-message",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "isSuccessful": false,
+            "exception": {},
+            "result": null
+          },
+          "errors": [
+            {
+              "path": [],
+              "message": "{'isSuccessful': False, 'exception': {}, 'result': None} is not valid under any of the given schemas",
+              "validator": "anyOf"
+            }
+          ]
+        },
+        {
+          "id": "response-top-level-case",
+          "passed": true,
+          "expectedAcceptance": false,
+          "actualAcceptance": false,
+          "input": {
+            "isSuccessful": true,
+            "exception": null,
+            "result": null,
+            "Result": null
+          },
+          "errors": [
+            {
+              "path": [],
+              "message": "Additional properties are not allowed ('Result' was unexpected)",
+              "validator": "additionalProperties"
+            }
+          ]
+        },
+        {
+          "id": "response-arbitrary-exact-decimal",
+          "passed": true,
+          "sourceJSON": "{\"isSuccessful\":true,\"exception\":null,\"result\":{\"huge\":1e400,\"tiny\":1e-4000}}",
+          "errors": [],
+          "note": "Validator only; no runner or payload roundtrip claim"
+        },
+        {
+          "id": "python-fixture-compile-only",
+          "passed": true,
+          "source": "print('temporary fixture')\n",
+          "sha256": "d9e701954c9e258bfb3b64f84c9904a2886b7e2b1bbc2bd64f165b7807bc4d67",
+          "skillRuntime": "NOT_RUN"
+        }
+      ],
+      "capturedAt": "2026-10-12T10:33:25.135749+00:00",
+      "dependencies": [
+        {
+          "name": "attrs",
+          "version": "26.1.0"
+        },
+        {
+          "name": "jsonschema",
+          "version": "4.25.1"
+        },
+        {
+          "name": "jsonschema-specifications",
+          "version": "2025.9.1"
+        },
+        {
+          "name": "referencing",
+          "version": "0.37.0"
+        },
+        {
+          "name": "rpds-py",
+          "version": "2026.9.1"
+        }
+      ],
+      "countingNote": "Header denominator corrected from 17 to 16 using recorded individual checks, without rerun. PS5 JSON read was unsuitable for case-distinct fixture keys; evidence preserved and parsed with Python standard json."
+    },
+    "sourceResultSHA256": "109E7CFA3B865252E0D1A91AFDA1B057F16C5FB036253C06E01B85FDADC8BB1C",
+    "validatorResultSHA256": "5051BDA24B3444BB33FBE80AFC3F895661ED7C48D78E079A79F075BBFAC1AC43",
+    "snapshotNote": "Source hashes and issue delivery OPEN status are historical pre-finalization evidence; no rerun."
+  },
+  "teamLeaderAcceptance": {
+    "outcome": "ACCEPTED",
+    "reviewer": "teamleiter_agent_ressources",
+    "acceptedAt": "2026-10-12T10:39:05Z",
+    "timeMeaning": "Current documented teamleader acceptance time; not original human authorization time.",
+    "source": "Current delegated task instruction: Enger freigegebener Task60 Abschluss nach EIGENER TEAMLEITERABNAHME. Teamleiterentscheidung hiermit: Task60 fachlich ACCEPTED.",
+    "decisionOwner": "teamleiter_agent_ressources; recorded by agent_ressources_optimierer, no optimizer acceptance invented",
+    "criteriaMapping": [
+      {
+        "requirement": "Metadaten Skill-ID, Zweck, Skriptpfad, optionale Sprache/Interpreter, Parameter/Ergebnis, Voraussetzungen",
+        "status": "PASS",
+        "sources": [
+          "schemas/skills.schema.json",
+          "docs/contracts/SKILLS.md"
+        ],
+        "existingTests": [
+          "powershell-default",
+          "language-python",
+          "language-javascript",
+          "language-open_language",
+          "missing-id",
+          "missing-purpose",
+          "missing-scriptPath",
+          "missing-parameters",
+          "missing-result",
+          "missing-prerequisites",
+          "duplicate-id",
+          "duplicate-parameter",
+          "unknown-parameter-ref",
+          "default-type"
+        ],
+        "newEvidence": "2 metaschema checks; registry independent fixtures",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PASS"
+      },
+      {
+        "requirement": "AC1 beide Originalbeispiele; fehlende Schluessel, Schreibweisen, Typen und Nicht-JSON abweisen",
+        "status": "PASS",
+        "sources": [
+          "schemas/skill-response.schema.json",
+          "scripts/Test-SkillContracts.ps1"
+        ],
+        "existingTests": [
+          "issue60-original-success",
+          "issue60-original-failure",
+          "response-key-case-distinct",
+          "invalid-response-0",
+          "invalid-response-1",
+          "invalid-response-2",
+          "invalid-response-3",
+          "invalid-response-4",
+          "invalid-response-5",
+          "invalid-response-6",
+          "invalid-response-7",
+          "invalid-response-8",
+          "invalid-response-9",
+          "invalid-response-10",
+          "invalid-response-11",
+          "invalid-response-12",
+          "invalid-response-13",
+          "invalid-response-14",
+          "invalid-response-15",
+          "invalid-response-16",
+          "invalid-response-17",
+          "invalid-response-18",
+          "invalid-response-19",
+          "invalid-response-20",
+          "invalid-response-21",
+          "invalid-response-22",
+          "invalid-response-23"
+        ],
+        "independentEvidence": "Existing 14/14 review plus new response schema fixtures; parsed-structure validation alone does not validate stdout text",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PASS"
+      },
+      {
+        "requirement": "AC2 kein Skill ohne Skript; gueltige PowerShell/Python/JavaScript-Beispiele",
+        "status": "PASS_WITH_RUNTIME_LIMIT",
+        "existingTests": [
+          "missing-scriptPath",
+          "path-missing.ps1",
+          "path-docs/contracts/WORKITEMS.md",
+          "path-scripts",
+          "path-../outside.ps1",
+          "powershell-default",
+          "language-python",
+          "language-javascript",
+          "javascript-fixture-syntax"
+        ],
+        "newEvidence": "Python syntax compile 1/1 only; managed interpreter existence/version verified",
+        "limit": "Metadata/file/syntax validation only; no Skillruntime, Runner or roundtrip",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PASS_WITH_RUNTIME_LIMIT"
+      },
+      {
+        "requirement": "result beliebiger JSON-Wert, case-sensitive Pflichtfelder, Erfolgs-/Fehlersemantik",
+        "status": "PASS",
+        "existingTests": [
+          "response-null",
+          "response-boolean",
+          "response-number",
+          "response-string",
+          "response-object",
+          "response-array",
+          "failure-result-arbitrary",
+          "failure-result-large-number"
+        ],
+        "independentEvidence": "Existing 14/14 duplicate/Unicode/large-result/native-syntax probes; new anyOf and arbitrary Decimal schema fixtures",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PASS"
+      },
+      {
+        "requirement": "Abhaengigkeit Issue13",
+        "status": "PASS",
+        "source": "issue-13.json",
+        "state": "CLOSED",
+        "closedAt": "2026-10-12T08:14:13Z",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PASS"
+      },
+      {
+        "requirement": "Abschlussnachweis im Issue dokumentieren",
+        "status": "AUTHORIZED_DELIVERY",
+        "source": "issue-60.json",
+        "evidence": "Current teamleader completion instruction authorizes PR and concrete Issue60 evidence comment. Publication readback recorded with final delivery.",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "OPEN_DELIVERY_ITEM"
+      },
+      {
+        "requirement": "Taskabschluss ersetzt keine Elternabnahme",
+        "status": "PRESERVED",
+        "evidence": "Own teamleader Task60 acceptance only; Story57, Task61, Epic56 remain OPEN and NOT_ACCEPTED.",
+        "existingTestsVerified": true,
+        "reviewSnapshotStatus": "PRESERVED"
+      }
+    ],
+    "issueDelivery": "Authorized commit/push/PR and Issue60 evidence comment follow this local finalization; Issue60 stays OPEN until merge.",
+    "limits": [
+      "No Skillruntime, Runner, payload roundtrip, StoreGraph, runtime store registration or installation evidence.",
+      "Node JSON.parse may represent 1e400 as Infinity; syntax acceptance is not lossless numeric roundtrip.",
+      "Result projection is test-only for the empty result schema; no payload schema validation claimed.",
+      "Managed Python 3.13.15 present; Python compile-only PASS. jsonschema 4.25.1 used only in isolated external Temp uv cache, no project dependency.",
+      "No productive registry, implementation61-68, migration or installation; 61/67 circle deferred.",
+      "Story57/61/Epic56 remain OPEN and not accepted; Issue60 remains OPEN until merge.",
+      "Own measured token usage UNKNOWN; child inclusive token sums are not counted again."
+    ]
+  },
+  "finalizedAt": "2026-10-12T10:39:05Z",
+  "countingNote": "Separate recorded runs: historical 74/74 BLOCKER, focused 87/87, self counterprobes 8/8, independent 14/14, new metaschema/fixtures/default/compile 20/20 = 2+16+1+1. No combined test total or reruns."
+}

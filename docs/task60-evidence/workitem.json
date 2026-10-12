@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0",
+  "items": [
+    {
+      "id": "task60-contract-improvement-20261012",
+      "parentId": null,
+      "title": "Task60: freigegebene isolierte Vertragsumsetzung",
+      "description": "Dokumentiertes Improvement-WorkItem; keine Laufzeitstore-Registrierung. Auftragspfad Koordinator -> teamleiter_agent_ressources -> agent_ressources_optimierer. Story57/Epic56 offen; parentId null mangels uebergebenem lokalen Elternsatz.",
+      "owner": {
+        "id": "agent_ressources_optimierer",
+        "type": "agent"
+      },
+      "goal": {
+        "description": "Minimalen Skillmetadaten- und Antwortvertrag mit fokussierten Nachweisen liefern",
+        "metric": "Schema-, Datei-, Referenz- und Antwortpruefungen",
+        "target": "Task60 contract criteria accepted by teamleiter_agent_ressources; independent remediation PASS and metaschema/compile-only PASS. Parents not accepted."
+      },
+      "priority": "normal",
+      "dependencies": [],
+      "specification": {
+        "inline": "Current narrowly approved Task60 completion after OWN TEAMLEADER ACCEPTANCE. Ownership only eleven existing new Task60 files; finalize documentation/evidence, commit/push, PR against develop with Closes #60 and Issue60 evidence comment authorized. No merge, no Store registration, no roles/AGENTS/Store/Host/Starter/global mirrors, no runtime/Runner/roundtrip/installation/productive registry or implementation61-68. Original authorization alleIssues attested by teamleader; exact human time UNKNOWN. Six earlier children and additional metaschema job final; no delegation or test reruns."
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "contracts",
+          "description": "Minimalmetadaten und exakt drei Antwortfelder samt Semantik dokumentiert und getestet"
+        },
+        {
+          "id": "references",
+          "description": "Datei- und Parameterreferenzen sowie Duplikate fokussiert geprueft"
+        },
+        {
+          "id": "scope",
+          "description": "Freigabe, Spezialistenbeitrag, Grenzen und getrennte Abnahmen belegt"
+        }
+      ],
+      "status": "accepted",
+      "result": {
+        "summary": "Task60 fachlich ACCEPTED durch eigene Entscheidung teamleiter_agent_ressources im aktuellen Abschlussauftrag. Historische QA BLOCKER behoben, unabhReview PASS14/14; Selbstpruefung87/87 plus8/8; Metaschema/Fixtures/Default/PythonCompileOnly20/20. Keine Elternabnahme, keine StoreRegistrierung.",
+        "evidence": [
+          "docs/contracts/TASK60-EVIDENCE.md",
+          "docs/task60-evidence/test-results.json",
+          "docs/task60-evidence/workitem-preflight.json",
+          "docs/task60-evidence/scope-check.json",
+          "Fachbeitrag agent_ressources_rollenkonfiguration: task60-architecture.json, task_id 1a126be0f4f440cfaa1fa84bf8e7a525",
+          "docs/task60-evidence/qa-review.json"
+        ]
+      },
+      "verifications": [
+        {
+          "implementedAt": "2026-10-12T10:11:54Z",
+          "checkedAt": "2026-10-12T10:39:05Z",
+          "reviewer": {
+            "type": "agent",
+            "id": "teamleiter_agent_ressources"
+          },
+          "passed": true,
+          "results": [
+            {
+              "criterionId": "contracts",
+              "passed": true,
+              "evidence": "docs/task60-evidence/qa-review.json: teamLeaderAcceptance.criteriaMapping; 87/87 +8/8 self checks, independent14/14; 2 metaschemas+16 schemafixtures+1 defaultnonmutation+1 PythonCompileOnly=20/20. Full Issue60 metadata/output semantics criteria accepted."
+            },
+            {
+              "criterionId": "references",
+              "passed": true,
+              "evidence": "docs/contracts/TASK60-EVIDENCE.md criteria mapping and docs/task60-evidence/test-results.json: real script paths, PSDefault, Python/JS fixtures, parameter references and duplicates. Syntax-only; no Skillruntime."
+            },
+            {
+              "criterionId": "scope",
+              "passed": true,
+              "evidence": "Current teamleader task instruction is acceptance source, recorded in docs/task60-evidence/qa-review.json. Original alleIssues human authorization attested; timestamp UNKNOWN. Specialist contribution present; Issue13 CLOSED. Story57/61/Epic56 not accepted; no runtime/store/implementation61-68. Issue evidence publication authorized."
+            }
+          ]
+        }
+      ],
+      "humanInteraction": {
+        "kind": "approval",
+        "description": "Vorherige Freigabe aus ORIGINAL menschlichem Benutzerauftrag an Teamleitung, von teamleiter_agent_ressources anhand Originalnachricht attestiert; vor erstem sichtbaren Unterauftrag (Fenster bestaetigt 2026-10-12T09:57:40Z). Ausgabezeit Benutzerauftrag UNKNOWN. requestedAt und respondedAt 10:07:14Z sind Erfassungszeitpunkte des Freigabenachweises, keine unabhaengig gemessene menschliche Antwortzeit. QA attestiert Herkunft nicht.",
+        "requestedAt": "2026-10-12T10:07:14Z",
+        "response": {
+          "description": "Originalauszuege: 'Paralleler, abgegrenzter naechster Schritt des autorisierten Ziels alle Issues: NUR Task60 (ElternStory57, Epic56) minimalen Skillvertrag und Registry-Schema definieren.' und 'Organisations-/Vertragsaenderungen gemaess geltendem freigegebenem Improvementpfad innerhalb Agent Ressources.' Ursprung: aktueller menschlicher Auftrag an Teamleitung; Teamleiter kennt und attestiert Origin anhand Originalnachricht. Benutzerauftragszeit UNKNOWN; respondedAt ist nur Erfassungszeitpunkt. Scope unveraendert, keine weitergehende Freigabe.",
+          "respondedAt": "2026-10-12T10:07:14Z",
+          "respondentId": "tom-oliver-marek"
+        }
+      },
+      "blockReason": null,
+      "createdAt": "2026-10-12T10:07:14Z",
+      "updatedAt": "2026-10-12T10:39:05Z",
+      "implementedAt": "2026-10-12T10:11:54Z",
+      "acceptedAt": "2026-10-12T10:39:05Z"
+    }
+  ]
+}
