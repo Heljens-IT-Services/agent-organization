@@ -42,24 +42,11 @@ scripts/
     Set-WorkItem.ps1
     Test-WorkItems.ps1
     WorkItemStore.psm1
-  tests/
-    accounting/
-      Test-TaskTokenUsage.ps1
-      Test-RolloutTaskUsage.ps1
-    contracts/
-      Test-Contracts.ps1
-    delegation/
-      Test-DelegatedProgress.ps1
-    workitems/
-      Test-WorkItemStore.ps1
-      Test-WorkItemStoreRecovery.ps1
-      Worker.ps1
-      RecoveryWorker.ps1
 ```
 
-14 Moves; keine `scripts/*.ps1`, kein engine/common-Framework und keine permanenten Rootwrapper. Vier vorhandene Dateien bleiben am selben Ort: `scripts/contracts/ContractValidation.ps1`, `scripts/workitems/WorkItemStore.psm1`, `scripts/tests/workitems/Worker.ps1`, `scripts/tests/workitems/RecoveryWorker.ps1`.
+Historische Baumaufnahme: 14 Moves; keine `scripts/*.ps1`, kein engine/common-Framework und keine permanenten Rootwrapper. Vier Dateien blieben damals am Ort; zwei davon waren Testworker, die inzwischen entfernt wurden.
 
-| Original | Final |
+| Historische Move-Aufnahme (abgeschlossener Stand) | Finaler Pfad zum damaligen Stand |
 |---|---|
 | scripts/Start-DelegatedCodexTask.ps1 | scripts/delegation/Start-DelegatedCodexTask.ps1 |
 | scripts/Get-TaskTokenUsage.ps1 | scripts/accounting/Get-TaskTokenUsage.ps1 |
@@ -97,9 +84,9 @@ Die breiten Ergebnisse stammen aus dem vorhandenen Implementierungslauf; sie wur
 | Native TOML | 45 Dateien mit Python 3.13 tomllib bestanden | implementation.md |
 | Defaultroots/Pfade | tatsächliche Get/New/Set-Aufrufe ohne RepositoryRoot/Path, Validatoren und Referenzscan bestanden | paths.log, root-reference-scan.txt |
 
-Die Qualitätsprüfung reproduzierte den identischen Accounting-Baselinefehler nach 38 Checks: die AST-Fixture lud `Write-ProgressDisplay`, jedoch dessen vorhandene Abhängigkeit `Format-ProgressLines` nicht. Die freigegebene Nacharbeit ergänzt ausschließlich `'Format-ProgressLines', ` unmittelbar vor `'Write-ProgressDisplay'` in `scripts/tests/accounting/Test-TaskTokenUsage.ps1`. Keine Produktionslogik und keine neue Funktion wurden geändert.
+Historischer Prüfbericht: Die Qualitätsprüfung reproduzierte den identischen Accounting-Baselinefehler nach 38 Checks: die AST-Fixture lud `Write-ProgressDisplay`, jedoch dessen vorhandene Abhängigkeit `Format-ProgressLines` nicht. Die freigegebene Nacharbeit ergänzte ausschließlich `'Format-ProgressLines', ` unmittelbar vor `'Write-ProgressDisplay'` in `scripts/tests/accounting/Test-TaskTokenUsage.ps1`. Keine Produktionslogik und keine neue Funktion wurden geändert.
 
-Frisch ausgeführt: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/accounting/Test-TaskTokenUsage.ps1`: Exit 0, **41 Prüfungen**, einschließlich Flush-Roundtrip, Raw-Usage-Erhalt und schema-konformem metadata-only thread/read. Fixture: `C:/Users/Tom-OliverMarek/AppData/Local/Temp/agent-org-usage-test-229b5b40bac14e01a8b8fb16537deca0`. UTF8-BOM erhalten; 146 CRLF-Zeilenenden unverändert; 12514 -> 12538 Bytes, exakt die 24 Bytes der Allowlist-Ergänzung. Syntax- und Diffcheck werden in `accounting-repair.md` festgehalten. Alte Accounting-Logs mit Exit 1 bleiben historische Fehlerbelege, nicht aktueller Teststatus.
+Historischer Ausführungsbeleg, nicht wiederholbar: `scripts/tests/accounting/Test-TaskTokenUsage.ps1` lief damals mit Exit 0 und **41 Prüfungen**, einschließlich Flush-Roundtrip, Raw-Usage-Erhalt und schema-konformem metadata-only thread/read. Fixture: `C:/Users/Tom-OliverMarek/AppData/Local/Temp/agent-org-usage-test-229b5b40bac14e01a8b8fb16537deca0`. UTF8-BOM erhalten; 146 CRLF-Zeilenenden unverändert; 12514 -> 12538 Bytes, exakt die 24 Bytes der Allowlist-Ergänzung. Syntax- und Diffcheck sind im historischen `accounting-repair.md` festgehalten. Alte Accounting-Logs mit Exit 1 bleiben historische Fehlerbelege, nicht aktueller Teststatus.
 
 Abschlusschecks dieser Nacharbeit: Testsyntax 0 Parserfehler; `git diff --check` und `git diff --cached --check` jeweils Exit 0; alle vier verfassten Dateien strikt gültiges UTF8 ohne nachgestellte Leerzeichen. Alle 14 Move-Map-Zeilen gegen `moves.json` und vorhandene Zieldateien bestätigt; Endbaum mit 18 Skripten und ohne Root-PS1 bestätigt. Ausschließlich dieses neue Vorbereitungspapier wurde in den Git-Index aufgenommen; keine anderen Dateien gestagt und kein Commit erstellt.
 
@@ -133,7 +120,7 @@ Die eigene Vorbereitungsabnahme ist erteilt. Offen bleiben das finale kombiniert
 
 Verbindliche Quelle: `%TEMP%/agent-org-scripts-order-parent-acceptance.json`, aufgezeichnet am **2026-10-12T12:47:35.3595482+02:00** durch `teamleiter_agent_ressources`, Parent-Task `9d9b284d9dfe4b73be7ecc4c5d3ba1aa`, Evidenz-Task `113788133fb64e1fa3341c9433aa46a5`. Entscheidung: `preparation_accepted_for_review_publication`. Der dauerhaft dokumentierte WorkItem-Status lautet **preparation-accepted-for-review**, nicht integrated, merged oder insgesamt abgeschlossen. Der ältere Runtime-Plan mit status=preparation ist ein historischer Planungsstand.
 
-Die eigene Elternprüfung übernimmt die vorhandene unabhängige technische Nachprüfung und 26 unveränderte Quellhashes. Sie bewertet 14 Moves, zweckmäßige Modul-/Workerplatzierung, beendete alte eigene Schreiber, die geschlossene Dokumentationskorrektur DOC-AUTH-01 und die vollständige explizite 41-Pfad-Allowlist. Notwendige minimale Testfixture-Nacharbeit war im ursprünglich menschlich genehmigten Auftrag enthalten. Die Teamleitung erteilt die Vorbereitungsabnahme und beauftragt Veröffentlichung per Commit/Push/Review-PR auf develop. Diese Abnahme ersetzt weder die unabhängige Prüfung noch die spätere Integrationsabnahme.
+Die eigene Elternprüfung übernimmt die vorhandene unabhängige technische Nachprüfung und 26 unveränderte Quellhashes. Sie bewertet 14 Moves, zweckmäßige Modul-/Workerplatzierung, beendete alte eigene Schreiber, die geschlossene Dokumentationskorrektur DOC-AUTH-01 und die vollständige explizite 41-Pfad-Allowlist. Die damalige minimale Testfixture-Nacharbeit war Teil des ursprünglichen Auftrags. Historische Test-Contracts und ihre damalige Notwendigkeit sind aufgehoben. Die Teamleitung erteilt die Vorbereitungsabnahme und beauftragt Veröffentlichung per Commit/Push/Review-PR auf develop. Diese Abnahme ersetzt weder die unabhängige Prüfung noch die spätere Integrationsabnahme.
 
 Ergebnisbelege: `runtime/scripts-order/final-review.json` / `final-review.md` (Technik PASS; historisches approved=false wegen des später korrigierten DOC-AUTH-01), `authorization-correction.md` (tatsächlicher Korrekturdiff), `%TEMP%/agent-org-scripts-order-close-optimizer.json` (erfolgreich abgeschlossen, Usage finalisiert, Text-Read-back, 26 Quellhashes und 41 Pfade), sowie die oben zugeordneten Prüfergebnisse. **281 vorhandene Prüfungen = 75 Contracts + 14 Store + 27 Recovery + 55 Progress + 69 Rollout + 41 Accounting**. Dazu kommen die vorhandenen Parser-/Encodingnachweise für 18 Dateien, 45 native TOMLs und der sichtbare neue Starter-Smoke. Diese Veröffentlichung wiederholt keine Recherche- oder Testketten.
 
@@ -141,6 +128,6 @@ Writerstatus laut Abschlussvorbereitung: alte eigene Runner für ursprüngliche 
 
 Veröffentlicht werden ausschließlich die 41 expliziten Pfade des Abschlussberichts, einschließlich der 14 entfernten Ursprungspfade. Git-Rename-Erkennung kann daraus 27 Dateieinträge bilden; die Allowlist zählt alte und neue Pfade getrennt. Runtimebelege bleiben ungestagt. Hauptcheckout und fremde Änderungen bleiben erhalten. Vorhandene Prozesse, absolute Pfade und Vorlagen werden nicht automatisch umgestellt. GitHub Actions bleiben deaktiviert; keine Rootwrapper, globalen Spiegeländerungen oder Mergeaktion.
 
-Weiterhin ausdrücklich offen: finales Story16-/Task60-Mapping mit aktuellen Host-/Skill-/Fixturedateien und Rebase; vollständiger Abschluss aktiver Delegationen mit alten absoluten Hauptcheckoutpfaden; vorbereitete Vorlagen und koordinierter ruhender Pfadwechsel; kombinierte Integrationsprüfungen und Quellgleichheit; globaler Rollout ausschließlich aus dem später gemergten Hauptquellstand. Die doppelte globale Rollendefinition bleibt ein offener Umgebungsbefund. Die vier alten absoluten Hauptcheckoutpfade für Start-DelegatedCodexTask, Get-TaskTokenUsage, Test-Organization und Test-Contracts waren laut Abschlussvorbereitung weiterhin vorhanden und bleiben bis zur koordinierten Umschaltung erforderlich.
+Weiterhin ausdrücklich offen: finales Story16-/Task60-Mapping mit aktuellen Host-/Skill-/Fixturedateien und Rebase; vollständiger Abschluss aktiver Delegationen mit alten absoluten Hauptcheckoutpfaden; vorbereitete Vorlagen und koordinierter ruhender Pfadwechsel; kombinierte Integrationsprüfungen und Quellgleichheit; globaler Rollout ausschließlich aus dem später gemergten Hauptquellstand. Die doppelte globale Rollendefinition bleibt ein offener Umgebungsbefund. Die damalige Abschlussvorbereitung hielt vier alte absolute Hauptcheckoutpfade für Start-DelegatedCodexTask, Get-TaskTokenUsage, Test-Organization und Test-Contracts fest. Diese Aussage ist historisch; die Test-Contracts-Notwendigkeit ist aufgehoben.
 
 Tokenbelege: sieben eindeutige frühere operative Tasks **4.264.696** gemessene eigene Tokens; Abschlussvorbereitung `113788133fb64e1fa3341c9433aa46a5` laut finalisiertem Ledger **900.747** Tokens. Deduplizierte bekannte Kindersumme: **5.165.443**, jeder Task einmal; der Smoke ist bereits enthalten, inklusive Implementierungssummen werden nicht zusätzlich addiert. Eigenverbrauch des aktuellen Teamleiterlaufs `7d2f5543ab2b4fcca02496cbc8b85c0b` aus `agent-org-scripts-order-finish-leader.json.events.jsonl`, thread/tokenUsage/updated vom **2026-10-12T10:47:45.3045327Z**: **515.902 Tokens als gemessener Zwischenstand** (Input 512.736, Cached Input 432.512, Output 3.166; Reasoning Output 198 im Output enthalten). Finale eigene Teamleiterwerte und vollständiger WorkItem-Gesamtverbrauch sind unbekannt; Zwischenstand und Kindersumme werden separat berichtet.
