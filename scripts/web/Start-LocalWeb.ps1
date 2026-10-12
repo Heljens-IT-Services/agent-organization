@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory = $true)][ValidateRange(1024, 65535)][int]$Port,
     [string]$AccountingDirectory,
     [string]$DisplayProjectionPath,
+    [string]$DisplayTeamSourcePath,
+    [string]$DisplayRoleRoot,
     [string[]]$SpecificationDirectories = @('docs/specifications', 'specifications', 'specs')
 )
 $ErrorActionPreference = 'Stop'
@@ -28,7 +30,11 @@ if ($DisplayProjectionPath) {
     $DisplayProjectionPath = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $DisplayProjectionPath -ErrorAction Stop).Path)
     if ([string]::Equals($DisplayProjectionPath, $canonicalStorePath, [StringComparison]::OrdinalIgnoreCase)) { throw 'DisplayProjectionPath darf nicht auf den WorkItem-Store zeigen.' }
 }
-$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = $canonicalStorePath; AccountingDirectory = $AccountingDirectory; DisplayProjectionPath = $DisplayProjectionPath; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
+if ($DisplayTeamSourcePath -and -not [IO.Path]::IsPathRooted($DisplayTeamSourcePath)) { throw 'DisplayTeamSourcePath muss ausdrücklich als absoluter Pfad angegeben werden.' }
+if ($DisplayRoleRoot -and -not [IO.Path]::IsPathRooted($DisplayRoleRoot)) { throw 'DisplayRoleRoot muss ausdrücklich als absoluter Pfad angegeben werden.' }
+if ($DisplayTeamSourcePath) { $DisplayTeamSourcePath = [IO.Path]::GetFullPath($DisplayTeamSourcePath) }
+if ($DisplayRoleRoot) { $DisplayRoleRoot = [IO.Path]::GetFullPath($DisplayRoleRoot) }
+$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = $canonicalStorePath; AccountingDirectory = $AccountingDirectory; DisplayProjectionPath = $DisplayProjectionPath; DisplayTeamSourcePath = $DisplayTeamSourcePath; DisplayRoleRoot = $DisplayRoleRoot; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
 $staticFiles = @{
     '/' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }
     '/index.html' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }

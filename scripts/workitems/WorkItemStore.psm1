@@ -102,14 +102,99 @@ function Resolve-WorkItemStorePath {
     return $full
 }
 
+# Private producer lifecycle observations. Every caller treats these as best effort.
+function Get-WorkItemStoreObservationSource {
+    try {
+        $path = [IO.Path]::GetFullPath($PSCommandPath)
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $hash = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+        return [pscustomobject]@{ modulePath = $path; sha256 = $hash }
+    } catch { return $null }
+}
+
+function Get-WorkItemStoreMetadataHashBestEffort {
+    param([byte[]]$Bytes)
+    try {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { return ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha.Dispose() }
+    } catch { return $null }
+}
+
+function Write-WorkItemStoreObservation {
+    param([string]$StorePath, [string]$FileName, $Observation)
+    $temp = $null; $stream = $null
+    try {
+        $directory = [IO.Path]::GetFullPath($StorePath) + '.lock-observations'
+        if (-not [IO.Directory]::Exists($directory)) { [void][IO.Directory]::CreateDirectory($directory) }
+        $target = Join-Path $directory $FileName
+        $json = ConvertTo-Json -InputObject $Observation -Depth 8 -Compress
+        $bytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes($json)
+        $temp = Join-Path $directory ('.' + [Guid]::NewGuid().ToString('N') + '.tmp')
+        $stream = New-Object IO.FileStream($temp, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true); $stream.Dispose(); $stream = $null
+        [IO.File]::Move($temp, $target)
+        return ,$bytes
+    } catch { return $null }
+    finally {
+        if ($null -ne $stream) { try { $stream.Dispose() } catch {} }
+        if ($null -ne $temp) { try { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } } catch {} }
+    }
+}
+
+function Get-WorkItemStoreObservationBase {
+    param($Context, [string]$Event, [int]$AttemptOrdinal, [string]$FailureCode)
+    try {
+        return [ordered]@{
+            diagnosticVersion = '1'; event = $Event; eventAtUtc = [DateTime]::UtcNow.ToString('o')
+            observationScope = 'producerLifecycle'; lockId = [string]$Context.LockId
+            storePath = [string]$Context.StorePath; lockPath = [string]$Context.LockPath
+            attemptOrdinal = $AttemptOrdinal; acquiredAtUtc = [string]$Context.Metadata.acquiredAtUtc
+            ownerSid = [string]$Context.Metadata.ownerSid; ownerName = [string]$Context.Metadata.ownerName
+            processId = $Context.Metadata.processId; processStartedAtUtc = [string]$Context.Metadata.processStartedAtUtc
+            host = [string]$Context.Metadata.host; machineGuid = [string]$Context.Metadata.machineGuid
+            originalMetadataHash = [string]$Context.OriginalMetadataHash
+            sourceReference = $Context.ProducerSource
+            failureCode = $FailureCode
+        }
+    } catch { return $null }
+}
+
+function Publish-WorkItemStoreLifecycleEvent {
+    param($Context, [string]$Event, [int]$AttemptOrdinal, [string]$AcquiredHash, [string]$FailureCode)
+    try {
+        $observation = Get-WorkItemStoreObservationBase $Context $Event $AttemptOrdinal $FailureCode
+        if ($null -eq $observation) { return }
+        if ($Event -eq 'acquired') {
+            $payload = Write-WorkItemStoreObservation $Context.StorePath ("{0}.{1}.acquired.json" -f $Context.LockId, $AttemptOrdinal) $observation
+            if ($null -ne $payload) {
+                $sha = [Security.Cryptography.SHA256]::Create()
+                try { $Context.AcquiredObservationHash = ([BitConverter]::ToString($sha.ComputeHash($payload))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+            }
+            return
+        }
+        if ($Event -in @('released', 'releaseUnconfirmed')) {
+            $observation.acquiredHash = $AcquiredHash
+            if ([string]::IsNullOrEmpty($AcquiredHash)) { $observation.acquisitionEvidenceMissing = $true }
+            [void](Write-WorkItemStoreObservation $Context.StorePath ("{0}.{1}.terminal.json" -f $Context.LockId, $AttemptOrdinal) $observation)
+            return
+        }
+        [void](Write-WorkItemStoreObservation $Context.StorePath ("{0}.{1}.acquisitionAborted.json" -f $Context.LockId, $AttemptOrdinal) $observation)
+    } catch {}
+}
+
 function Enter-WorkItemStoreLock {
     param([string]$StorePath, [int]$TimeoutMilliseconds = 5000)
     if ($TimeoutMilliseconds -lt 0 -or $TimeoutMilliseconds -gt 60000) { New-WorkItemStoreError 'InvalidTimeout' 'TimeoutMilliseconds must be between 0 and 60000.' }
     $lockPath = $StorePath + '.lock'
     $watch = [Diagnostics.Stopwatch]::StartNew()
     $lockId = [Guid]::NewGuid().ToString('D')
+    $attemptOrdinal = 0
     while ($true) {
+        $attemptOrdinal++
         $stream = $null
+        $metadata = $null; $bytes = $null; $metadataHash = $null; $producerSource = $null
         try {
             $options = [IO.FileOptions]::DeleteOnClose
             $stream = New-Object IO.FileStream($lockPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None, 4096, $options)
@@ -123,14 +208,22 @@ function Enter-WorkItemStoreLock {
             }
             $json = ConvertTo-Json -InputObject $metadata -Depth 5 -Compress
             $bytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes($json)
+            $metadataHash = Get-WorkItemStoreMetadataHashBestEffort $bytes
             $stream.Write($bytes, 0, $bytes.Length)
             $stream.Flush($true)
-            $context = [pscustomobject]@{ LockId = $lockId; StorePath = $StorePath; LockPath = $lockPath; Stream = $stream; OwnerSid = $identity.User.Value; OwnerName = $identity.Name; ProcessId = $PID; ProcessStartedAtUtc = $process.StartTime.ToUniversalTime().ToString('o'); Host = [Environment]::MachineName; Released = $false }
+            $producerSource = Get-WorkItemStoreObservationSource
+            $context = [pscustomobject]@{ LockId = $lockId; StorePath = $StorePath; LockPath = $lockPath; Stream = $stream; OwnerSid = $identity.User.Value; OwnerName = $identity.Name; ProcessId = $PID; ProcessStartedAtUtc = $process.StartTime.ToUniversalTime().ToString('o'); Host = [Environment]::MachineName; Released = $false; Metadata = $metadata; OriginalMetadataHash = $metadataHash; ProducerSource = $producerSource; AttemptOrdinal = $attemptOrdinal; AcquiredObservationHash = $null }
             $script:WorkItemStoreLocks[$lockId] = $context
             [void]$script:WorkItemStoreLockContexts.Add($context)
+            Publish-WorkItemStoreLifecycleEvent $context 'acquired' $attemptOrdinal $null $null
             return $context
         } catch [System.IO.IOException] {
-            if ($null -ne $stream) { $stream.Dispose() }
+            $disposeSucceeded = $false
+            if ($null -ne $stream) { $stream.Dispose(); $disposeSucceeded = $true }
+            if ($disposeSucceeded -and $null -ne $metadata -and $null -ne $metadataHash) {
+                $aborted = [pscustomobject]@{ LockId=$lockId; StorePath=$StorePath; LockPath=$lockPath; Metadata=$metadata; OriginalMetadataHash=$metadataHash; ProducerSource=$producerSource; AttemptOrdinal=$attemptOrdinal }
+                Publish-WorkItemStoreLifecycleEvent $aborted 'acquisitionAborted' $attemptOrdinal $null 'IOException'
+            }
             $isLockContention = $false
             $ioException = $_.Exception
             while ($null -ne $ioException) {
@@ -148,7 +241,12 @@ function Enter-WorkItemStoreLock {
             if ($remaining -le 0) { New-WorkItemStoreError 'LockTimeout' "Timed out acquiring store lock '$lockPath' after ${TimeoutMilliseconds}ms." }
             Start-Sleep -Milliseconds ([Math]::Min($remaining, 50))
         } catch {
-            if ($null -ne $stream) { $stream.Dispose() }
+            $disposeSucceeded = $false
+            if ($null -ne $stream) { $stream.Dispose(); $disposeSucceeded = $true }
+            if ($disposeSucceeded -and $null -ne $metadata -and $null -ne $metadataHash) {
+                $aborted = [pscustomobject]@{ LockId=$lockId; StorePath=$StorePath; LockPath=$lockPath; Metadata=$metadata; OriginalMetadataHash=$metadataHash; ProducerSource=$producerSource; AttemptOrdinal=$attemptOrdinal }
+                Publish-WorkItemStoreLifecycleEvent $aborted 'acquisitionAborted' $attemptOrdinal $null 'Other'
+            }
             throw
         }
     }
@@ -165,7 +263,13 @@ function Exit-WorkItemStoreLock {
         New-WorkItemStoreError 'LockNotOwned' 'Lock ownership could not be verified against this process.'
     }
     $Context.Released = $true
-    $Context.Stream.Dispose()
+    try {
+        $Context.Stream.Dispose()
+        Publish-WorkItemStoreLifecycleEvent $Context 'released' $Context.AttemptOrdinal $Context.AcquiredObservationHash $null
+    } catch {
+        Publish-WorkItemStoreLifecycleEvent $Context 'releaseUnconfirmed' $Context.AttemptOrdinal $Context.AcquiredObservationHash 'DisposeFailure'
+        throw
+    }
     [void]$script:WorkItemStoreLocks.Remove($Context.LockId)
 }
 

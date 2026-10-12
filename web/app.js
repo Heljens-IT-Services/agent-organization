@@ -2,7 +2,7 @@ import { BridgeError, dispatch, initializeBridge } from "/bridge.js";
 
 const POLL_MS = 5000;
 const STALE_AFTER_MS = 5000;
-const state = { snapshot: null, selectedId: null, loadedAt: null, refreshing: false, lastReadError: null, refreshTimer: null, search: "", statusFilter: "", humanFilter: "", view: "details", collapsed: new Set(), specificationCache: new Map(), metrics: null, metricsFor: null, metricsPending: new Map(), metricsTarget: null, preserveEditorFocus: false, toastTimer: null, draft: null, drafts: new Map(), saving: false, explicitDetailFocus: false, focusGeneration: 0 };
+const state = { snapshot: null, selectedId: null, loadedAt: null, lockDiagnostic: null, refreshing: false, lastReadError: null, refreshTimer: null, search: "", statusFilter: "", humanFilter: "", view: "details", collapsed: new Set(), specificationCache: new Map(), metrics: null, metricsFor: null, metricsPending: new Map(), metricsTarget: null, preserveEditorFocus: false, toastTimer: null, draft: null, drafts: new Map(), saving: false, explicitDetailFocus: false, focusGeneration: 0 };
 const el = {
   connectionDot: document.getElementById("connection-dot"), connectionLabel: document.getElementById("connection-label"), dataAge: document.getElementById("data-age"),
   refreshButton: document.getElementById("refresh-button"), statusFilter: document.getElementById("status-filter"), humanFilter: document.getElementById("human-filter"), treeSearch: document.getElementById("tree-search"), workitemTree: document.getElementById("workitem-tree"), treeEmpty: document.getElementById("tree-empty"),
@@ -55,6 +55,7 @@ async function refreshSnapshot(manual) {
     if (!snapshot || typeof snapshot !== "object") throw new BridgeError("InvalidReadData", "Die Leseoperation lieferte keinen WorkItem-Snapshot.");
     state.snapshot = snapshot;
     state.loadedAt = parseTime(data?.readAt) ?? parseTime(completedAt) ?? Date.now();
+    state.lockDiagnostic = snapshot.lock ?? snapshot.document?.lock ?? null;
     state.lastReadError = null;
     state.specificationCache.clear();
     state.metrics = null;
@@ -78,10 +79,13 @@ async function refreshSnapshot(manual) {
     else renderEditor(renderFocus);
     if (manual) showToast("Snapshot aktualisiert.");
   } catch (error) {
+    if (error?.lockDiagnostic && typeof error.lockDiagnostic === "object") state.lockDiagnostic = error.lockDiagnostic;
+    else state.lockDiagnostic = staleLockDiagnostic(state.lockDiagnostic, "Snapshotlesung fehlgeschlagen; keine neue Producer-Lockdiagnose geliefert.");
     state.lastReadError = errorMessage(error);
     setConnection("error", `Lesefehler · ${errorMessage(error)}`);
     showToast(`Aktualisierung fehlgeschlagen: ${errorMessage(error)}`, true);
-    renderAll();
+    renderLockStatus();
+    updateLockDetail();
   } finally {
     state.refreshing = false;
     el.refreshButton.disabled = false;
@@ -147,21 +151,81 @@ function renderWriteControls() {
 }
 
 function renderLockStatus() {
-  const lock = state.snapshot?.lock ?? state.snapshot?.document?.lock;
-  if (!lock || lock.state === "unknown") {
-    el.lockStatus.textContent = `Lock-Inhaber unbekannt${lock?.observedAt ? ` · Diagnose ${formatDate(lock.observedAt)}` : ""}.`;
-    return;
-  }
-  if (lock.state === "ownerObserved" && lock.owner) {
-    const owner = lock.owner;
-    el.lockStatus.textContent = `Lock-Inhaber beobachtet (${lock.observedAt ? formatDate(lock.observedAt) : "Zeit unbekannt"}): ${owner.ownerName ?? "Name unbekannt"} · ${owner.host ?? "Host unbekannt"} · PID ${owner.processId ?? "unbekannt"}. Diagnose, kein Besitznachweis.`;
-    return;
-  }
-  if (lock.state === "notObserved") {
-    el.lockStatus.textContent = `Zum Zeitpunkt ${lock.observedAt ? formatDate(lock.observedAt) : "unbekannt"} kein Lock beobachtet. Das ist keine Besitzgarantie.`;
-    return;
-  }
-  el.lockStatus.textContent = "Lockstatus unbekannt; es liegen keine belastbaren Inhaberdaten vor.";
+  const lock = state.lockDiagnostic;
+  if (!lock) { el.lockStatus.textContent = "Lock-Inhaber unbekannt. Es liegt keine Producer-Lockdiagnose vor."; return; }
+  const released = lock.lifecycleEvent === "released";
+  const owner = released ? lock.historicalOwner ?? null : lock.owner ?? lock.historicalOwner ?? null;
+  const incomplete = lock.state === "unknown" || ["missing", "invalid", "stale"].includes(lock.completeness);
+  const active = lock.currentOwnership === "observedActive" && lock.bindingStatus === "originalHandleObserved" && hasBoundReadWindow(lock.readWindow) && !incomplete;
+  const event = lock.lifecycleEvent ?? lock.state ?? "unknown";
+  const eventLabel = lockEventLabel(event);
+  const ownerText = owner ? `${owner.ownerName ?? owner.name ?? "Name unbekannt"}${owner.host ? ` · ${owner.host}` : ""}${owner.processId != null ? ` · PID ${owner.processId}` : ""}` : "Historische Inhaberdaten nicht geliefert; aktuelle Inhaberschaft unbekannt";
+  const ownershipText = released ? `Beobachtete Generation freigegeben; aktueller Inhaber unbekannt (currentOwnership unconfirmed). Historischer Owner (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${ownerText}` : active ? `Aktive Originalownership ausdrücklich beobachtet: ${ownerText}` : `Aktueller Inhaber unbekannt; aktuelle Ownership unbestätigt${owner ? ` · historische Ownermerkmale (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${ownerText}` : ""}`;
+  const observedAt = lock.observedAt ?? lock.readWindow?.completedAtUtc ?? lock.readWindow?.endedAt ?? lock.readWindow?.completedAt;
+  const eventAt = lock.eventAtUtc ?? (["ownerObserved", "acquired"].includes(event) ? owner?.acquiredAtUtc : null);
+  const eventTime = eventAt ? formatDate(eventAt) : "Ereigniszeit unbekannt";
+  const source = lock.sourceReference ?? "Originalquelle nicht geliefert";
+  const revision = lock.sourceRevision != null ? ` · Quellenrevision ${lock.sourceRevision}` : " · Quellenrevision unbekannt";
+  const window = formatLockReadWindow(lock.readWindow);
+  const completeness = lock.completeness ?? "Vollständigkeit unbekannt";
+  const identity = lock.processIdentityStatus ?? "Prozessidentität unbekannt";
+  const binding = lock.bindingStatus ?? "Bindungsstatus unbekannt";
+  const generation = lock.generationId ? ` · Generation ${lock.generationId}` : "";
+  const lockId = lock.lockId ? ` · Lock-ID ${lock.lockId}` : "";
+  const attempt = lock.attemptOrdinal != null ? ` · Erwerbsversuch ${lock.attemptOrdinal}` : "";
+  const metadataHash = lock.originalMetadataHash ? ` · Originalmetadaten SHA256 ${lock.originalMetadataHash}` : "";
+  const reason = lock.reason ? ` · Befund ${lock.reason}` : "";
+  const missingFinish = ["acquired", "ownerObserved"].includes(event) ? " · Kein Producer-Abschlussereignis geliefert" : "";
+  const uncertainty = incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : !active && !released ? " · Aktive Originalquelle fehlt: unter dem unveränderten FileShare.None nicht belegbar; die A2-FileShare-Ausnahme (None → Read|Delete) ist nicht freigegeben" : "";
+  el.lockStatus.textContent = `${eventLabel} (${eventTime}). ${ownershipText}. Lesung ${observedAt ? formatDate(observedAt) : "Zeit unbekannt"}; Fenster ${window}; Quelle ${source}${revision}; Bindung ${binding}${lockId}${generation}${attempt}${metadataHash}; Vollständigkeit ${completeness}; Prozessidentität ${identity}${reason}${missingFinish}${uncertainty}. Diagnose, kein Besitznachweis.`;
+  updateLockDetail();
+}
+
+function hasBoundReadWindow(window) {
+  return Boolean(window && typeof window === "object" && (window.startedAt ?? window.startedAtUtc) && (window.endedAt ?? window.endedAtUtc ?? window.completedAtUtc ?? window.boundary));
+}
+
+function lockEventLabel(event) {
+  return ({ acquired: "Erwerb", ownerObserved: "Erwerbsbeobachtung", released: "Freigabe", acquisitionAborted: "Erwerbsabbruch", releaseUnconfirmed: "Freigabe nicht bestätigt", unknown: "Ereignis unbekannt", notObserved: "Kein Ereignis beobachtet" })[event] ?? "Ereignis unbekannt";
+}
+
+function formatLockReadWindow(window) {
+  if (!window || typeof window !== "object") return "unbekannt (Backend muss begrenzte Start- und End-/Grenzzeit liefern)";
+  const start = window.startedAt ?? window.startedAtUtc;
+  const end = window.endedAt ?? window.endedAtUtc ?? window.completedAtUtc ?? window.boundary;
+  return start && end ? `${formatDate(start)} bis ${formatDate(end)}` : "unvollständig (Backend muss Start- und End-/Grenzzeit liefern)";
+}
+
+function lockUncertaintyReason(lock) {
+  if (lock.completeness === "missing") return "Diagnose fehlt: Producer muss Erwerbs-/Terminalbelege samt Originalreferenz veröffentlichen";
+  if (lock.completeness === "invalid") return "Diagnose ungültig: Backend muss vollständige, passend gebundene Originalbelege liefern";
+  if (lock.completeness === "stale") return "Diagnose veraltet: Backend muss eine aktuelle begrenzte Lesezeit und Bindung liefern";
+  return "Diagnosequalität unbekannt; keine aktuelle Besitzbehauptung";
+}
+
+function staleLockDiagnostic(lock, reason) {
+  return lock ? { ...lock, currentOwnership: "unconfirmed", completeness: "stale", reason } : null;
+}
+
+function updateLockDetail() {
+  const value = el.detailPanel.querySelector("[data-lock-diagnostic]");
+  if (!value) return;
+  value.textContent = lockDetailValue();
+}
+
+function lockDetailValue() {
+  const lock = state.lockDiagnostic;
+  if (!lock) return "Lockdiagnose nicht erfasst.";
+  const owner = lock?.owner ?? lock?.historicalOwner;
+  const incomplete = lock.state === "unknown" || ["missing", "invalid", "stale"].includes(lock.completeness);
+  const readAt = lock.observedAt ?? lock.readWindow?.completedAtUtc ?? lock.readWindow?.endedAt ?? lock.readWindow?.endedAtUtc;
+  const released = lock.lifecycleEvent === "released";
+  const active = lock.currentOwnership === "observedActive" && lock.bindingStatus === "originalHandleObserved" && hasBoundReadWindow(lock.readWindow) && !incomplete;
+  const eventName = lock.lifecycleEvent ?? lock.state;
+  const eventAt = lock.eventAtUtc ?? (["ownerObserved", "acquired"].includes(eventName) ? owner?.acquiredAtUtc : null);
+  const ownership = released ? `Beobachtete Generation freigegeben; aktueller Inhaber unbekannt · currentOwnership unconfirmed · historischer Owner (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${owner?.ownerName ?? owner?.name ?? "Merkmale unbekannt"}` : active ? `Aktive Originalownership beobachtet · ${owner?.ownerName ?? owner?.name ?? "Inhabermerkmale unbekannt"}` : `Aktueller Inhaber unbekannt; currentOwnership unconfirmed${owner ? ` · historische Ownermerkmale (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${owner.ownerName ?? owner.name ?? "Merkmale unbekannt"}` : ""}`;
+  const shareLimit = !active && !released ? " · aktive Originalquelle fehlt; A2 FileShare None → Read|Delete bleibt unfreigegeben" : "";
+  return `${ownership}${shareLimit} · ${lockEventLabel(eventName)}${incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : ""} · Ereignis ${eventAt ? formatDate(eventAt) : "Zeit unbekannt"} · gelesen ${readAt ? formatDate(readAt) : "Zeit unbekannt"} · Quelle ${lock.sourceReference ?? "nicht geliefert"} · Quellenrevision ${lock.sourceRevision ?? "unbekannt"} · Bindung ${lock.bindingStatus ?? "unbekannt"} · Lock-ID ${lock.lockId ?? "unbekannt"} · Generation ${lock.generationId ?? "unbekannt"} · Versuch ${lock.attemptOrdinal ?? "unbekannt"} · Metadatenhash ${lock.originalMetadataHash ?? "unbekannt"} · Lesefenster ${formatLockReadWindow(lock.readWindow)} · Vollständigkeit ${lock.completeness ?? "unbekannt"} · Prozessidentität ${lock.processIdentityStatus ?? "unbekannt"}`;
 }
 
 function getItems() {
@@ -330,7 +394,7 @@ function renderDetails(id, inheritedFocus = null) {
   const fields = [
     ["Aufgabenowner", formatOwner(item.owner)], ["Ziel / Messung", formatGoal(item.goal)], ["Priorität", item.priority],
     ["Abhängigkeiten", formatList(item.dependencies)], ["Fällig", item.dueAt && formatDate(item.dueAt)], ["Erstellt", item.createdAt && formatDate(item.createdAt)],
-    ["Aktualisiert", item.updatedAt && formatDate(item.updatedAt)], ["Revision", revisionOf()], ["Lock-Inhaber", state.snapshot?.lock?.owner?.ownerName ?? "Unbekannt"], ["Implementiert", item.implementedAt && formatDate(item.implementedAt)], ["Abgenommen", item.acceptedAt && formatDate(item.acceptedAt)],
+    ["Aktualisiert", item.updatedAt && formatDate(item.updatedAt)], ["Revision", revisionOf()], ["Lock-Diagnose", lockDetailValue()], ["Implementiert", item.implementedAt && formatDate(item.implementedAt)], ["Abgenommen", item.acceptedAt && formatDate(item.acceptedAt)],
   ].filter(([, value]) => value != null && value !== "");
   const criteria = Array.isArray(item.acceptanceCriteria) ? item.acceptanceCriteria : [];
   const checks = Array.isArray(item.verifications) ? item.verifications : [];
@@ -339,7 +403,7 @@ function renderDetails(id, inheritedFocus = null) {
   const interaction = humanInteraction(item);
   const spec = item.specification;
   const specText = typeof spec?.inline === "string" ? spec.inline : typeof spec?.markdown === "string" ? `Markdown-Datei: ${spec.markdown}` : display(spec);
-  el.detailPanel.innerHTML = `<div class="detail-head"><div class="crumb">${crumb}</div><div class="detail-title-line"><h2 id="detail-title" tabindex="-1">${escapeHtml(labelOf(item))}</h2><span class="status-pill status-${statusClass(item.status)}"><span aria-hidden="true">${statusIcon(item.status)}</span> ${escapeHtml(statusLabel(item.status))}</span></div><div class="detail-id">${escapeHtml(item.id)}${item.parentId ? ` · parentId ${escapeHtml(item.parentId)}` : " · Root (parentId: null)"}</div></div>${item.blockReason ? `<p class="response-lock"><strong>Bekannter Blockgrund:</strong> ${escapeHtml(display(item.blockReason))}</p>` : ""}<div class="detail-body">${item.description ? `<p class="detail-summary">${escapeHtml(item.description)}</p>` : ""}<div class="meta-grid">${fields.map(([label, value]) => `<div class="meta-cell"><div class="meta-label">${escapeHtml(label)}</div><div class="meta-value">${escapeHtml(display(value))}</div></div>`).join("")}</div><section class="detail-section"><h3>Spezifikation</h3><div id="specification-content" class="text-block">${spec != null ? escapeHtml(specText) : "Nicht erfasst."}</div></section><section class="detail-section"><h3>Akzeptanzkriterien · ${criteria.length}</h3>${criteria.length ? `<ul class="criteria-list">${criterionResults.map(({ criterion, results }) => `<li><strong>${escapeHtml(criterion?.id ?? "Kriterium")}</strong> · ${escapeHtml(criterion?.description ?? display(criterion))}<div class="criterion-result">${results.length ? results.map(({ result, check }) => `<p><span class="verified-pill">${result?.passed === true ? "✓ Geprüft · bestanden" : result?.passed === false ? "⛔ Geprüft · nicht bestanden" : "? Prüfergebnis unbekannt"}</span> · ${escapeHtml(display(result?.evidence ?? "Beleg nicht erfasst"))} · ${escapeHtml(check?.reviewer?.id ?? "Prüfer nicht erfasst")} · ${escapeHtml(check?.checkedAt ? formatDate(check.checkedAt) : "Prüfzeit nicht erfasst")}</p>`).join("") : `<p>Prüfergebnis unbekannt · kein criterionId-Beleg zugeordnet</p>`}</div></li>`).join("")}</ul>` : `<p class="text-block">Nicht erfasst.</p>`}</section>${item.result != null ? `<section class="detail-section"><h3>Ergebnis und Belege</h3><p class="text-block">${escapeHtml(item.result.summary ?? display(item.result))}</p>${Array.isArray(item.result.evidence) ? `<ul class="criteria-list">${item.result.evidence.map(evidence => `<li>${escapeHtml(evidence)}</li>`).join("")}</ul>` : ""}</section>` : `<section class="detail-section"><h3>Ergebnis und Belege</h3><p class="text-block">Nicht erfasst.</p></section>`}${checks.length ? `<section class="detail-section"><h3>Pr\u00fcfungen \u00b7 ${checks.length}</h3><div class="evidence-list">${checks.map((check, index) => `<article class="evidence-card"><strong><span class="verified-pill">\u2713 Gepr\u00fcft</span> ${escapeHtml(check?.reviewer?.id ? `Prüfer ${check.reviewer.type}: ${check.reviewer.id}` : `Nachweis ${index + 1}`)} · ${escapeHtml(check?.passed === true ? "bestanden" : check?.passed === false ? "nicht bestanden" : "Ergebnis unbekannt")}</strong><p>${check?.implementedAt ? `Umsetzung ${escapeHtml(formatDate(check.implementedAt))} · ` : ""}${check?.checkedAt ? `Prüfung ${escapeHtml(formatDate(check.checkedAt))}` : "Prüfzeit unbekannt"}</p>${Array.isArray(check?.results) ? check.results.map(result => `<p><strong>${escapeHtml(result.criterionId)}</strong> · ${escapeHtml(result.passed ? "bestanden" : "nicht bestanden")} · ${escapeHtml(result.evidence)}</p>`).join("") : ""}</article>`).join("")}</div></section>` : `<section class="detail-section"><h3>Pr\u00fcfungen</h3><p class="text-block">Nicht erfasst.</p></section>`}${interaction ? `<section class="detail-section"><h3>Menschliche Anforderung</h3><p class="text-block">${escapeHtml(interaction.description ?? "Beschreibung fehlt")}</p>${interaction.response != null ? `<p class="text-block" style="margin-top:8px">Historische Antwort: ${escapeHtml(interaction.response.description ?? display(interaction.response))} · ${interaction.response.respondedAt ? escapeHtml(formatDate(interaction.response.respondedAt)) : "Zeit unbekannt"}</p>` : ""}<p class="response-lock" style="margin-top:9px">Antwort und Bearbeitung dieses WorkItems sind gesperrt. Zuständigkeit und fachliche Auflösung werden nicht aus Aufgabenowner oder Antworttext abgeleitet.</p></section>` : `<section class="detail-section"><h3>Menschliche Anforderung</h3><p class="text-block">Nicht erfasst.</p></section>`}<section class="detail-section"><h3>Team und Verlauf</h3><p class="text-block">Aufgabenowner: ${escapeHtml(formatOwner(item.owner))}. Delegierende und ausf\u00fchrende Personen: Nicht erfasst, sofern keine WorkItem-Verlaufsprojektion vorliegt.</p><p class="text-block">Gespeicherte Zeitpunkte: erstellt ${item.createdAt ? escapeHtml(formatDate(item.createdAt)) : "nicht erfasst"} · zuletzt aktualisiert ${item.updatedAt ? escapeHtml(formatDate(item.updatedAt)) : "nicht erfasst"} · Umsetzung ${item.implementedAt ? escapeHtml(formatDate(item.implementedAt)) : "nicht erfasst"} · Abnahme ${item.acceptedAt ? escapeHtml(formatDate(item.acceptedAt)) : "nicht erfasst"}. Aktualisiert-Zeitpunkt enthält keinen Änderungsautor; daraus wird keine vollständige Ereignishistorie abgeleitet.</p><div id="teams-content" class="auxiliary-content"></div></section><section class="detail-section"><h3>Metriken</h3><div id="metrics-content" class="auxiliary-content"></div></section></div>`;
+  el.detailPanel.innerHTML = `<div class="detail-head"><div class="crumb">${crumb}</div><div class="detail-title-line"><h2 id="detail-title" tabindex="-1">${escapeHtml(labelOf(item))}</h2><span class="status-pill status-${statusClass(item.status)}"><span aria-hidden="true">${statusIcon(item.status)}</span> ${escapeHtml(statusLabel(item.status))}</span></div><div class="detail-id">${escapeHtml(item.id)}${item.parentId ? ` · parentId ${escapeHtml(item.parentId)}` : " · Root (parentId: null)"}</div></div>${item.blockReason ? `<p class="response-lock"><strong>Bekannter Blockgrund:</strong> ${escapeHtml(display(item.blockReason))}</p>` : ""}<div class="detail-body">${item.description ? `<p class="detail-summary">${escapeHtml(item.description)}</p>` : ""}<div class="meta-grid">${fields.map(([label, value]) => `<div class="meta-cell"><div class="meta-label">${escapeHtml(label)}</div><div class="meta-value"${label === "Lock-Diagnose" ? ' data-lock-diagnostic' : ""}>${escapeHtml(display(value))}</div></div>`).join("")}</div><section class="detail-section"><h3>Spezifikation</h3><div id="specification-content" class="text-block">${spec != null ? escapeHtml(specText) : "Nicht erfasst."}</div></section><section class="detail-section"><h3>Akzeptanzkriterien · ${criteria.length}</h3>${criteria.length ? `<ul class="criteria-list">${criterionResults.map(({ criterion, results }) => `<li><strong>${escapeHtml(criterion?.id ?? "Kriterium")}</strong> · ${escapeHtml(criterion?.description ?? display(criterion))}<div class="criterion-result">${results.length ? results.map(({ result, check }) => `<p><span class="verified-pill">${result?.passed === true ? "✓ Geprüft · bestanden" : result?.passed === false ? "⛔ Geprüft · nicht bestanden" : "? Prüfergebnis unbekannt"}</span> · ${escapeHtml(display(result?.evidence ?? "Beleg nicht erfasst"))} · ${escapeHtml(check?.reviewer?.id ?? "Prüfer nicht erfasst")} · ${escapeHtml(check?.checkedAt ? formatDate(check.checkedAt) : "Prüfzeit nicht erfasst")}</p>`).join("") : `<p>Prüfergebnis unbekannt · kein criterionId-Beleg zugeordnet</p>`}</div></li>`).join("")}</ul>` : `<p class="text-block">Nicht erfasst.</p>`}</section>${item.result != null ? `<section class="detail-section"><h3>Ergebnis und Belege</h3><p class="text-block">${escapeHtml(item.result.summary ?? display(item.result))}</p>${Array.isArray(item.result.evidence) ? `<ul class="criteria-list">${item.result.evidence.map(evidence => `<li>${escapeHtml(evidence)}</li>`).join("")}</ul>` : ""}</section>` : `<section class="detail-section"><h3>Ergebnis und Belege</h3><p class="text-block">Nicht erfasst.</p></section>`}${checks.length ? `<section class="detail-section"><h3>Pr\u00fcfungen \u00b7 ${checks.length}</h3><div class="evidence-list">${checks.map((check, index) => `<article class="evidence-card"><strong><span class="verified-pill">\u2713 Gepr\u00fcft</span> ${escapeHtml(check?.reviewer?.id ? `Prüfer ${check.reviewer.type}: ${check.reviewer.id}` : `Nachweis ${index + 1}`)} · ${escapeHtml(check?.passed === true ? "bestanden" : check?.passed === false ? "nicht bestanden" : "Ergebnis unbekannt")}</strong><p>${check?.implementedAt ? `Umsetzung ${escapeHtml(formatDate(check.implementedAt))} · ` : ""}${check?.checkedAt ? `Prüfung ${escapeHtml(formatDate(check.checkedAt))}` : "Prüfzeit unbekannt"}</p>${Array.isArray(check?.results) ? check.results.map(result => `<p><strong>${escapeHtml(result.criterionId)}</strong> · ${escapeHtml(result.passed ? "bestanden" : "nicht bestanden")} · ${escapeHtml(result.evidence)}</p>`).join("") : ""}</article>`).join("")}</div></section>` : `<section class="detail-section"><h3>Pr\u00fcfungen</h3><p class="text-block">Nicht erfasst.</p></section>`}${interaction ? `<section class="detail-section"><h3>Menschliche Anforderung</h3><p class="text-block">${escapeHtml(interaction.description ?? "Beschreibung fehlt")}</p>${interaction.response != null ? `<p class="text-block" style="margin-top:8px">Historische Antwort: ${escapeHtml(interaction.response.description ?? display(interaction.response))} · ${interaction.response.respondedAt ? escapeHtml(formatDate(interaction.response.respondedAt)) : "Zeit unbekannt"}</p>` : ""}<p class="response-lock" style="margin-top:9px">Antwort und Bearbeitung dieses WorkItems sind gesperrt. Zuständigkeit und fachliche Auflösung werden nicht aus Aufgabenowner oder Antworttext abgeleitet.</p></section>` : `<section class="detail-section"><h3>Menschliche Anforderung</h3><p class="text-block">Nicht erfasst.</p></section>`}<section class="detail-section"><h3>Team und Verlauf</h3><p class="text-block">Aufgabenowner: ${escapeHtml(formatOwner(item.owner))}. Delegierende und ausf\u00fchrende Personen: Nicht erfasst, sofern keine WorkItem-Verlaufsprojektion vorliegt.</p><p class="text-block">Gespeicherte Zeitpunkte: erstellt ${item.createdAt ? escapeHtml(formatDate(item.createdAt)) : "nicht erfasst"} · zuletzt aktualisiert ${item.updatedAt ? escapeHtml(formatDate(item.updatedAt)) : "nicht erfasst"} · Umsetzung ${item.implementedAt ? escapeHtml(formatDate(item.implementedAt)) : "nicht erfasst"} · Abnahme ${item.acceptedAt ? escapeHtml(formatDate(item.acceptedAt)) : "nicht erfasst"}. Aktualisiert-Zeitpunkt enthält keinen Änderungsautor; daraus wird keine vollständige Ereignishistorie abgeleitet.</p><div id="teams-content" class="auxiliary-content"></div></section><section class="detail-section"><h3>Metriken</h3><div id="metrics-content" class="auxiliary-content"></div></section></div>`;
   if (capabilities().update === true && item.humanInteraction == null) {
     const button = document.createElement("button"); button.type = "button"; button.className = "button button-quiet"; button.dataset.focusKey = "action:edit"; button.textContent = "Redaktionell bearbeiten";
     button.addEventListener("click", () => openEditForm(item)); el.detailPanel.querySelector(".detail-head").append(button);
@@ -402,7 +466,7 @@ function renderEditor(inheritedFocus = null) {
   const latestItem = draft.mode === "update" ? findItem(draft.id) : null;
   const conflictItem = draft.conflict?.item ?? latestItem;
   const conflictSummary = draft.conflict || revisionChanged ? `<div class="conflict-record" role="alert"><strong>Abgleich erforderlich</strong><p>Basisrevision ${escapeHtml(draft.baseRevision)} · aktuelle Revision ${escapeHtml(draft.conflict?.revision ?? revisionOf() ?? "unbekannt")}</p><p>Änderungszeit/Quelle: ${escapeHtml(conflictItem?.updatedAt ?? "Nicht erfasst")} / ${escapeHtml(conflictItem?.updatedBy ?? "Nicht erfasst")}</p><p>Betroffene Felder: ${escapeHtml(Object.keys(draft.values).filter(key => JSON.stringify(conflictItem?.[key]) !== JSON.stringify(draft.baseItem?.[key])).join(", ") || "Nicht erfasst")}</p></div>` : "";
-  const html = `<form class="editor-form" data-draft-key="${escapeAttr(draftKey(draft.mode, draft.id))}" novalidate><div class="editor-heading"><h3>${draft.mode === "create" ? "Neues WorkItem" : "Redaktionelle Änderung"}</h3><span>Basisrevision: <code>${escapeHtml(draft.baseRevision)}</code></span></div><p class="placeholder">Die beim Öffnen gelesene globale Bytesrevision bleibt für diesen Save fest. Polling ändert sie nicht.</p><div class="editor-grid">${controls}</div><div class="editor-actions"><button class="button" type="submit" data-focus-key="action:save" ${saveLocked ? "disabled" : ""}>${state.saving ? "Speichern …" : "Speichern"}</button><button class="button button-quiet" type="button" data-editor-action="read" data-focus-key="action:read" ${state.saving ? "disabled" : ""}>Basis bewusst neu lesen und abgleichen</button>${canRebase ? `<button class="button button-quiet" type="button" data-editor-action="rebase" data-focus-key="action:rebase" ${state.saving ? "disabled" : ""}>Eigene Eingaben in neuen Draft übernehmen</button>` : ""}<button class="button button-quiet" type="button" data-editor-action="close" data-focus-key="action:close" ${state.saving ? "disabled" : ""}>Entwurf ausdrücklich verwerfen</button></div>${reasons.map(reason => `<div class="editor-message" role="status">${escapeHtml(reason)}</div>`).join("")}<div class="editor-message" role="status" aria-live="polite">${escapeHtml(draft.message || "")}</div>${draft.progress ? `<div class="editor-message" role="status">${escapeHtml(draft.progress)}</div>` : ""}${conflictSummary}${priorConflict}</form>`;
+  const html = `<form class="editor-form" data-draft-key="${escapeAttr(draftKey(draft.mode, draft.id))}" novalidate><div class="editor-heading"><h3>${draft.mode === "create" ? "Neues WorkItem" : "Redaktionelle Änderung"}</h3><span>Basisrevision: <code>${escapeHtml(draft.baseRevision)}</code></span></div><p class="placeholder">Die beim Öffnen gelesene globale Bytesrevision bleibt für diesen Save fest. Polling ändert sie nicht.</p><div class="editor-grid">${controls}</div><div class="editor-actions"><button class="button" type="submit" data-focus-key="action:save" ${saveLocked ? "disabled" : ""}>${state.saving ? "Speichern …" : "Speichern"}</button><button class="button button-quiet" type="button" data-editor-action="read" data-focus-key="action:read" ${state.saving ? "disabled" : ""}>Basis bewusst neu lesen und abgleichen</button>${canRebase ? `<button class="button button-quiet" type="button" data-editor-action="rebase" data-focus-key="action:rebase" ${state.saving ? "disabled" : ""}>Eigene Eingaben in neuen Draft übernehmen</button>` : ""}<button class="button button-quiet" type="button" data-editor-action="close" data-focus-key="action:close" ${state.saving ? "disabled" : ""}>Entwurf ausdrücklich verwerfen</button></div>${reasons.map(reason => `<div class="editor-message" role="status">${escapeHtml(reason)}</div>`).join("")}<div class="editor-message" data-draft-message role="status" aria-live="polite">${escapeHtml(draft.message || "")}</div><div class="editor-message" data-draft-progress role="status" aria-live="polite" ${draft.progress ? "" : "hidden"}>${escapeHtml(draft.progress || "")}</div>${conflictSummary}${priorConflict}</form>`;
   host.innerHTML = html;
   assignFocusKeys(host);
   restoreFocusState(focusState);
@@ -478,6 +542,7 @@ async function saveDraft(event, draft, form) {
     if (state.draft === draft) state.draft = null;
     await refreshSnapshot(false); showToast(draft.message);
   } catch (error) {
+    if (error?.lockDiagnostic && typeof error.lockDiagnostic === "object") { state.lockDiagnostic = error.lockDiagnostic; renderLockStatus(); }
     if (error?.commitState === "unknown" || ["TransportUnavailable", "InvalidBridgeResponse", "InvalidBridgeEnvelope"].includes(error?.code)) {
       draft.commitState = "unknown";
       draft.message = `Commitstatus unbekannt (${errorMessage(error)}). Speichern ist gesperrt; zuerst wird frisch gelesen.`;
@@ -487,7 +552,39 @@ async function saveDraft(event, draft, form) {
     if (fieldMatch) draft.fieldErrors = { ...(draft.fieldErrors ?? {}), [fieldMatch[1]]: errorMessage(error) };
     draft.message = `${errorMessage(error)}${error?.errorId ? ` · Fehler-ID ${error.errorId}` : ""}${error?.expectedRevision ? ` · erwartete Revision ${error.expectedRevision}` : ""}${error?.actualRevision ? ` · gelesene aktuelle Revision ${error.actualRevision}` : ""}. Eingaben und Basis bleiben erhalten.`;
     if (["RevisionConflict", "DuplicateWorkItemId"].includes(error?.code)) await reconcileDraft(draft, false);
-  } finally { state.saving = false; if (state.draft && !state.preserveEditorFocus) renderEditor(); state.preserveEditorFocus = false; }
+  } finally { state.saving = false; if (state.draft && !state.preserveEditorFocus) syncEditorAfterSave(state.draft); state.preserveEditorFocus = false; }
+}
+
+function syncEditorAfterSave(draft) {
+  const form = activeEditorForm(draft);
+  if (!form) return;
+  const reasons = editorBlockReasons(draft);
+  const editorLocked = reasons.some(reason => !reason.startsWith("Seit dem Öffnen geändert."));
+  const saveLocked = reasons.length > 0;
+  form.querySelectorAll("[name]").forEach(control => { control.disabled = editorLocked; });
+  for (const key of draft.mode === "create" ? createFields : updateFields) {
+    const control = form.elements.namedItem(key);
+    const errorNode = form.querySelector(`#${CSS.escape(key)}-error`);
+    const message = draft.fieldErrors?.[key] ?? "";
+    if (control) { if (message) control.setAttribute("aria-invalid", "true"); else control.removeAttribute("aria-invalid"); }
+    if (errorNode) { errorNode.textContent = message; errorNode.hidden = !message; }
+  }
+  const submit = form.querySelector('[type="submit"]');
+  if (submit) { submit.disabled = saveLocked; submit.textContent = "Speichern"; }
+  form.querySelectorAll('[data-editor-action="read"], [data-editor-action="close"]').forEach(button => { button.disabled = false; });
+  const rebase = form.querySelector('[data-editor-action="rebase"]');
+  if (rebase) rebase.disabled = !draft.conflict || draft.commitState === "unknown" || draft.commitState === "observed-present";
+  const reasonNodes = [...form.querySelectorAll(":scope > .editor-message[role='status']:not([data-draft-message]):not([data-draft-progress])")];
+  const first = reasonNodes[0] ?? form.querySelector("[data-draft-message]");
+  reasonNodes.forEach(node => node.remove());
+  for (const reason of reasons) {
+    const node = document.createElement("div"); node.className = "editor-message"; node.setAttribute("role", "status"); node.textContent = reason;
+    form.insertBefore(node, first?.isConnected ? first : form.querySelector("[data-draft-message]"));
+  }
+  const message = form.querySelector("[data-draft-message]");
+  if (message) message.textContent = draft.message || "";
+  const progress = form.querySelector("[data-draft-progress]");
+  if (progress) { progress.textContent = draft.progress || ""; progress.hidden = !draft.progress; }
 }
 function captureDraftFields(form, draft) { for (const input of form.querySelectorAll("[name]")) draft.values[input.name] = input.value; }
 async function reconcileDraft(draft = state.draft, unknown = false, form = activeEditorForm(draft)) {
@@ -497,7 +594,7 @@ async function reconcileDraft(draft = state.draft, unknown = false, form = activ
   try {
     const { data } = await dispatch("read", {}); const fresh = data?.document ? data : data?.data?.document ? data.data : data;
     const saved = draft.mode === "create" ? getItemsFrom(fresh).find(item => item.id === draft.values.id) : getItemsFrom(fresh).find(item => item.id === draft.id);
-    state.snapshot = fresh; state.loadedAt = parseTime(data?.readAt) ?? Date.now();
+    state.snapshot = fresh; state.loadedAt = parseTime(data?.readAt) ?? Date.now(); state.lockDiagnostic = fresh.lock ?? fresh.document?.lock ?? null;
     state.metrics = null; state.metricsFor = null; state.metricsTarget = null;
     const renderFocus = captureFocusState();
     const desired = await parseDraftValues(draft).catch(() => ({}));
@@ -513,7 +610,7 @@ async function reconcileDraft(draft = state.draft, unknown = false, form = activ
       el.detailPanel.innerHTML = `<div class="detail-head"><h2 id="detail-title" tabindex="-1">WorkItem fehlt im aktuellen Snapshot</h2><p class="response-lock">Abgleich gelesen. Der Entwurf bleibt erhalten.</p></div><div id="editor-slot" class="detail-body"></div>`;
       renderEditor(renderFocus);
     } else { renderDetails(state.selectedId, renderFocus); }
-  } catch (error) { draft.progress = `Abgleich fehlgeschlagen (${errorMessage(error)}). Entwurf und ursprüngliche Basis bleiben erhalten.`; if (state.draft === draft) renderEditor(); }
+  } catch (error) { const hasLockDiagnostic = error?.lockDiagnostic && typeof error.lockDiagnostic === "object"; state.lockDiagnostic = hasLockDiagnostic ? error.lockDiagnostic : staleLockDiagnostic(state.lockDiagnostic, "Draft-Abgleich fehlgeschlagen; keine neue Producer-Lockdiagnose geliefert."); renderLockStatus(); draft.progress = `Abgleich fehlgeschlagen (${errorMessage(error)}). Entwurf und ursprüngliche Basis bleiben erhalten.`; if (state.draft === draft) { const progress = activeEditorForm(draft)?.querySelector("[data-draft-progress]"); if (progress) { progress.textContent = draft.progress; progress.hidden = false; } } }
 }
 function draftKey(mode, id) { return mode === "create" ? "create" : `update:${id}`; }
 function rebaseDraft(old) {
@@ -559,8 +656,8 @@ function renderTeams() {
     return;
   }
   if (!teams.items.length) { el.teamsContent.innerHTML = `<div class="notice">Die Teamprojektion ist verfügbar, enthält aber keine Teams.</div>`; return; }
-  const selected = state.selectedId && findItem(state.selectedId); const ownerId = selected?.owner?.id; const exactTeams = selected?.owner?.type === "agent" && typeof ownerId === "string" ? teams.items.filter(team => Array.isArray(team.members) && team.members.some(member => member.id === ownerId)) : []; const teamMeta = `<p class="projection-meta">Quelle: ${escapeHtml(teams.sourceReferences?.join(", ") || "nicht erfasst")} · erzeugt ${teams.generatedAt ? formatDate(teams.generatedAt) : "Zeit unbekannt"} · gelesen ${teams.readAt ? formatDate(teams.readAt) : "Zeit unbekannt"}</p>`; const ownerTeam = selected ? `<p class="metric-scope">Aufgabenowner ${escapeHtml(ownerId ?? "ohne ID")}: ${exactTeams.length ? exactTeams.map(team => escapeHtml(team.label)).join(", ") : selected?.owner?.type === "human" ? "Mensch-Teamzuordnung unbekannt" : "keine exakte Agent-Team-Mitgliedsbindung in dieser Projektion"}.</p>` : "";
-  el.teamsContent.innerHTML = `${teamMeta}${ownerTeam}${teams.items.map(team => `<article class="team-entry"><div class="metric-row"><span>${escapeHtml(team.label ?? team.teamId ?? "Team")}</span><strong>${escapeHtml(team.leaderId ?? "Leitung unbekannt")} · ${Array.isArray(team.members) ? team.members.length : 0} Mitglieder</strong></div>${Array.isArray(team.members) && team.members.length ? `<ul class="team-members">${team.members.map(member => `<li>${escapeHtml(member.label ?? member.id ?? "Mitglied unbekannt")} <span>${member.available === true ? "Rolle konfiguriert/verfügbar" : member.available === false ? "Rolle nicht verfügbar" : "Rollenverfügbarkeit unbekannt"}</span></li>`).join("")}</ul>` : `<p class="placeholder">Mitglieder unbekannt oder nicht enthalten.</p>`}</article>`).join("")}`;
+  const selected = state.selectedId && findItem(state.selectedId); const ownerId = selected?.owner?.id; const exactTeams = selected?.owner?.type === "agent" && typeof ownerId === "string" ? teams.items.filter(team => Array.isArray(team.members) && team.members.some(member => member.id === ownerId)) : []; const teamMeta = `<p class="projection-meta">Quelle: ${escapeHtml(teams.sourceReferences?.join(", ") || "nicht erfasst")} · erzeugt ${teams.generatedAt ? formatDate(teams.generatedAt) : "Zeit unbekannt"} · gelesen ${teams.readAt ? formatDate(teams.readAt) : "Zeit unbekannt"}</p><p class="notice">Abdeckung: nur ausdrücklich gelieferte Teamquellen dieses Quellstands. Vollständigkeit der Organisation ist nicht belegt.</p>`; const ownerTeam = selected ? `<p class="metric-scope">Aufgabenowner ${escapeHtml(ownerId ?? "ohne ID")}: ${exactTeams.length ? exactTeams.map(team => escapeHtml(team.label)).join(", ") : selected?.owner?.type === "human" ? "Mensch-Teamzuordnung unbekannt" : "keine exakte Agent-Team-Mitgliedsbindung in dieser Projektion"}.</p>` : "";
+  el.teamsContent.innerHTML = `${teamMeta}${ownerTeam}${teams.items.map(team => `<article class="team-entry"><div class="metric-row"><span>${escapeHtml(team.label ?? team.teamId ?? "Team")}</span><strong>${escapeHtml(team.leaderId ?? "Leitung unbekannt")} · ${Array.isArray(team.members) ? team.members.length : 0} Mitglieder</strong></div>${Array.isArray(team.members) && team.members.length ? `<ul class="team-members">${team.members.map(member => `<li>${escapeHtml(member.label ?? member.id ?? "Mitglied unbekannt")} <span>${member.available === true ? "Rolle vorhanden im Quellstand" : member.available === false ? "Rolle nicht verfügbar" : "Rollenverfügbarkeit unbekannt"}</span></li>`).join("")}</ul>` : `<p class="placeholder">Mitglieder unbekannt oder nicht enthalten.</p>`}</article>`).join("")}`;
 }
 
 async function renderMetrics(inheritedFocus = null) {

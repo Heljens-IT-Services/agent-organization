@@ -1,5 +1,44 @@
 Set-StrictMode -Version 2
 
+$script:LocalWebLockDiagnosticsImportAvailable = $false
+try {
+    Import-Module (Join-Path $PSScriptRoot 'LocalWebLockDiagnostics.psm1') -Force -ErrorAction Stop
+    $script:LocalWebLockDiagnosticsImportAvailable = $true
+} catch {
+    # Lock diagnostics are optional and must not prevent the bridge from loading.
+}
+
+function New-LocalWebUnknownLockDiagnostic {
+    param([string]$Reason = 'Lockdiagnose ist nicht verfügbar; aktuelle Inhaberschaft bleibt unbestätigt.')
+    $now = [DateTime]::UtcNow.ToString('o')
+    return [pscustomobject][ordered]@{
+        state = 'unknown'
+        observedAt = $now
+        owner = $null
+        reason = $Reason
+        historicalOwner = $null
+        readWindow = [pscustomobject][ordered]@{ startedAtUtc = $now; completedAtUtc = $now }
+        bindingStatus = 'producerLifecycle'
+        currentOwnership = 'unconfirmed'
+        completeness = 'incomplete'
+    }
+}
+
+function Get-LocalWebLockDiagnosticSafely {
+    param([string]$StorePath)
+    if (-not $script:LocalWebLockDiagnosticsImportAvailable -or
+        -not (Get-Command Get-LocalWebLockDiagnostic -ErrorAction SilentlyContinue)) {
+        return New-LocalWebUnknownLockDiagnostic
+    }
+    try {
+        $diagnostic = Get-LocalWebLockDiagnostic -StorePath $StorePath -ErrorAction Stop
+        if ($null -ne $diagnostic) { return $diagnostic }
+    } catch {
+        # Do not expose diagnostic exceptions or let them replace bridge results.
+    }
+    return New-LocalWebUnknownLockDiagnostic
+}
+
 function New-LocalWebResponse {
     param([string]$RequestId, [string]$Operation, [bool]$Ok, [int]$StatusCode, $Data, $ErrorObject)
     [pscustomobject][ordered]@{
@@ -9,10 +48,11 @@ function New-LocalWebResponse {
 }
 
 function Get-LocalWebFailure {
-    param([string]$Code, [string]$Message, [int]$StatusCode = 400, [string]$CommitState = 'notWritten', $ExpectedRevision, $ActualRevision)
+    param([string]$Code, [string]$Message, [int]$StatusCode = 400, [string]$CommitState = 'notWritten', $ExpectedRevision, $ActualRevision, $LockDiagnostic)
     $errorData = [ordered]@{ errorId = [Guid]::NewGuid().ToString('D'); code = $Code; message = $Message; commitState = $CommitState }
     if ($null -ne $ExpectedRevision) { $errorData.expectedRevision = $ExpectedRevision }
     if ($null -ne $ActualRevision) { $errorData.actualRevision = $ActualRevision }
+    if ($null -ne $LockDiagnostic) { $errorData.lockDiagnostic = $LockDiagnostic }
     return @{ status = $StatusCode; error = [pscustomobject]$errorData }
 }
 
@@ -77,9 +117,10 @@ function ConvertTo-LocalWebPlainObject {
 
 function Get-LocalWebSnapshot {
     param($Configuration)
+    $lockDiagnostic = Get-LocalWebLockDiagnosticSafely -StorePath ([string]$Configuration.StorePath)
     if (-not [IO.File]::Exists($Configuration.StorePath)) {
         $projection = Get-LocalWebDisplayProjection $Configuration $null
-        return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }; lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null; reason = 'Keine an den Lockproduzenten gebundene aktive Lockdiagnose verfügbar.' }; attentionAssignments = $projection.attentionAssignments; teams = $projection.teams }
+        return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }; lock = $lockDiagnostic; attentionAssignments = $projection.attentionAssignments; teams = $projection.teams }
     }
     $caller = Join-Path $Configuration.RepositoryRoot 'scripts/workitems/Get-WorkItems.ps1'
     $snapshot = & $caller -Path $Configuration.StorePath -RepositoryRoot $Configuration.RepositoryRoot -TimeoutMilliseconds 5000
@@ -87,7 +128,7 @@ function Get-LocalWebSnapshot {
         exists = [bool]$snapshot.Exists; revision = [string]$snapshot.Revision; document = $snapshot.Document
         readAt = [DateTime]::UtcNow.ToString('o')
         capabilities = [pscustomobject]@{ create = $true; update = $true; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }
-        lock = [pscustomobject]@{ state = 'unknown'; observedAt = [DateTime]::UtcNow.ToString('o'); owner = $null; reason = 'Keine an den Lockproduzenten gebundene aktive Lockdiagnose verfügbar.' }
+        lock = $lockDiagnostic
     }
     $projection = Get-LocalWebDisplayProjection $Configuration $result.document
     $result | Add-Member -NotePropertyName attentionAssignments -NotePropertyValue $projection.attentionAssignments
@@ -153,15 +194,27 @@ function Get-LocalWebDisplayProjection {
     $readAt = [DateTime]::UtcNow.ToString('o')
     $unknownAttention = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Menschenzuständigkeit bleibt unbekannt.' $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)
     $unknownTeams = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Teams bleiben unbekannt.' $readAt
-    if ([string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath)) { return [pscustomobject]@{ attentionAssignments = $unknownAttention; teams = $unknownTeams } }
+    if ([string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath) -and
+        [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath) -and
+        [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)) { return [pscustomobject]@{ attentionAssignments = $unknownAttention; teams = $unknownTeams } }
     try {
-        $path = [string]$Configuration.DisplayProjectionPath
-        if (-not [IO.File]::Exists($path) -or (([IO.File]::GetAttributes($path) -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { throw 'ProjectionSourceUnavailable' }
-        $bytes = [IO.File]::ReadAllBytes($path)
+        $hasTeamSource = -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath)
+        $hasRoleRoot = -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)
+        if ($hasTeamSource -or $hasRoleRoot) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath)) { throw 'ProjectionSourceConflict' }
+            if (-not $hasTeamSource -or -not $hasRoleRoot) { throw 'DisplaySourcePathNotConfigured' }
+            Import-Module (Join-Path $PSScriptRoot 'Anzeigeproducer.psm1') -Force -ErrorAction Stop
+            $projection = New-LocalWebDisplayProjection -StorePath $Configuration.StorePath -TeamSourcePath $Configuration.DisplayTeamSourcePath -RoleRoot $Configuration.DisplayRoleRoot
+            $bytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes((ConvertTo-Json -InputObject $projection -Depth 100 -Compress))
+        } else {
+            $path = [string]$Configuration.DisplayProjectionPath
+            if (-not [IO.File]::Exists($path) -or (([IO.File]::GetAttributes($path) -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { throw 'ProjectionSourceUnavailable' }
+            $bytes = [IO.File]::ReadAllBytes($path)
+            $json = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes)
+            $projection = ConvertFrom-Json -InputObject $json -ErrorAction Stop
+        }
         $sha = [Security.Cryptography.SHA256]::Create()
         try { $revision = 'sha256:' + ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
-        $json = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes)
-        $projection = ConvertFrom-Json -InputObject $json -ErrorAction Stop
         Assert-LocalWebProjectionObject $projection @('projectionVersion','storePath','generatedAt','sourceReferences','humans','attentionAssignments','teams') @('projectionVersion','storePath','generatedAt','sourceReferences','humans','attentionAssignments','teams')
         $version = Get-LocalWebProjectionProperty $projection 'projectionVersion'; $storePath = Get-LocalWebProjectionProperty $projection 'storePath'; $generatedAt = Get-LocalWebProjectionProperty $projection 'generatedAt'
         Assert-LocalWebProjectionString $version; Assert-LocalWebProjectionString $storePath; Assert-LocalWebProjectionUtcTimestamp $generatedAt
@@ -236,8 +289,12 @@ function Get-LocalWebDisplayProjection {
         }
     } catch {
         $reason = switch -Regex ([string]$_.Exception.Message) {
+            'ProjectionSourceConflict' { 'Live-Anzeigequellen und statische DisplayProjectionPath-Quelle sind gleichzeitig konfiguriert; beide Projektionen bleiben unbekannt.'; break }
             'ProjectionStoreBindingMismatch' { 'Display-Projektion gehört nicht exakt zu diesem WorkItem-Store.'; break }
             'ProjectionSourceUnavailable' { 'Konfigurierte Display-Projektion ist nicht lesbar oder verweist auf eine Reparse-Datei.'; break }
+            'DisplaySourcePathNotConfigured' { 'Teamquelle und Role-Root müssen beide ausdrücklich konfiguriert sein; Teams bleiben unbekannt.'; break }
+            'TeamSourceInvalid' { 'Konfigurierte Teamquelle ist ungültig oder enthält widersprüchliche Mitgliedschaftsdaten; Teams bleiben unbekannt.'; break }
+            'TeamSourceUnavailable' { 'Konfigurierte Teamquelle ist nicht lesbar oder fehlt; Teams bleiben unbekannt.'; break }
             default { 'Display-Projektion fehlt, ist ungültig oder nicht vollständig quellgebunden; Zuordnungen und Teams bleiben unbekannt.' }
         }
         return [pscustomobject]@{ attentionAssignments = (New-LocalWebUnavailableProjection $reason $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)); teams = (New-LocalWebUnavailableProjection $reason $readAt) }
@@ -405,7 +462,9 @@ function Invoke-LocalWebOperation {
                 if ($fresh.exists -and -not [string]::IsNullOrWhiteSpace($fresh.revision)) { $_.Exception.Data['LocalWebFreshRevision'] = $fresh.revision }
             } catch { }
         }
-        return (Get-LocalWebCallerError $_ -ExpectedRevision $(if ($operation -in @('create','update')) { [string]$Request.payload.expectedRevision }) -WriteAttempt $writeAttempt)
+        $failure = Get-LocalWebCallerError $_ -ExpectedRevision $(if ($operation -in @('create','update')) { [string]$Request.payload.expectedRevision }) -WriteAttempt $writeAttempt
+        if ($failure.status -eq 423 -or [string]$failure.error.code -in @('LockOwnerUncertain','LockIdentityUnavailable')) { $diag = Get-LocalWebLockDiagnosticSafely -StorePath ([string]$Configuration.StorePath); $failure.error | Add-Member -NotePropertyName lockDiagnostic -NotePropertyValue $diag }
+        return $failure
     }
 }
 

@@ -43,6 +43,7 @@ export async function dispatch(operation, payload = {}) {
       expectedRevision: detail.expectedRevision,
       actualRevision: detail.actualRevision,
       errorId: detail.errorId ?? detail.id,
+      lockDiagnostic: detail.lockDiagnostic,
       completedAt: envelope.completedAt,
     });
   }
