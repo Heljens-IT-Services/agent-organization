@@ -192,7 +192,7 @@ function Get-WorkItemStoreResult {
             $temporary = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + [Guid]::NewGuid().ToString('N') + '.read.tmp')
             try {
                 New-WorkItemStoreExclusiveFile $temporary $snapshot.Bytes
-                $validation = & (Join-Path $RepositoryRoot 'scripts\Test-WorkItems.ps1') -Path $temporary -RepositoryRoot $RepositoryRoot
+                $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $temporary -RepositoryRoot $RepositoryRoot
                 if (-not $validation.valid) { New-WorkItemStoreError 'InvalidStoredDocument' 'Stored WorkItem document failed contract validation.' }
             } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
         }
@@ -221,7 +221,7 @@ function Set-WorkItemStoreEntry {
         if ($snapshot.Exists) {
             $previous = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + $lock.LockId + '.' + [Guid]::NewGuid().ToString('N') + '.previous.tmp')
             New-WorkItemStoreExclusiveFile $previous $snapshot.Bytes
-            try { $storedCheck = & (Join-Path $RepositoryRoot 'scripts\Test-WorkItems.ps1') -Path $previous -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'InvalidStoredDocument' "Stored WorkItem document failed validation: $($_.Exception.Message)" }
+            try { $storedCheck = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $previous -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'InvalidStoredDocument' "Stored WorkItem document failed validation: $($_.Exception.Message)" }
             if (-not $storedCheck.valid) { New-WorkItemStoreError 'InvalidStoredDocument' 'Stored WorkItem document failed contract validation.' }
         } elseif (-not $IsNew) { New-WorkItemStoreError 'ItemNotFound' "Cannot update missing WorkItem store: $path" }
         if ($snapshot.Revision -cne $ExpectedRevision) { New-WorkItemStoreError 'RevisionConflict' "Expected revision '$ExpectedRevision'; actual revision '$($snapshot.Revision)'." }
@@ -252,7 +252,7 @@ function Set-WorkItemStoreEntry {
             $previous = $previousForValidator
         }
         New-WorkItemStoreExclusiveFile $candidate $candidateBytes
-        try { $validation = & (Join-Path $RepositoryRoot 'scripts\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
+        try { $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
         if (-not $validation.valid -or -not $validation.transitionsChecked) { New-WorkItemStoreError 'ValidationFailed' 'Validator did not confirm a valid snapshot and checked transitions.' }
         $newRevision = 'sha256:' + [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash($candidateBytes))).Replace('-', '').ToLowerInvariant()
         if ($snapshot.Exists) {

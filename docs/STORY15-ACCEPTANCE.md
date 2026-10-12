@@ -13,6 +13,8 @@ Branch: feature/story15-store-recovery. Basis: 23d7b6c5a80fd7552bbec464f07cba925
 
 ## Finale Nachweise
 
+Historische Belege: Die JSON-Dateien unter `story15-evidence/` dokumentieren den damaligen Quellstand und dessen alte Skriptpfade. Aktuelle Einstiegspfade stehen in `WORKITEM-STORAGE.md` und `../README.md`.
+
 [Runmanifest](story15-evidence/run-manifest.json): Recovery 27/27, Store 14/14, Contracts 75/75, jeweils Exitcode 0; WorkItems-Beispiel valid mit drei Einträgen (keine erfundene 3/3-Testsuite). Originalausführung Windows PowerShell 5.1.26100.9549, lokales NTFS, Recovery 2026-10-12T09:33:26.5441881Z. Sechs externe Prozesskills einschließlich Lockbesitzer und fünf Veröffentlichungsbarrieren; Wiederanlauf und weitere Änderung über Originalmodul belegt. Keine Tests nur wegen fehlenden Turnabschlusses wiederholt.
 
 Geprüfter Modul-Byte-SHA256: 372534F7B2F30A99EAFF5609992275487ACE2B5288861542187CE28A1FA25630; vor/nach Lauf identisch. LF-normalisiert: E9547B3AEDB617F8003C310A57AB5A71F186E67FA9BD9624CFDEA1A018ECA401. Test- und Workerhashes im [Quellenbeleg](story15-evidence/qa-final-source-evidence.json). Dokumentation wurde danach eng um Schemafehler und dauerhafte Links präzisiert; ihr historischer Laufhash ist kein finaler Dokumenthash. Story14-Hash entspricht dem LF-Gitblob, Checkout-CRLF erklärt dessen historischen Unterschied.

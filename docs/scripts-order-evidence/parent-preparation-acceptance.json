@@ -1,0 +1,17 @@
+﻿{
+    "workitem_id":  "improvement-scripts-order",
+    "role":  "teamleiter_agent_ressources",
+    "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+    "recorded_at":  "2026-10-12T12:47:35.3595482+02:00",
+    "decision":  "preparation_accepted_for_review_publication",
+    "evidence_task":  "113788133fb64e1fa3341c9433aa46a5",
+    "assessment":  "Eigene Elternprüfung: 14 Moves und zweckmäßige Module/Worker; vorhandene unabhängige technische Nachprüfung und 26 unveränderte Quellhashes übernommen; alle alten eigenen Schreiber beendet; DOC-AUTH-01 durch Text-Read-back geschlossen, Testnacharbeit im ursprünglich genehmigten Auftrag enthalten; explizite 41-Pfad-Allowlist vollständig. Vorbereitungsabnahme erteilt, Veröffentlichung per Commit/Push/Review-PR auf develop beauftragt.",
+    "gates":  [
+                  "Kein Merge oder globale Spiegeländerung",
+                  "Story16/Task60: aktuelle Host-/Skill-/Fixturedateien vor Integration gemeinsam mappen und prüfen",
+                  "Alte Hauptcheckoutpfade bis koordiniertem Abschluss aktiver Delegationen erreichbar halten",
+                  "Doppelte globale Rollendefinition bleibt bestehender Umgebungsbefund",
+                  "CI bleibt deaktiviert"
+              ],
+    "own_final_token_usage":  null
+}

@@ -1,0 +1,530 @@
+{
+    "recorded_at":  "2026-10-12T13:07:49.7529873+02:00",
+    "ps_count":  19,
+    "unchanged_ps_count":  18,
+    "toml_count":  45,
+    "root_ps_count":  0,
+    "skill_delta_exact_three_path_substitutions":  true,
+    "ps":  [
+               {
+                   "path":  "scripts/accounting/Get-TaskTokenUsage.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/accounting/Get-TaskTokenUsage.ps1",
+                   "original_blob":  "8579b4adaca427529f8ea6fb9cff1b21735776c9",
+                   "current_blob":  "8579b4adaca427529f8ea6fb9cff1b21735776c9",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "1D1632D4A395D5184EDA311EAF22E976C5BB2E86AEA4032AAB9D16CDE3E57BE9",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  106
+               },
+               {
+                   "path":  "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                   "original_blob":  "3814e23bf5e7b6092deb06249d520b0581996a0f",
+                   "current_blob":  "3814e23bf5e7b6092deb06249d520b0581996a0f",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "56F467B71C5DE76B99AE4D8F4ACBD503790FB51C7232B87118FF554439FEE7A2",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  226
+               },
+               {
+                   "path":  "scripts/contracts/ContractValidation.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/contracts/ContractValidation.ps1",
+                   "original_blob":  "a93577722322b54fdb647aae1543832bf4865d51",
+                   "current_blob":  "a93577722322b54fdb647aae1543832bf4865d51",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "32E91E849B379500D41FC97C532303B2027919B9DA568A42AFB91E8FB6F9DF63",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  170
+               },
+               {
+                   "path":  "scripts/contracts/Test-Organization.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/contracts/Test-Organization.ps1",
+                   "original_blob":  "7a8c3f89093b9397bcf913b0d4f3657ccc51e182",
+                   "current_blob":  "7a8c3f89093b9397bcf913b0d4f3657ccc51e182",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "0211514E08A6F702E09354385BEE20165E0ACA55E2A9F95F8B427BE3BD28BD2C",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  44
+               },
+               {
+                   "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                   "original_blob":  "d1c9809e1eb02c266257869807da1a857830c839",
+                   "current_blob":  "d1c9809e1eb02c266257869807da1a857830c839",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "B401B207FE83E371AD5377B0D2E7CCC08BCC91CD3091A3CF76B71042726233E0",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  586
+               },
+               {
+                   "path":  "scripts/tests/accounting/Test-RolloutTaskUsage.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/accounting/Test-RolloutTaskUsage.ps1",
+                   "original_blob":  "d150c30c983b1ab99eb69ccf971cec7fa0eab5e3",
+                   "current_blob":  "d150c30c983b1ab99eb69ccf971cec7fa0eab5e3",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "DEBC534B39B9EAC4C8F0ACC771113E1EB226250ACAE8DFCD951DC05FDF078600",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  132
+               },
+               {
+                   "path":  "scripts/tests/accounting/Test-TaskTokenUsage.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/accounting/Test-TaskTokenUsage.ps1",
+                   "original_blob":  "a85dfbd615a414105a53dc6efd7c2fc7bafd6997",
+                   "current_blob":  "a85dfbd615a414105a53dc6efd7c2fc7bafd6997",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "F8CD6256481E2253124907D1ADA2214D9B7EB1116E9F6EA6A895F392891EB0CF",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  146
+               },
+               {
+                   "path":  "scripts/tests/contracts/Test-Contracts.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/contracts/Test-Contracts.ps1",
+                   "original_blob":  "f91d53d12aca7f053aab7f61e4be9e4330b23601",
+                   "current_blob":  "f91d53d12aca7f053aab7f61e4be9e4330b23601",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "CBBA33E45823A0C5A43C9C2A82034774E3F27C45A28EE0978ABBB221DAF38D1A",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  229
+               },
+               {
+                   "path":  "scripts/tests/contracts/Test-SkillContracts.ps1",
+                   "source_ref":  "4dd9d1501700857d3f035ffb5050301a7c2ac4a5",
+                   "source_path":  "scripts/Test-SkillContracts.ps1",
+                   "original_blob":  "a3b9ce47cc58e4151fb72af4364ae4bdca1653e8",
+                   "current_blob":  "1955ca058cd77a7bec3e02263c1f36bf8112e7d2",
+                   "git_source_unchanged":  false,
+                   "worktree_sha256":  "DBB9539D35816C688A973EF7B79F2B422877517748FEEC06E4D126D28E6D2C24",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  196
+               },
+               {
+                   "path":  "scripts/tests/delegation/Test-DelegatedProgress.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/delegation/Test-DelegatedProgress.ps1",
+                   "original_blob":  "ae8cfb0bb9892f4e635dc8054a0cf02503ce23a2",
+                   "current_blob":  "ae8cfb0bb9892f4e635dc8054a0cf02503ce23a2",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "D37AC91A4F5C39E114B4D6E6CEC3D3377869404A15D221C09234CE3B219F0B5D",
+                   "utf8_valid":  true,
+                   "bom":  true,
+                   "parser_errors":  0,
+                   "crlf":  175
+               },
+               {
+                   "path":  "scripts/tests/workitems/RecoveryWorker.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/workitems/RecoveryWorker.ps1",
+                   "original_blob":  "a54c427fbb6d4d3e69ea468b0d8f1fe14e2bc722",
+                   "current_blob":  "a54c427fbb6d4d3e69ea468b0d8f1fe14e2bc722",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "2D24157895D0823ADFE177F78D4856C353F9F7D948BCA36B82B045F44FEB2B5D",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  68
+               },
+               {
+                   "path":  "scripts/tests/workitems/Test-WorkItemStore.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/workitems/Test-WorkItemStore.ps1",
+                   "original_blob":  "ce792a57cde6686b8b57c7c4f88d1cb793864961",
+                   "current_blob":  "ce792a57cde6686b8b57c7c4f88d1cb793864961",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "EC1F60C14D9B57511A7D22D04161307987AAEF2AE532E0BAF8B128ACBCBDDAF4",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  185
+               },
+               {
+                   "path":  "scripts/tests/workitems/Test-WorkItemStoreRecovery.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/workitems/Test-WorkItemStoreRecovery.ps1",
+                   "original_blob":  "23036ce24093152704c7e754fb92409d2cc5d942",
+                   "current_blob":  "23036ce24093152704c7e754fb92409d2cc5d942",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "C44672A60D4BD803ED55B3FFF83F6CB5CE03EB6C98BB35CC11D308DBC41CFC7D",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  270
+               },
+               {
+                   "path":  "scripts/tests/workitems/Worker.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/tests/workitems/Worker.ps1",
+                   "original_blob":  "862177c945423886b23d187915dd3a0e8a359002",
+                   "current_blob":  "862177c945423886b23d187915dd3a0e8a359002",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "628D053D869019A8AA2BB02BAF6868F3E2ED77EC072EE1877B6265F1DFEE1984",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  87
+               },
+               {
+                   "path":  "scripts/workitems/Get-WorkItems.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/workitems/Get-WorkItems.ps1",
+                   "original_blob":  "269f4332dcfd745f442324782ab825de632b4deb",
+                   "current_blob":  "269f4332dcfd745f442324782ab825de632b4deb",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "2BC7C5A1444F9E2892E5276D3BE5F47644D9DAB74E692D2F6CE66D45DD0288D2",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  10
+               },
+               {
+                   "path":  "scripts/workitems/New-WorkItem.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/workitems/New-WorkItem.ps1",
+                   "original_blob":  "967c58f0d40350642c9448ccee64d7cb515bac18",
+                   "current_blob":  "967c58f0d40350642c9448ccee64d7cb515bac18",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "4671E2FE54F76E6C5ACDDB457B8D4F2F4DEC56EB446198D8B6B1AE50E0D25F76",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  12
+               },
+               {
+                   "path":  "scripts/workitems/Set-WorkItem.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/workitems/Set-WorkItem.ps1",
+                   "original_blob":  "38b33f42c105510bfc2e293b2f60478a23cd2616",
+                   "current_blob":  "38b33f42c105510bfc2e293b2f60478a23cd2616",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "59D1D402FC9B2BDCF1C31077BE52936E328ECA957C850AEA1CE5CDECFB383599",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  13
+               },
+               {
+                   "path":  "scripts/workitems/Test-WorkItems.ps1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/workitems/Test-WorkItems.ps1",
+                   "original_blob":  "766a0c0e0d0c9c0b78c9ac514e712381d03e9f96",
+                   "current_blob":  "766a0c0e0d0c9c0b78c9ac514e712381d03e9f96",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "885AF4580799F3D60C9EEE83C0B651CE8D060E258C1D1C8759D8026FB4BD80B4",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  184
+               },
+               {
+                   "path":  "scripts/workitems/WorkItemStore.psm1",
+                   "source_ref":  "32399a6914ecf748545b08f842b0858c901287df",
+                   "source_path":  "scripts/workitems/WorkItemStore.psm1",
+                   "original_blob":  "db6dcb4f3928044e42d610cbb2792950f1fb77f7",
+                   "current_blob":  "db6dcb4f3928044e42d610cbb2792950f1fb77f7",
+                   "git_source_unchanged":  true,
+                   "worktree_sha256":  "B4E6CE1A9D8507A733487906753059E7EFFCD7CD5962F8C765DBE8D1DA2818D0",
+                   "utf8_valid":  true,
+                   "bom":  false,
+                   "parser_errors":  0,
+                   "crlf":  273
+               }
+           ],
+    "tomls":  [
+                  {
+                      "path":  "koordinator/koordinator.toml",
+                      "blob":  "a51348674da4047136741f9a2c9082624df14960",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/administratoren/agenten/github.toml",
+                      "blob":  "45b2a321c46a2496ede39cef4a3877860599f987",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/administratoren/agenten/hetzner.toml",
+                      "blob":  "2344ab78c4bada7fb3df91ff39dd703dec921ee5",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/administratoren/agenten/microsoft_365.toml",
+                      "blob":  "11ac79971bd508b81ce75e055eb34efddaae4394",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/administratoren/agenten/sharepoint.toml",
+                      "blob":  "06e6cbe08b2c7fbb9a62a7d693f38cee6ad9a677",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/administratoren/teamleiter.toml",
+                      "blob":  "932f7f12fa895a91b91a6eac8644c6d01ec9a4b5",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/agent_ressources/agenten/bestandsanalyse.toml",
+                      "blob":  "bf45c4013072901758f26fe68119d5bf2f06e72d",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/agent_ressources/agenten/optimierer.toml",
+                      "blob":  "e3a5bc9cbfd9743e1203e9f53275e3a53fbfd58f",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/agent_ressources/agenten/qualitaetspruefung.toml",
+                      "blob":  "130dc07408d2a48ac2a08713dda9c575343a47c9",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/agent_ressources/agenten/rollenkonfiguration.toml",
+                      "blob":  "fb8b60e308c503dcaa573ef3a6d33263c273e8e0",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/agent_ressources/teamleiter.toml",
+                      "blob":  "a73529c03d6b378f4fb821632f5c9d6d2aaf18ba",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/buchhaltung/agenten/abstimmung.toml",
+                      "blob":  "3b4940f0e0759dd73e87a8e1c9d1e28b4d4f1574",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/buchhaltung/agenten/belege.toml",
+                      "blob":  "73ccfa7cdbf28a81af28853455c411ceb8b50332",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/buchhaltung/agenten/kontierung.toml",
+                      "blob":  "52330384180bf7114b75371fad6ee9585cc1996e",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/buchhaltung/agenten/rechnungen.toml",
+                      "blob":  "f535b256bafe00b958e78ab6153ab407d849008c",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/buchhaltung/teamleiter.toml",
+                      "blob":  "9d2f9bbabb97f75b54f6cb464c1f653da01dd886",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/controlling/agenten/budget.toml",
+                      "blob":  "21ccebdc8e921dc232e40de39313a0e454efca4f",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/controlling/agenten/forecast.toml",
+                      "blob":  "5a6b5416d335cccae9d83a22ffce8fd2e0e5c053",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/controlling/agenten/kennzahlen.toml",
+                      "blob":  "24b2010f2eb4186e2263ee597b709404ad1c1199",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/controlling/agenten/reporting.toml",
+                      "blob":  "f98f88be628abf1429faedeac8ead9ecb240296c",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/controlling/teamleiter.toml",
+                      "blob":  "12dbadf43d7611f59f16b8a42569bdac513faabb",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/design/agenten/3d.toml",
+                      "blob":  "4ee5f06a031e034c0a2a6766b815ec777715327d",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/design/agenten/grafik.toml",
+                      "blob":  "bc7cfb81f7e5f7c56e4e723056d9348773ee5a82",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/design/agenten/ui.toml",
+                      "blob":  "d742ab5d89610d4c1fec73391f2a65088c66caf6",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/design/agenten/ux.toml",
+                      "blob":  "8a05659a13f0e18e888843c861fdba9d5976bec6",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/design/teamleiter.toml",
+                      "blob":  "bbb5c07c2ecdb689bcb4d6816bf6955fa629cf8c",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/geschaeftsfuehrung_assistenz/agenten/kundenkommunikation.toml",
+                      "blob":  "5e0b2c2f9e367a43b1b6423edb28184b6acbe98f",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/geschaeftsfuehrung_assistenz/agenten/outlook_email.toml",
+                      "blob":  "33d6640e93181d606d7f3db110c1d6c2f465304c",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/geschaeftsfuehrung_assistenz/agenten/vertragskoordination.toml",
+                      "blob":  "47537e9ee38fd8529e6725a48707d8d8f50775a6",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/geschaeftsfuehrung_assistenz/teamleiter.toml",
+                      "blob":  "7b1317dd5263abe6ce25765f2c3982dcf1f44bb9",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/hr/agenten/personaladministration.toml",
+                      "blob":  "d0b9ff83fa7aa715ec34eff6fa9d0458a5416b96",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/hr/agenten/personalentwicklung.toml",
+                      "blob":  "3bc6c0e8065168aea493f1b2fafbaa9acbb50e08",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/hr/agenten/recruiting.toml",
+                      "blob":  "b10fab748b9f5f89c91070ac13b3a18387b1022a",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/hr/teamleiter.toml",
+                      "blob":  "52f97a95255834ad3f67e99ae40609ed6a13e2c9",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/marketing/agenten/kampagnen.toml",
+                      "blob":  "96eba4de5bd5389b5a48c8095a835ff058b04374",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/marketing/agenten/seo.toml",
+                      "blob":  "4fa1600b67b72568c39c5f4200682e6aa06fd0f8",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/marketing/agenten/strategie.toml",
+                      "blob":  "b91893bc56f11cf1681873e9f6454b0a9e6604c2",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/marketing/agenten/text.toml",
+                      "blob":  "972933fa3117f258d3f651c94afa7e0b0ea13efd",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/marketing/teamleiter.toml",
+                      "blob":  "0e542b9e39dc2ce227246480d61012d11e26aff7",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/agenten/architektur.toml",
+                      "blob":  "f7c40f80845da95889b5584a0af615f88f5d55d9",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/agenten/backend.toml",
+                      "blob":  "b6165878e8899c5f97ec2ff994d3483945372061",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/agenten/frontend.toml",
+                      "blob":  "2d44950a0049d12a3bb1c342167c825cb5da9339",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/agenten/infrastruktur.toml",
+                      "blob":  "41f8bf1adb42739dc454c566c965424931addd0e",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/agenten/qualitaetssicherung.toml",
+                      "blob":  "c19eff42594d5d0a033be8d581a8445dea9f6ede",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  },
+                  {
+                      "path":  "teams/softwareentwicklung/teamleiter.toml",
+                      "blob":  "833c046642d970e9f679e3c39230a4aa51d6760e",
+                      "byte_identical":  true,
+                      "native_parse":  "Reused prior 45-file tomllib evidence; no new parse claimed"
+                  }
+              ],
+    "scope":  "No organizational indices loaded. Historical skill JSON evidence preserved. Git content comparisons apply configured core.autocrlf=true; physical worktree SHA256 separately recorded."
+}

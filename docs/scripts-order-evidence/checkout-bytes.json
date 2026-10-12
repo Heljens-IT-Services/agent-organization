@@ -1,0 +1,162 @@
+{
+  "ps_count": 19,
+  "expected_checkout_bytes": "Git original with configured LF to CRLF checkout; skill has exactly three path substitutions",
+  "ps": [
+    {
+      "path": "scripts/accounting/Get-TaskTokenUsage.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "1d1632d4a395d5184eda311eaf22e976c5bb2e86aea4032aab9d16cde3e57be9"
+    },
+    {
+      "path": "scripts/accounting/Import-RolloutTaskUsage.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "56f467b71c5de76b99ae4d8f4acbd503790fb51c7232b87118ff554439fee7a2"
+    },
+    {
+      "path": "scripts/contracts/ContractValidation.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "32e91e849b379500d41fc97c532303b2027919b9da568a42afb91e8fb6f9df63"
+    },
+    {
+      "path": "scripts/contracts/Test-Organization.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "0211514e08a6f702e09354385bee20165e0aca55e2a9f95f8b427be3bd28bd2c"
+    },
+    {
+      "path": "scripts/delegation/Start-DelegatedCodexTask.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "b401b207fe83e371ad5377b0d2e7ccc08bcc91cd3091a3cf76b71042726233e0"
+    },
+    {
+      "path": "scripts/tests/accounting/Test-RolloutTaskUsage.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "debc534b39b9eac4c8f0acc771113e1eb226250acae8dfcd951dc05fdf078600"
+    },
+    {
+      "path": "scripts/tests/accounting/Test-TaskTokenUsage.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "f8cd6256481e2253124907d1ada2214d9b7eb1116e9f6ea6a895f392891eb0cf"
+    },
+    {
+      "path": "scripts/tests/contracts/Test-Contracts.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "cbba33e45823a0c5a43c9c2a82034774e3f27c45a28ee0978abbb221daf38d1a"
+    },
+    {
+      "path": "scripts/tests/contracts/Test-SkillContracts.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "dbb9539d35816c688a973ef7b79f2b422877517748feec06e4d126d28e6d2c24"
+    },
+    {
+      "path": "scripts/tests/delegation/Test-DelegatedProgress.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "d37ac91a4f5c39e114b4d6e6cec3d3377869404a15d221c09234ce3b219f0b5d"
+    },
+    {
+      "path": "scripts/tests/workitems/RecoveryWorker.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "2d24157895d0823adfe177f78d4856c353f9f7d948bca36b82b045f44feb2b5d"
+    },
+    {
+      "path": "scripts/tests/workitems/Test-WorkItemStore.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "ec1f60c14d9b57511a7d22d04161307987aaef2ae532e0baf8b128acbcbddaf4"
+    },
+    {
+      "path": "scripts/tests/workitems/Test-WorkItemStoreRecovery.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "c44672a60d4bd803ed55b3fff83f6cb5ce03eb6c98bb35cc11d308dbc41cfc7d"
+    },
+    {
+      "path": "scripts/tests/workitems/Worker.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "628d053d869019a8aa2bb02baf6868f3e2ed77ec072ee1877b6265f1dfee1984"
+    },
+    {
+      "path": "scripts/workitems/Get-WorkItems.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "2bc7c5a1444f9e2892e5276d3be5f47644d9dab74e692d2f6ce66d45dd0288d2"
+    },
+    {
+      "path": "scripts/workitems/New-WorkItem.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "4671e2fe54f76e6c5acddb457b8d4f2f4dec56eb446198d8b6b1ae50e0d25f76"
+    },
+    {
+      "path": "scripts/workitems/Set-WorkItem.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "59d1d402fc9b2bdcf1c31077be52936e328eca957c850aea1ce5cdecfb383599"
+    },
+    {
+      "path": "scripts/workitems/Test-WorkItems.ps1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "885af4580799f3d60c9eee83c0b651ce8d060e258c1d1c8759d8026fb4bd80b4"
+    },
+    {
+      "path": "scripts/workitems/WorkItemStore.psm1",
+      "checkout_bytes_match_expected": true,
+      "bom_preserved": true,
+      "sha256": "b4e6ce1a9d8507a733487906753059e7effcd7cd5962f8c765dbe8d1da2818d0"
+    }
+  ],
+  "preserved_task60_files": [
+    {
+      "path": "docs/task60-evidence/qa-review.json",
+      "blob": "f17fe57dd9b23659f0ca5b42641a855ceac5e89c",
+      "unchanged": true
+    },
+    {
+      "path": "docs/task60-evidence/runner-error.json",
+      "blob": "e6275f685a7df8a00ec4bdd6e03a579c3f6a900e",
+      "unchanged": true
+    },
+    {
+      "path": "docs/task60-evidence/scope-check.json",
+      "blob": "4f0703d7fa62246167ea88f35fe5db6ede93fcb5",
+      "unchanged": true
+    },
+    {
+      "path": "docs/task60-evidence/test-results.json",
+      "blob": "b24854f225851ea8d9dd1cf4e52505b577d5a893",
+      "unchanged": true
+    },
+    {
+      "path": "docs/task60-evidence/workitem-preflight.json",
+      "blob": "4be0d9296c684a69677b91f783c13ea664cdfd84",
+      "unchanged": true
+    },
+    {
+      "path": "docs/task60-evidence/workitem.json",
+      "blob": "503491800085aba8c6d86d0074185df15ab5f909",
+      "unchanged": true
+    },
+    {
+      "path": "schemas/skill-response.schema.json",
+      "blob": "b69b8aa1b40d6f6dee36f07bd716f4063e42f3a7",
+      "unchanged": true
+    },
+    {
+      "path": "schemas/skills.schema.json",
+      "blob": "f114426f8f284d87cc7e11957fb1a7f6c24be43b",
+      "unchanged": true
+    }
+  ]
+}

@@ -1,0 +1,862 @@
+{
+    "recorded_at":  "2026-10-12T13:13:18.2485319+02:00",
+    "jobs":  [
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\final-review-result.json.job.json",
+                     "task_id":  "081f02a34c3a4cad8cd0706f79d67f25",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\final-review-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  58388,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\implementation-result.json.job.json",
+                     "task_id":  "8c4536f93c4a401291c67145eeffe4b4",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\implementation-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  55800,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\inventory-result.json.job.json",
+                     "task_id":  "dbbb58741cf34ab58b391697f3717e0d",
+                     "role":  "agent_ressources_bestandsanalyse",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\inventory-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  15148,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\new-path-smoke.json.job.json",
+                     "task_id":  "fccf20b22c7f43b0abd87d9608bb2509",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "8c4536f93c4a401291c67145eeffe4b4",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\new-path-smoke.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  47100,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\repair-result.json.job.json",
+                     "task_id":  "d547880ce6824fd7bd6ee53ce659bcd8",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\repair-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  29052,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\review-result.json.job.json",
+                     "task_id":  "9aa41f8a9c134680b1a36c88201d7c14",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\review-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  50376,
+                     "current_pid_identity":  [
+                                                  {
+                                                      "ProcessId":  50376,
+                                                      "ParentProcessId":  18024,
+                                                      "Name":  "conhost.exe",
+                                                      "CreationDate":  "\/Date(1791801578900)\/",
+                                                      "CommandLine":  "\\??\\C:\\Windows\\system32\\conhost.exe 0x4"
+                                                  }
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\wording-result.json.job.json",
+                     "task_id":  "aa77d48be1d44252925a80a23aa4a8bc",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order\\runtime\\scripts-order\\wording-result.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  12388,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-story16-leader.json.job.json",
+                     "task_id":  "8bb5873ff87d4b849433b7b6f5a27023",
+                     "role":  "teamleiter_softwareentwicklung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+                     "parent_task_id":  null,
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-story16-leader.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  56604,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-close-optimizer.json.job.json",
+                     "task_id":  "113788133fb64e1fa3341c9433aa46a5",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-close-optimizer.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  49928,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-finish-leader.json.job.json",
+                     "task_id":  "7d2f5543ab2b4fcca02496cbc8b85c0b",
+                     "role":  "teamleiter_agent_ressources",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+                     "parent_task_id":  null,
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-finish-leader.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  33484,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json.job.json",
+                     "task_id":  "1366a0a484bd401d967c166977d72c63",
+                     "role":  "teamleiter_agent_ressources",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+                     "parent_task_id":  null,
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json",
+                     "terminal_outcome":  null,
+                     "usage_finalized":  null,
+                     "runner_pid":  null,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  true,
+                     "job_processes":  [
+                                           {
+                                               "ProcessId":  19612,
+                                               "ParentProcessId":  58564,
+                                               "Name":  "conhost.exe",
+                                               "CreationDate":  "\/Date(1791802912401)\/",
+                                               "CommandLine":  "\"C:\\Windows\\System32\\conhost.exe\" \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1\" -JobFile \"C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json.job.json\" "
+                                           },
+                                           {
+                                               "ProcessId":  50932,
+                                               "ParentProcessId":  19612,
+                                               "Name":  "powershell.exe",
+                                               "CreationDate":  "\/Date(1791802912419)\/",
+                                               "CommandLine":  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1 -JobFile C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json.job.json"
+                                           }
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-leader.json.job.json",
+                     "task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "role":  "teamleiter_agent_ressources",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization",
+                     "parent_task_id":  null,
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-leader.json",
+                     "terminal_outcome":  null,
+                     "usage_finalized":  false,
+                     "runner_pid":  58892,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-publish.json.job.json",
+                     "task_id":  "8d5a942a100a45769d644d6ffa9eb55c",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "9d9b284d9dfe4b73be7ecc4c5d3ba1aa",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-publish.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  52860,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-new-starter-smoke.json.job.json",
+                     "task_id":  "7446a7a6727043278d475d0f160ebb7e",
+                     "role":  "agent_ressources_bestandsanalyse",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-new-starter-smoke.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  14580,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json.job.json",
+                     "task_id":  "c6ad842d53d74e7e941f5fcc1500093c",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json",
+                     "terminal_outcome":  null,
+                     "usage_finalized":  null,
+                     "runner_pid":  null,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  true,
+                     "job_processes":  [
+                                           {
+                                               "ProcessId":  57736,
+                                               "ParentProcessId":  15316,
+                                               "Name":  "conhost.exe",
+                                               "CreationDate":  "\/Date(1791802972916)\/",
+                                               "CommandLine":  "\"C:\\Windows\\System32\\conhost.exe\" \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1\" -JobFile \"C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json.job.json\" "
+                                           },
+                                           {
+                                               "ProcessId":  30960,
+                                               "ParentProcessId":  57736,
+                                               "Name":  "powershell.exe",
+                                               "CreationDate":  "\/Date(1791802972929)\/",
+                                               "CommandLine":  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1 -JobFile C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json.job.json"
+                                           }
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-qa-baseline.json.job.json",
+                     "task_id":  "02802843702142a988dcc985306d2276",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+                     "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-qa-baseline.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  19428,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-finish-metaschema.json.job.json",
+                     "task_id":  "5fb316acf0cd484ab6f9bcde8eec72d2",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "87ee1bb435a44a7f9d25d804e63d2712",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-finish-metaschema.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  54288,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-finish-publish.json.job.json",
+                     "task_id":  "745fe979757a49848244e324ec85bbc8",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "87ee1bb435a44a7f9d25d804e63d2712",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-finish-publish.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  52760,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-fixes.json.job.json",
+                     "task_id":  "d04ad2ef2370430bbbf7a7cdea152dc9",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "c80c31b3abbe4f93ab5088d35073ecc5",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-fixes.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  34372,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-implementation.json.job.json",
+                     "task_id":  "297eac268933490bbe3b07712e9480af",
+                     "role":  "agent_ressources_optimierer",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "c80c31b3abbe4f93ab5088d35073ecc5",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-implementation.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  36584,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-qa-final.json.job.json",
+                     "task_id":  "6c641b2c31db428480aaf52a2d7d9b64",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "c80c31b3abbe4f93ab5088d35073ecc5",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-qa-final.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  54268,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 },
+                 {
+                     "job":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-qa.json.job.json",
+                     "task_id":  "4a4084a6a1714032bd9b9e037b870f72",
+                     "role":  "agent_ressources_qualitaetspruefung",
+                     "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation",
+                     "parent_task_id":  "c80c31b3abbe4f93ab5088d35073ecc5",
+                     "result":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\task60-qa.json",
+                     "terminal_outcome":  "completed",
+                     "usage_finalized":  true,
+                     "runner_pid":  12136,
+                     "current_pid_identity":  [
+
+                                              ],
+                     "command_matches_job":  false,
+                     "job_processes":  [
+
+                                       ]
+                 }
+             ],
+    "relevant_processes":  [
+                               {
+                                   "ProcessId":  19612,
+                                   "ParentProcessId":  58564,
+                                   "Name":  "conhost.exe",
+                                   "CreationDate":  "\/Date(1791802912401)\/",
+                                   "CommandLine":  "\"C:\\Windows\\System32\\conhost.exe\" \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1\" -JobFile \"C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json.job.json\" "
+                               },
+                               {
+                                   "ProcessId":  50932,
+                                   "ParentProcessId":  19612,
+                                   "Name":  "powershell.exe",
+                                   "CreationDate":  "\/Date(1791802912419)\/",
+                                   "CommandLine":  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1 -JobFile C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-scripts-order-integrate-leader.json.job.json"
+                               },
+                               {
+                                   "ProcessId":  57736,
+                                   "ParentProcessId":  15316,
+                                   "Name":  "conhost.exe",
+                                   "CreationDate":  "\/Date(1791802972916)\/",
+                                   "CommandLine":  "\"C:\\Windows\\System32\\conhost.exe\" \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1\" -JobFile \"C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json.job.json\" "
+                               },
+                               {
+                                   "ProcessId":  30960,
+                                   "ParentProcessId":  57736,
+                                   "Name":  "powershell.exe",
+                                   "CreationDate":  "\/Date(1791802972929)\/",
+                                   "CommandLine":  "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-task60-preparation\\scripts\\Start-DelegatedCodexTask.ps1 -JobFile C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-prepare.json.job.json"
+                               }
+                           ],
+    "app_server_ancestry":  [
+                                {
+                                    "pid":  49936,
+                                    "name":  "cmd.exe",
+                                    "created":  "\/Date(1791802923559)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63"
+                                                            ],
+                                    "classification":  "known scope job"
+                                },
+                                {
+                                    "pid":  48172,
+                                    "name":  "node.exe",
+                                    "created":  "\/Date(1791802923616)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  48172,
+                                                         "parent_pid":  49936,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802923616)\/"
+                                                     },
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63"
+                                                            ],
+                                    "classification":  "known scope job"
+                                },
+                                {
+                                    "pid":  54432,
+                                    "name":  "codex.exe",
+                                    "created":  "\/Date(1791802923681)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  54432,
+                                                         "parent_pid":  48172,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791802923681)\/"
+                                                     },
+                                                     {
+                                                         "pid":  48172,
+                                                         "parent_pid":  49936,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802923616)\/"
+                                                     },
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63"
+                                                            ],
+                                    "classification":  "known scope job"
+                                },
+                                {
+                                    "pid":  46056,
+                                    "name":  "cmd.exe",
+                                    "created":  "\/Date(1791802984219)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  46056,
+                                                         "parent_pid":  30960,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802984219)\/"
+                                                     },
+                                                     {
+                                                         "pid":  30960,
+                                                         "parent_pid":  57736,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972929)\/"
+                                                     },
+                                                     {
+                                                         "pid":  57736,
+                                                         "parent_pid":  15316,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802972916)\/"
+                                                     },
+                                                     {
+                                                         "pid":  15316,
+                                                         "parent_pid":  54432,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972194)\/"
+                                                     },
+                                                     {
+                                                         "pid":  54432,
+                                                         "parent_pid":  48172,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791802923681)\/"
+                                                     },
+                                                     {
+                                                         "pid":  48172,
+                                                         "parent_pid":  49936,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802923616)\/"
+                                                     },
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63",
+                                                                "c6ad842d53d74e7e941f5fcc1500093c"
+                                                            ],
+                                    "classification":  "known scope job"
+                                },
+                                {
+                                    "pid":  52048,
+                                    "name":  "node.exe",
+                                    "created":  "\/Date(1791802984257)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  52048,
+                                                         "parent_pid":  46056,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802984257)\/"
+                                                     },
+                                                     {
+                                                         "pid":  46056,
+                                                         "parent_pid":  30960,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802984219)\/"
+                                                     },
+                                                     {
+                                                         "pid":  30960,
+                                                         "parent_pid":  57736,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972929)\/"
+                                                     },
+                                                     {
+                                                         "pid":  57736,
+                                                         "parent_pid":  15316,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802972916)\/"
+                                                     },
+                                                     {
+                                                         "pid":  15316,
+                                                         "parent_pid":  54432,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972194)\/"
+                                                     },
+                                                     {
+                                                         "pid":  54432,
+                                                         "parent_pid":  48172,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791802923681)\/"
+                                                     },
+                                                     {
+                                                         "pid":  48172,
+                                                         "parent_pid":  49936,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802923616)\/"
+                                                     },
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63",
+                                                                "c6ad842d53d74e7e941f5fcc1500093c"
+                                                            ],
+                                    "classification":  "known scope job"
+                                },
+                                {
+                                    "pid":  45364,
+                                    "name":  "codex.exe",
+                                    "created":  "\/Date(1791802984304)\/",
+                                    "ancestry":  [
+                                                     {
+                                                         "pid":  45364,
+                                                         "parent_pid":  52048,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791802984304)\/"
+                                                     },
+                                                     {
+                                                         "pid":  52048,
+                                                         "parent_pid":  46056,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802984257)\/"
+                                                     },
+                                                     {
+                                                         "pid":  46056,
+                                                         "parent_pid":  30960,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802984219)\/"
+                                                     },
+                                                     {
+                                                         "pid":  30960,
+                                                         "parent_pid":  57736,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972929)\/"
+                                                     },
+                                                     {
+                                                         "pid":  57736,
+                                                         "parent_pid":  15316,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802972916)\/"
+                                                     },
+                                                     {
+                                                         "pid":  15316,
+                                                         "parent_pid":  54432,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802972194)\/"
+                                                     },
+                                                     {
+                                                         "pid":  54432,
+                                                         "parent_pid":  48172,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791802923681)\/"
+                                                     },
+                                                     {
+                                                         "pid":  48172,
+                                                         "parent_pid":  49936,
+                                                         "name":  "node.exe",
+                                                         "created":  "\/Date(1791802923616)\/"
+                                                     },
+                                                     {
+                                                         "pid":  49936,
+                                                         "parent_pid":  50932,
+                                                         "name":  "cmd.exe",
+                                                         "created":  "\/Date(1791802923559)\/"
+                                                     },
+                                                     {
+                                                         "pid":  50932,
+                                                         "parent_pid":  19612,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802912419)\/"
+                                                     },
+                                                     {
+                                                         "pid":  19612,
+                                                         "parent_pid":  58564,
+                                                         "name":  "conhost.exe",
+                                                         "created":  "\/Date(1791802912401)\/"
+                                                     },
+                                                     {
+                                                         "pid":  58564,
+                                                         "parent_pid":  42860,
+                                                         "name":  "powershell.exe",
+                                                         "created":  "\/Date(1791802911382)\/"
+                                                     },
+                                                     {
+                                                         "pid":  42860,
+                                                         "parent_pid":  35508,
+                                                         "name":  "codex.exe",
+                                                         "created":  "\/Date(1791752035049)\/"
+                                                     }
+                                                 ],
+                                    "matched_scope_tasks":  [
+                                                                "1366a0a484bd401d967c166977d72c63",
+                                                                "c6ad842d53d74e7e941f5fcc1500093c"
+                                                            ],
+                                    "classification":  "known scope job"
+                                }
+                            ],
+    "stable_starter":  "C:/Users/Tom-OliverMarek/source/repos/agent-organization-task60-preparation/scripts/Start-DelegatedCodexTask.ps1",
+    "stable_starter_sha256":  "92864E345F9D164F0E49A26E3D87508DA3729BE40F39D51BC10C1A6D4808D401",
+    "processes_closed":  0,
+    "limitation":  "Snapshot only; no historical creation-time evidence implies no PID-only ownership inference. Unassigned app servers remain protected and require broader teamleader identity/path gate. Recheck immediately before future merge/switch."
+}

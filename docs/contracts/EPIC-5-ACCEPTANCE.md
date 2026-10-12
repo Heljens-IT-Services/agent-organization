@@ -1,5 +1,7 @@
 # Abnahme Epic #5
 
+Historischer Abnahme-/Implementierungsbeleg: Skriptpfade und Befehle dokumentieren den damaligen Stand. Aktuelle Pfade stehen in README.md des Repositorys und docs/WORKITEM-STORAGE.md.
+
 Implementierte Hierarchie: Epic #5 → Stories #12/#13 → Tasks #26/#27/#28/#29.
 Die Epics #6–#11 sind Folgeumfang und werden hier nicht geschlossen.
 
