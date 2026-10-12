@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([string]$ResultPath,[string]$DeliveryReport,[Parameter(Mandatory=$true)][string[]]$Gate)
 $ErrorActionPreference='Stop'
 $utf8=New-Object Text.UTF8Encoding($false,$true)
@@ -83,7 +83,7 @@ function Wait-File($path) {
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 $hostEntry=Join-Path $repo 'scripts/Start-CoordinatorHost.ps1'
 if (-not $DeliveryReport -or -not [IO.File]::Exists($DeliveryReport)) { throw 'Final host execution requires the infrastructure delivery report' }
-$hashPaths=@($hostEntry,(Join-Path $repo 'scripts/coordinator/CoordinatorHost.Core.psm1'),(Join-Path $repo 'scripts/Invoke-CoordinatorTurn.ps1'),(Join-Path $repo 'scripts/Start-DelegatedCodexTask.ps1'),(Join-Path $repo 'scripts/Test-CoordinatorHost.ps1'),$PSCommandPath,(Join-Path $workers 'MockRuntime.ps1'),(Join-Path $workers 'ClientWorker.ps1'),$DeliveryReport)
+$hashPaths=@($hostEntry,(Join-Path $repo 'scripts/coordinator/CoordinatorHost.Core.psm1'),(Join-Path $repo 'scripts/Invoke-CoordinatorTurn.ps1'),(Join-Path $repo 'scripts/delegation/Start-DelegatedCodexTask.ps1'),(Join-Path $repo 'scripts/Test-CoordinatorHost.ps1'),$PSCommandPath,(Join-Path $workers 'MockRuntime.ps1'),(Join-Path $workers 'ClientWorker.ps1'),$DeliveryReport)
 $hashBefore=@($hashPaths | ForEach-Object { @{path=$_;sha256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash} })
 function ReadJson($path) {
     $clock=[Diagnostics.Stopwatch]::StartNew()
@@ -414,7 +414,7 @@ try {
         }
     }
     Check 'Window protection source decision for completed, timeout, error' {
-        $path=Join-Path $repo 'scripts/Start-DelegatedCodexTask.ps1'
+        $path=Join-Path $repo 'scripts/delegation/Start-DelegatedCodexTask.ps1'
         $source=[IO.File]::ReadAllText($path,$utf8)
         Assert ($source.Contains("if (`$Role -ceq 'koordinator') { `$KeepWindowOpen = `$true }") -and $source.Contains("if (`$Role -cne 'koordinator' -and -not `$KeepWindowOpen")) 'Coordinator close guard absent'
         foreach($outcome in @('completed','timeout','error')) { $role='koordinator';$keep=$true;Assert (-not ($role -cne 'koordinator' -and -not $keep)) 'Synthetic close decision allowed' }
