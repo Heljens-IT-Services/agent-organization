@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0",
+  "items": [
+    {
+      "id": "goal",
+      "parentId": null,
+      "title": "goal",
+      "description": "Demonstrate a measurable outcome.",
+      "owner": {
+        "type": "human",
+        "id": "tom"
+      },
+      "goal": {
+        "description": "Deliver a usable combined business outcome.",
+        "metric": "Successful end-to-end customer workflow",
+        "target": "Both deliverables integrated"
+      },
+      "priority": "normal",
+      "dependencies": [],
+      "specification": {
+        "inline": "Implement and verify the scoped result."
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "customer-value",
+          "description": "Both deliverables work together in the requested customer workflow."
+        }
+      ],
+      "status": "planned",
+      "result": null,
+      "verifications": [],
+      "humanInteraction": null,
+      "blockReason": null,
+      "createdAt": "2026-10-12T10:00:00Z",
+      "updatedAt": "2026-10-12T10:00:00Z",
+      "implementedAt": null,
+      "acceptedAt": null
+    },
+    {
+      "id": "task-a",
+      "parentId": "goal",
+      "title": "task-a",
+      "description": "Demonstrate a measurable outcome.",
+      "owner": {
+        "type": "human",
+        "id": "tom"
+      },
+      "goal": {
+        "description": "Deliver validated results.",
+        "metric": "Passed business criteria",
+        "target": "100%"
+      },
+      "priority": "normal",
+      "dependencies": [],
+      "specification": {
+        "inline": "Implement and verify the scoped result."
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "delivery-a",
+          "description": "The assigned partial deliverable meets its technical specification."
+        }
+      ],
+      "status": "planned",
+      "result": null,
+      "verifications": [],
+      "humanInteraction": null,
+      "blockReason": null,
+      "createdAt": "2026-10-12T10:00:00Z",
+      "updatedAt": "2026-10-12T10:00:00Z",
+      "implementedAt": null,
+      "acceptedAt": null
+    },
+    {
+      "id": "task-b",
+      "parentId": "goal",
+      "title": "task-b",
+      "description": "Demonstrate a measurable outcome.",
+      "owner": {
+        "type": "human",
+        "id": "tom"
+      },
+      "goal": {
+        "description": "Deliver validated results.",
+        "metric": "Passed business criteria",
+        "target": "100%"
+      },
+      "priority": "normal",
+      "dependencies": [],
+      "specification": {
+        "inline": "Implement and verify the scoped result."
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "delivery-b",
+          "description": "The assigned partial deliverable meets its technical specification."
+        }
+      ],
+      "status": "planned",
+      "result": null,
+      "verifications": [],
+      "humanInteraction": null,
+      "blockReason": null,
+      "createdAt": "2026-10-12T10:00:00Z",
+      "updatedAt": "2026-10-12T10:00:00Z",
+      "implementedAt": null,
+      "acceptedAt": null
+    }
+  ]
+}

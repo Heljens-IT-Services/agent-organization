@@ -2,15 +2,25 @@
 
 ## Ziel und Verantwortungen
 
-Beim Einsatz der Agentenorganisation arbeitet der Benutzer mit dem Koordinator. Dieser klärt das Ziel,
+Für alle Arbeiten in diesem Repository arbeitet der Benutzer mit dem Koordinator
+als verpflichtender Top-Level-Rolle, ohne Wartungsausnahme. Ausdrücklich zugewiesene
+Teamleiter und Spezialisten behalten ihre eigene Rolle. Der Koordinator klärt das Ziel,
 legt Scope und Teamzuständigkeiten fest, beauftragt die passenden Teamleiter und
 bündelt deren Ergebnisse zu einer verständlichen Rückmeldung. Er arbeitet nicht
 operativ.
+
+Für die erste Heljens-Version gelten [Entscheidung 0001](decisions/0001-system-scope.md),
+der [WorkItem-Vertrag](contracts/WORKITEMS.md) und der
+[Organisationsvertrag](contracts/ORGANIZATION.md). GitHub-Issues planen die Umsetzung;
+der laufende Bestand gehört künftig in die eigene WorkItem-Verwaltung.
 
 Jeder Teamleiter plant und koordiniert die Arbeit seines Fachbereichs, vergibt
 abgegrenzte Aufträge an Spezialisten und prüft, ob die Rückgaben den Auftrag
 abdecken. Er arbeitet ebenfalls nicht operativ. Spezialisten erstellen,
 analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
+Teamleiter spezifizieren Teilziele mit erforderlichen Fachleuten. Keine Rolle
+entscheidet fachliche Architektur ohne zuständigen Spezialistenbeitrag.
+Umsetzung und Kinderabschlüsse ersetzen nicht die Prüfung eigener Elternkriterien.
 
 ## Vorgesehene Teams
 
@@ -27,10 +37,10 @@ bei den konfigurierten Spezialisten.
 | Buchhaltung | Belege und buchhalterische Abläufe | Belege, Rechnungen, Kontierung, Abstimmung |
 | Geschäftsführung und Assistenz | Verträge, Outlook/E-Mail und Kundenkommunikation | Vertragskoordination, Outlook-/E-Mail-Assistenz, Kundenkommunikation |
 | HR | Personalthemen | Personaladministration, Recruiting, Personalentwicklung |
-| Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsanalyse, Rollenkonfiguration, Qualitätsprüfung |
+| Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsanalyse, Rollenkonfiguration, Qualitätsprüfung, Optimierer |
 | Administratoren | Administration von Diensten und Infrastruktur | Microsoft 365, SharePoint, GitHub, Hetzner |
 
-Alle neun Teamleiter und 34 operative Rollen sind als TOMLs konfiguriert und
+Alle neun Teamleiter und 35 operative Rollen sind als TOMLs konfiguriert und
 persönlich installiert. Installation allein beweist keine produktive Fachleistung.
 
 Agent Ressources prüft zuerst Wiederverwendung und Erweiterung vorhandener
@@ -38,6 +48,11 @@ Agenten, bevor es begründete Neuanlagen vorbereitet. Unterstützung anderer
 Teamleiter läuft ausschließlich über den Koordinator und benötigt nur passende
 Fähigkeitsauszüge der jeweiligen Leiter, keine globale Spezialistenliste oder
 direkten Kontakte zu anderen Teams.
+
+Bestandsanalyse prüft Wiederverwendung, Rollenkonfiguration bereitet vor,
+Qualitätsprüfung prüft unabhängig. Der Optimierer ergänzt die beauftragte
+Organisationsänderung mit Konsistenz-, Referenz- und Funktionsbelegen;
+Architektur und Teamgrenzen bleiben bestehen.
 
 Vertragskoordination beschreibt einen vorgesehenen Aufgabenbereich und enthält
 keine Garantie rechtlicher Fachkompetenz. Das Versenden von E-Mails erfordert
@@ -47,9 +62,9 @@ Administratoren nutzen vorhandene MCP-Werkzeuge oder Browsersteuerung mit geeign
 
 ## Konfiguration
 
-Das Repository soll die versionierte Quelle der Organisation werden. Rollen,
+Das Repository ist die versionierte Quelle der Organisation. Rollen,
 Verantwortungen, Teamzuordnung und Mitgliedschaft sollen nachvollziehbar und
-änderbar beschrieben werden. TOML ist ein möglicher Dateityp.
+änderbar beschrieben werden. Native Rollen verwenden TOML, Kontaktindizes JSON.
 
 Zwei Ebenen sind zu unterscheiden:
 
@@ -67,14 +82,14 @@ sind durch die folgende eigene Lookupkonvention beschrieben.
 `koordinator/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
 allein aktiviert den App-Hauptchat nicht automatisch. Zehn koordinierende Rollen
-(Koordinator und neun Teamleiter) sowie 34 operative Rollen sind implementiert
-und persönlich installiert. Repositorypflege erfolgt als normale Entwicklungsassistenz; der Koordinator wird nur ausdrücklich aktiviert. Zugewiesene Rollen folgen ihrer TOML.
+(Koordinator und neun Teamleiter) sowie 35 operative Rollen sind implementiert
+und persönlich installiert. Die Koordinatorpflicht gilt auch für Repositorypflege. Ausdrücklich zugewiesene Rollen folgen ihrer TOML.
 
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
 Defaults `gpt-6-luna`, Reasoning `medium`, Antwortlänge `medium`,
 `danger-full-access`, `never` und `cached`.
 Koordinator, alle Teamleiter, Softwarearchitektur, Software-Qualitätssicherung,
-Agent-Ressources-Qualitätsprüfung und Vertragskoordination verwenden abweichend
+Agent-Ressources-Qualitätsprüfung, Optimierer und Vertragskoordination verwenden abweichend
 `gpt-6.1-sol`; Reasoning bleibt `medium`.
 `name`, `description` und `developer_instructions` bleiben rollenspezifisch.
 [MUST] Rollenbeschreibungen bleiben ein kurzer Satz; Instruktionen enthalten
@@ -116,7 +131,7 @@ Kontaktquelle des jeweiligen Teamleiters und wird bytegleich unter
 Besetzung oder Rollenreferenzen pflegen Quelle und persönliche Kopie im selben
 Änderungssatz. Fehlende operative Rollen haben `role_file: null`.
 
-[MUST] Alle Organisations-JSONs bleiben ohne `status`-Eigenschaften, auch in
+[MUST] Alle Team- und Agentenindizes bleiben ohne `status`-Eigenschaften, auch in
 verschachtelten Einträgen. Verfügbarkeit wird ausschließlich durch eine
 vorhandene Rollenreferenz oder `role_file: null` ausgedrückt; keine Ersatzflags.
 
@@ -132,6 +147,14 @@ Die TOMLs bleiben für Codex-Discovery flach im persönlichen `agents`-Verzeichn
 Lookupdaten liegen in den zugehörigen Unterordnern. Es gibt keine Aliasdateien.
 
 ## Delegation und Kapazität
+
+Maximal drei Agentenebenen: Koordinator → Teamleiter → operativer Agent.
+WorkItems bilden davon unabhängig beliebig tiefe Aufgabenbäume. Ziele enthalten
+Messgrößen und Akzeptanzkriterien; der Koordinator priorisiert, Teamleiter planen
+fachlich, Spezialisten liefern beauftragte Beiträge. Neue Besetzung wird vorgeschlagen.
+Vertrieb liegt bei Marketing (Kundengewinnung) und Geschäftsführung und Assistenz
+(Angebote, Verträge, Kundenkommunikation); Controlling unterstützt wirtschaftlich
+über den Koordinator. Es entsteht kein zusätzliches Vertriebsteam.
 
 Ein Auftrag geht vom Koordinator an einen passenden Teamleiter und von dort an
 einen oder mehrere Spezialisten. Übergaben enthalten Ziel, Scope, Nicht-Scope,
@@ -151,8 +174,9 @@ Codex-Auftrag und benötigtem Kontext. Die frühere Forderung nach einem separat
 Desktop-App-Fenster wurde damit ersetzt. Der parametrische
 [Terminalstarter](FENSTERDELEGATION.md) prüft vor Arbeitsbeginn die Zuordnung von
 Auftrag, Runner und tatsächlichem Fenster und startet erst nach bestätigter
-Sichtbarkeit. Nach terminalem Ergebnis und Sicherung schließt nur das eigene
-Fenster; Historie bleibt erhalten. Warten und Rückfragen sind kein Abschluss.
+Sichtbarkeit. Nach terminalem Ergebnis und Sicherung schließen Teamleiter und
+Spezialisten nur ihr eigenes Aufgabenfenster; die Koordinatorkonsole bleibt immer
+offen. Historie bleibt erhalten. Warten und Rückfragen sind kein Abschluss.
 
 Dieser Ablauf wurde mit einer tatsächlichen QA-Aufgabe geprüft. Die automatische
 Kopplung sämtlicher nativer Delegationen bleibt offen; ein späteres
@@ -165,7 +189,18 @@ Git-Versionierung soll Änderungen an Organisation und Profilen nachvollziehbar
 machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
-Persönlich installiert sind 44 Rollen und zehn Lookupindizes. Fachliche Pilotaufgaben
+Persönlich installiert sind 45 Rollen und zehn Lookupindizes. Fachliche Pilotaufgaben
 und eine automatische Anbindung nativer Delegation bleiben gesonderte Schritte;
 GitHub Actions bleiben deaktiviert. Die vorhandenen großzügigen technischen
 Defaults sind keine durch die Instruktionen erzwungene Beschränkung.
+
+Empfindliche Organisationsstrukturen (Organisationsdateien, Rollenregeln,
+Indizes und zugehörige Verträge) werden ausschließlich über den Auftragspfad
+Koordinator -> zuständiger Teamleiter -> Optimierer geändert, im abgegrenzten
+WorkItem mit vorheriger menschlicher Freigabe. Der Koordinator beauftragt nur
+Teamleiter mit Zielen, Rahmenbedingungen und Abnahmekriterien; er kontaktiert
+oder wählt keine operativen Agenten und schreibt deren Interaktionen nicht vor.
+Der Teamleiter bestimmt die interne Besetzung und Zusammenarbeit eigenständig.
+Der Optimierer kommuniziert ausschließlich mit teamleiter_agent_ressources,
+erhält fremde Änderungen und liefert Konsistenz-, Referenz- und Funktionsbelege.
+Unabhängige Qualitätsprüfung und dokumentierte eigene Elternabnahme folgen getrennt.

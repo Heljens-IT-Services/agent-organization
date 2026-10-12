@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "items": [
+    {
+      "id": "human-blocked",
+      "parentId": null,
+      "title": "human-blocked",
+      "description": "Demonstrate a measurable outcome.",
+      "owner": {
+        "type": "human",
+        "id": "tom"
+      },
+      "goal": {
+        "description": "Deliver validated results.",
+        "metric": "Passed business criteria",
+        "target": "100%"
+      },
+      "priority": "normal",
+      "dependencies": [],
+      "specification": {
+        "inline": "Implement and verify the scoped result."
+      },
+      "acceptanceCriteria": [
+        {
+          "id": "business-result",
+          "description": "The requested business result is demonstrated."
+        }
+      ],
+      "status": "blocked",
+      "result": null,
+      "verifications": [],
+      "humanInteraction": {
+        "kind": "approval",
+        "description": "Approve the proposed customer message.",
+        "requestedAt": "2026-10-12T10:01:00Z",
+        "response": null
+      },
+      "blockReason": null,
+      "createdAt": "2026-10-12T10:00:00Z",
+      "updatedAt": "2026-10-12T10:01:00Z",
+      "implementedAt": null,
+      "acceptedAt": null
+    }
+  ]
+}

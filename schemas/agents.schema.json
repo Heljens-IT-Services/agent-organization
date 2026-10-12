@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:heljens:agents:1",
+  "type": "object", "additionalProperties": false,
+  "required": ["team_id", "leader_id", "coordinator_id", "coordinator_role_file", "agents"],
+  "properties": {
+    "team_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "leader_id": {"type": "string", "pattern": "^teamleiter_[a-z][a-z0-9_]*$"},
+    "coordinator_id": {"const": "koordinator"},
+    "coordinator_role_file": {"const": "koordinator.toml"},
+    "agents": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["agent_id", "name", "description", "role_file"],
+        "properties": {
+          "agent_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "name": {"$ref": "#/$defs/text"},
+          "description": {"$ref": "#/$defs/text"},
+          "role_file": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[a-z][a-z0-9_]*\\.toml$"}]}
+        }
+      }
+    }
+  },
+  "$defs": {"text": {"type": "string", "minLength": 1, "pattern": "\\S"}}
+}

@@ -87,7 +87,8 @@ try {
     $parseTokens = $null; $parseErrors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Start-DelegatedCodexTask.ps1'), [ref]$parseTokens, [ref]$parseErrors)
     Assert ($parseErrors.Count -eq 0) 'Starter parst unter Windows PowerShell'
-    foreach ($name in @('Update-NativeUsage', 'Write-Event', 'Read-Rpc', 'Wait-Rpc', 'Send-Rpc', 'Test-ConsoleBinding', 'Get-FinalLedgerUsage')) {
+    foreach ($name in @('Update-NativeUsage', 'Write-Event', 'Read-Rpc', 'Wait-Rpc', 'Send-Rpc', 'Test-ConsoleBinding', 'Get-FinalLedgerUsage',
+        'New-ProgressState', 'Protect-ProgressText', 'Get-ProgressName', 'Get-ProgressCommand', 'Get-ProgressPath', 'Get-PublicProgress', 'Write-ProgressDisplay')) {
         $definition = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
         Invoke-Expression $definition.Extent.Text
     }
@@ -109,6 +110,7 @@ try {
     Assert ((Get-FinalLedgerUsage @{ usage_finalized = $true; token_usage = (Usage 10) }).totalTokens -eq 10) 'Final drain bestätigt gemessene Ledgernutzung'
     $evidence = [ordered]@{ thread_id = 'own-thread'; turn_id = $null; token_usage = $null }
     $notifications = New-Object System.Collections.Generic.List[object]
+    $progressState = New-ProgressState
     $resultFile = Join-Path $fixtureRoot 'rpc-result'
     function Notification($Total, $Thread = 'own-thread', $Turn = 'own-turn') {
         return @{ method = 'thread/tokenUsage/updated'; params = @{ threadId = $Thread; turnId = $Turn; tokenUsage = @{ total = (Usage $Total); last = (Usage 5) } } }
