@@ -115,8 +115,10 @@ bestätigten finalen Drain (`usage_finalized=false`) bleibt die Ledgernutzung
 $usage = .\scripts\accounting\Get-TaskTokenUsage.ps1 -TaskId '<task-guid>' `
   -AccountingDirectory C:\Temp\auftrag\token-accounting
 $usage | ConvertTo-Json -Depth 10
-.\scripts\tests\accounting\Test-TaskTokenUsage.ps1
 ```
+
+Der frühere technische Testaufruf ist aufgehoben; der Accounting-Bericht bleibt
+über das produktive Skript verfügbar.
 
 `Get-TaskTokenUsage.ps1` gibt `own`, `inclusive`, `known_partial`, `missing_count`,
 `distinct_known_usage_count` und `task_count` zurück. Es summiert eigene native
@@ -283,7 +285,7 @@ Quellen und Belege (erfasst am 12. Oktober 2026):
   ihr Testdiff ist synthetisch. MCP-, Dynamic-, Web-, Image- und Collab-Fixtures
   sind Schemafixtures und kein Nachweis einer neuen Liveausführung.
 
-Fokussierte Prüfung ohne Modellstart oder neues Fenster:
+Historische Wiederholungsanweisung (aufgehoben):
 
 ```powershell
 .\scripts\tests\delegation\Test-DelegatedProgress.ps1 -EvidenceStream `

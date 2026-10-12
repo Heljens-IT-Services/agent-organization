@@ -142,11 +142,12 @@ Neustart mitten im Dateisystemvorgang. Diese Anleitung verspricht keine
 SMB-/Netz-, Cloud-, verteilte oder plattformübergreifende Nutzung. Verwende
 kooperierende Caller auf demselben Windows-Host und einem lokalen NTFS-Ordner.
 
-Die finalen QA-Ergebnisse und relative Reproduktionsbefehle sind in
+Die finalen QA-Ergebnisse und damaligen Befehle sind in
 [docs/story15-evidence/run-manifest.json](story15-evidence/run-manifest.json)
-zusammengefasst; maschinenlesbare Ausführungs- und Quellenbelege liegen
-daneben. Absolute TEMP-Pfade in den Ausführungsdaten sind historische Angaben
-zu den damaligen Läufen. Die Übernahme der Belege ist keine erneute Ausführung
+als historische Belege zusammengefasst; die Testwiederholung ist aufgehoben.
+Maschinenlesbare Ausführungs- und Quellenbelege liegen daneben. Absolute
+TEMP-Pfade in den Ausführungsdaten sind historische Angaben zu den damaligen
+Läufen. Die Übernahme der Belege ist keine erneute Ausführung
 und keine Abnahme.
 
 Für QA-Abschluss und Elternabnahme sind die vorgesehenen

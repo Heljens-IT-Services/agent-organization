@@ -14,10 +14,15 @@ Basis: develop 84d7d4a99b3d3f5a661f262b12c0f7bbec21637c, feature/story14-atomic-
 - Schreibabbruch: isolierte Kopien mit Throw direkt vor/nach File.Replace ergeben vollständigen alten/neuen UTF-8-JSON-Bestand, jeweils vertragsgültig. Kriterium im beauftragten kontrollierten Fehlermodell erfüllt. Betriebscrash-/Wiederanlauftests ausdrücklich Folgeauftrag.
 - Ungültige Mutationen einschließlich Schema, Übergang, Timestamp, Graph sowie veraltete Revision abgewiesen, Zielbytes erhalten. Bestehende Vertragsregression 75/75, fokussierte Storeprüfung 14/14, beide Exitcode 0. Kriterium erfüllt.
 
-## Reproduktion
+## Historische Reproduktionsanweisung (aufgehoben)
 
+Die folgenden damaligen Befehle bleiben als historische Dokumentation erhalten;
+die Wiederholung ist aufgehoben.
+
+```text
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-WorkItemStore.ps1 -ResultPath <separater Testnachweis.json>
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Contracts.ps1 -ResultPath <separater Vertragsnachweis.json>
+```
 
 Unabhängiger finaler Storelauf: Windows PowerShell 5.1.26100.9549, lokales NTFS, 2026-10-12T08:53:06.5925819Z; Quellhash vor/nach identisch. Vergleichsdaten in lokalem QA-Bericht und maschinenlesbaren Nachweisen, Ergebnisse hier für dauerhafte PR-Prüfung dokumentiert.
 
