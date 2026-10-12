@@ -37,6 +37,7 @@ function Invoke-CoordinatorSupervisor {
         $hostPath=Join-Path (Split-Path -Parent $PSScriptRoot) 'Start-CoordinatorHost.ps1'
         $delays=@(5,15,30)
         while ($true) {
+            if ([int]$state.RetryCount -ge 3) { return [pscustomobject]@{State='Blocked';Reason='Restart budget exhausted. Human restart required.';Classification=$state.LastClassification;Attempts=$state.RetryCount} }
             $started=[DateTime]::UtcNow
             $priorHome=$env:CODEX_HOME
             try {
@@ -52,8 +53,6 @@ function Invoke-CoordinatorSupervisor {
                 $outcome=& $hostPath @hostParameters
             } catch { $outcome=[pscustomobject]@{Classification='Fatal';RetryAllowed=$false;Reason=$_.Exception.Message;CleanupConfirmed=$false} }
             finally { $env:CODEX_HOME=$priorHome }
-            $runtimeSeconds=([DateTime]::UtcNow-$started).TotalSeconds
-            if ($runtimeSeconds -ge 300 -and $outcome.CleanupConfirmed) { $state.RetryCount=0 }
             $state.LastError=[string]$outcome.Reason; $state.LastClassification=[string]$outcome.Classification; $state.UpdatedAtUtc=[DateTime]::UtcNow.ToString('o')
             $tmp=$statePath+'.'+[guid]::NewGuid().ToString('N')+'.writing'
             [IO.File]::WriteAllText($tmp,(ConvertTo-Json -InputObject $state -Depth 10 -Compress),$script:Utf8)

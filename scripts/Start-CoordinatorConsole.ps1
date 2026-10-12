@@ -3,10 +3,11 @@ param(
     [Parameter(Mandatory=$true)][string]$DataDirectory,
     [Parameter(Mandatory=$true)][string]$WorkingDirectory,
     [Parameter(Mandatory=$true)][string]$RuntimeExecutable,
-    [string]$CodexHome=(Join-Path $env:USERPROFILE '.codex'),
+    [string]$CodexHome,
     [string]$TaskId,
     [string]$ParentTaskId,
-    [string]$AccountingDirectory
+    [string]$AccountingDirectory,
+    [switch]$RestartRequestedByHuman
 )
 <#
 .SYNOPSIS
@@ -27,27 +28,33 @@ Optional task accounting context from the confirmed coordinator runner.
 Optional parent task accounting context.
 .PARAMETER AccountingDirectory
 Optional accounting ledger directory.
+.PARAMETER RestartRequestedByHuman
+Explicitly requests the human-only reset of the supervisor restart budget.
 .NOTES
 This script does not register or start a scheduled task. Start it in the confirmed visible Koordinator console.
 #>
 $ErrorActionPreference='Stop'
-$Host.UI.RawUI.WindowTitle='Koordinator'
-$DataDirectory=[IO.Path]::GetFullPath($DataDirectory)
-$WorkingDirectory=[IO.Path]::GetFullPath($WorkingDirectory)
-$RuntimeExecutable=[IO.Path]::GetFullPath($RuntimeExecutable)
-$CodexHome=[IO.Path]::GetFullPath($CodexHome)
-$env:CODEX_HOME=$CodexHome
-$context=$null
-if ($TaskId -or $ParentTaskId) { $context=[pscustomobject]@{TaskId=$TaskId;ParentTaskId=$ParentTaskId} }
-$supervisorPath=Join-Path $PSScriptRoot 'coordinator/CoordinatorSupervisor.psm1'
+$consoleTitleAvailable=$false
 try {
+    try { $Host.UI.RawUI.WindowTitle='Koordinator'; $consoleTitleAvailable=$true } catch { }
+    $DataDirectory=[IO.Path]::GetFullPath($DataDirectory)
+    $WorkingDirectory=[IO.Path]::GetFullPath($WorkingDirectory)
+    $RuntimeExecutable=[IO.Path]::GetFullPath($RuntimeExecutable)
+    if (-not $CodexHome) { $CodexHome=Join-Path $env:USERPROFILE '.codex' }
+    $CodexHome=[IO.Path]::GetFullPath($CodexHome)
+    $env:CODEX_HOME=$CodexHome
+    $context=$null
+    if ($TaskId -or $ParentTaskId -or $RestartRequestedByHuman) {
+        $context=[pscustomobject]@{TaskId=$TaskId;ParentTaskId=$ParentTaskId;RestartRequestedByHuman=[bool]$RestartRequestedByHuman}
+    }
+    $supervisorPath=Join-Path $PSScriptRoot 'coordinator/CoordinatorSupervisor.psm1'
     if (-not (Test-Path -LiteralPath $supervisorPath -PathType Leaf)) { throw "Coordinator supervisor module is not available: $supervisorPath" }
     Import-Module $supervisorPath -Force
     $result=Invoke-CoordinatorSupervisor -DataDirectory $DataDirectory -WorkingDirectory $WorkingDirectory -RuntimeExecutable $RuntimeExecutable -CodexHome $CodexHome -TaskContext $context -AccountingDirectory $AccountingDirectory
     Write-Host 'Koordinator-Aufsicht beendet.'
     if ($result) { $result | Format-List * }
 } catch { Write-Error -ErrorRecord $_ -ErrorAction Continue }
-finally { $Host.UI.RawUI.WindowTitle='Koordinator' }
+finally { if ($consoleTitleAvailable) { try { $Host.UI.RawUI.WindowTitle='Koordinator' } catch { } } }
 while ($true) {
     try { [void](Read-Host 'Koordinator-Konsole bleibt offen; Enter zum Anzeigen des Status, Strg+C zum Beenden') } catch { Start-Sleep -Seconds 1 }
     Write-Host ('Status: Supervisor-Aufruf beendet. Zeit: ' + [DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'))
