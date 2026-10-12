@@ -160,6 +160,74 @@ function Read-UsageEntries([string]$Directory) {
     }
     return @($native.Values)
 }
+function Read-ExpectedTaskFamily([string[]]$SourcePaths) {
+    # Each source declares an exact root set and a complete snapshot bound to a
+    # real evidence file. Rows represent task-turn identities, not one row per task.
+    $tasks = @{}; $conflicts = @(); $coverage = @(); $complete = $false
+    foreach ($path in $SourcePaths) {
+        $fullPath = Get-CanonicalPath $path
+        $document = Get-Content -LiteralPath $fullPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($document -isnot [pscustomobject] -or $document.version -ne 1 -or $document.tasks -isnot [array] -or $document.root_task_ids -isnot [array] -or $document.coverage -isnot [pscustomobject]) {
+            throw "Invalid expected-task source: $fullPath"
+        }
+        $c=$document.coverage
+        $coveredRoots=@($c.root_task_ids | ForEach-Object { Get-CanonicalId $_ } | Sort-Object -Unique)
+        $declaredRoots=@($document.root_task_ids | ForEach-Object { Get-CanonicalId $_ } | Sort-Object -Unique)
+        # A declared path/flag is not an independently readable complete inventory.
+        $evidence=Get-CanonicalPath (Get-Field $c 'source') -Optional
+        if ($((Get-Field $c 'complete')) -isnot [bool] -or $((Get-Field $c 'coveredThrough')) -isnot [string] -or (Get-Field $c 'coveredThrough') -notmatch 'Z$' -or $coveredRoots.Count -eq 0 -or (Compare-Object $declaredRoots $coveredRoots -SyncWindow 0)) { $complete=$false }
+        $coverageStore=Get-Field $c 'store_path'; $coverageItems=Get-Field $c 'work_item_ids'
+        if ((Get-Field $c 'scope') -ceq 'workitem' -and (-not $coverageStore -or -not $coverageItems)) { $complete=$false }
+        if ((Get-Field $c 'scope') -cne 'task' -and (Get-Field $c 'scope') -cne 'workitem') { $complete=$false }
+        if (-not (Get-Field $c 'complete')) { $complete=$false }
+        $coverage += @([pscustomobject]@{roots=$coveredRoots; source=$evidence; through=(Get-Field $c 'coveredThrough'); scope=(Get-Field $c 'scope'); storePath=$(if($coverageStore){Get-CanonicalPath $coverageStore}else{$null}); workItemIds=@($coverageItems); identities=@((Get-Field $c 'identities')); complete=$false})
+        foreach ($row in $document.tasks) {
+            $taskId = Get-CanonicalId (Get-PairedField $row 'task_id' 'taskId')
+            $identity = [pscustomobject]@{
+                taskId=$taskId
+                parentTaskId=(Get-CanonicalId (Get-PairedField $row 'parent_task_id' 'parentTaskId') -Optional)
+                threadId=(Get-CanonicalId (Get-PairedField $row 'thread_id' 'threadId') -Optional)
+                turnId=(Get-CanonicalId (Get-PairedField $row 'turn_id' 'turnId') -Optional)
+                workItemId=(Get-Text (Get-PairedField $row 'work_item_id' 'workItemId') -Optional)
+                executionId=(Get-Text (Get-PairedField $row 'execution_id' 'executionId') -Optional)
+                storePath=(Get-CanonicalPath (Get-PairedField $row 'store_path' 'storePath') -Optional)
+                source=$fullPath
+            }
+            if ((@($identity.workItemId,$identity.executionId,$identity.storePath | Where-Object { $null -ne $_ }).Count) -notin @(0,3)) { throw "Partial expected WorkItem execution binding: $fullPath" }
+            if ($null -ne $identity.turnId -and $null -eq $identity.threadId) { throw "Expected turn without thread: $fullPath" }
+            $key=('{0}/{1}/{2}/{3}/{4}/{5}' -f $taskId,$identity.threadId,$identity.turnId,$identity.executionId,$identity.storePath,$identity.workItemId)
+            if ($null -eq $identity.threadId -or $null -eq $identity.turnId) { $complete=$false }
+            if ($tasks.ContainsKey($key)) { $prior=$tasks[$key]; if ($prior.parentTaskId -cne $identity.parentTaskId) { $conflicts += @([pscustomobject]@{taskId=$taskId;reason='conflicting_expected_parent';sources=@($prior.sources)+@($fullPath)}) }; if($prior.sources -cnotcontains $fullPath){$prior.sources+=@($fullPath)} }
+            else { $tasks[$key]=[pscustomobject]@{taskId=$taskId; parentTaskId=$identity.parentTaskId; threadId=$identity.threadId; turnId=$identity.turnId; workItemId=$identity.workItemId; executionId=$identity.executionId; storePath=$identity.storePath; sources=@($fullPath)} }
+        }
+    }
+    foreach($cov in $coverage) {
+        $rows=@($tasks.Values | Where-Object { ($_.taskId -in $cov.roots -or $null -ne $_.parentTaskId) -and ($cov.scope -cne 'workitem' -or ($_.storePath -ceq $cov.storePath -and $_.workItemId -in $cov.workItemIds)) })
+        if($cov.identities -isnot [array] -or $cov.identities.Count -ne $rows.Count){$complete=$false;continue}
+        foreach($row in $rows){
+            $matches=@($cov.identities|Where-Object{(Get-CanonicalId (Get-PairedField $_ 'task_id' 'taskId')) -ceq $row.taskId -and (Get-CanonicalId (Get-PairedField $_ 'parent_task_id' 'parentTaskId') -Optional) -ceq $row.parentTaskId -and (Get-CanonicalId (Get-PairedField $_ 'thread_id' 'threadId') -Optional) -ceq $row.threadId -and (Get-CanonicalId (Get-PairedField $_ 'turn_id' 'turnId') -Optional) -ceq $row.turnId -and (Get-Text (Get-PairedField $_ 'execution_id' 'executionId') -Optional) -ceq $row.executionId -and (Get-Text (Get-PairedField $_ 'work_item_id' 'workItemId') -Optional) -ceq $row.workItemId -and (Get-CanonicalPath (Get-PairedField $_ 'store_path' 'storePath') -Optional) -ceq $row.storePath})
+            if($matches.Count -ne 1){$complete=$false}
+        }
+    }
+    $taskParents=@{}
+    foreach($item in $tasks.Values) {
+        if($item.parentTaskId -ceq $item.taskId){$conflicts+=@([pscustomobject]@{taskId=$item.taskId;reason='expected_self_parent'})}
+        if(-not $taskParents.ContainsKey($item.taskId)){$taskParents[$item.taskId]=@()}
+        if($taskParents[$item.taskId] -cnotcontains $item.parentTaskId){$taskParents[$item.taskId]+=@($item.parentTaskId)}
+    }
+    foreach($id in @($taskParents.Keys)) { $parents=@($tasks.Values | Where-Object taskId -ceq $id | ForEach-Object parentTaskId | Select-Object -Unique); if($parents.Count -gt 1){$conflicts+=@([pscustomobject]@{taskId=$id;reason='conflicting_expected_parent_across_turns'})} }
+    foreach($root in @($coverage | ForEach-Object roots | Select-Object -Unique)) {
+        if (@($tasks.Values | Where-Object taskId -ceq $root).Count -eq 0) { $conflicts+=@([pscustomobject]@{taskId=$root;reason='expected_root_missing'}) }
+        foreach($item in $tasks.Values) { if($item.taskId -ceq $root -and $null -ne $item.parentTaskId){$conflicts+=@([pscustomobject]@{taskId=$root;reason='root_parent_not_null'})} }
+    }
+    $rootSet=@($coverage | ForEach-Object roots | Select-Object -Unique)
+    foreach($item in $tasks.Values) {
+        $stack=New-Object 'System.Collections.Generic.Stack[object]'; $stack.Push([pscustomobject]@{id=$item.taskId; path=@()}); $reachable=$false; $cycle=$false
+        while($stack.Count -gt 0){$node=$stack.Pop(); if($node.id -in $rootSet){$reachable=$true;continue}; if($node.id -in $node.path){$cycle=$true;continue}; if(-not $taskParents.ContainsKey($node.id)){continue}; foreach($parent in $taskParents[$node.id]){if($null -ne $parent){$stack.Push([pscustomobject]@{id=$parent;path=@($node.path)+@($node.id)})}} }
+        if($cycle){$conflicts+=@([pscustomobject]@{taskId=$item.taskId;reason='expected_parent_cycle'})}; if(-not $reachable){$conflicts+=@([pscustomobject]@{taskId=$item.taskId;reason='expected_task_unreachable'})}
+    }
+    return [pscustomobject]@{tasks=@($tasks.Values); familyComplete=$false; completenessReason='family_inventory_verification_unavailable'; conflicts=$conflicts; coverage=$coverage; sources=@($SourcePaths)}
+}
 function Get-UsageSum($Entries) {
     $sum = [ordered]@{}
     foreach ($name in $script:TokenFields) { $sum[$name] = [long]0 }
