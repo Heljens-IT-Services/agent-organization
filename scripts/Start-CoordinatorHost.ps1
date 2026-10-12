@@ -19,7 +19,9 @@ $ErrorActionPreference='Stop'
 $utf8=New-Object System.Text.UTF8Encoding($false,$true)
 Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorHost.Core.psm1') -Force
 $owner=$null; $runtime=$null; $activation=$null
+$session=$null
 $runtimePid=$null; $runtimeStartedAtUtc=$null
+$hostOutcome=[pscustomobject]@{Classification='Running';RetryAllowed=$false;Reason=$null;CleanupConfirmed=$false}
 try {
     if (-not $PipeName) { $PipeName='agent-coordinator-'+([Convert]::ToBase64String([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes([IO.Path]::GetFullPath($DataDirectory)))).TrimEnd('=').Replace('+','_').Replace('/','_').Substring(0,24)) }
     if ($PipeName -notmatch '^[A-Za-z0-9_.-]{1,200}$') { throw 'Invalid PipeName.' }
@@ -115,14 +117,14 @@ try {
         }
     } else {
         # Production host remains resident; callers use the single local dispatcher.
-        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request }
+        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request }
     }
 } catch {
-    if ($_.Exception.Message -eq 'DuplicateHost') { Write-Error 'DuplicateHost'; exit 10 }
-    Write-Error $_.Exception.Message
-    if ($TestMode) { exit 1 }
-    while ($true) { Start-Sleep -Seconds 60 }
+    $reason=$_.Exception.Message
+    $classification=if($reason -eq 'DuplicateHost'){'DuplicateHost'}elseif($reason -like 'RetryableRuntimeExit:*' -and $session -and $session.State -eq 'RecoveryUnknown'){'BlockedUnknownTurn'}elseif($reason -like 'RetryableRuntimeExit:*' -or $reason -like 'Unavailable:*'){'RetryableRuntimeExit'}elseif($reason -like 'RecoveryUnknown:*'){'BlockedUnknownTurn'}elseif($reason -like 'BlockedRecovery:*'){'BlockedRecovery'}else{'Fatal'}
+    $hostOutcome=[pscustomobject]@{Classification=$classification;RetryAllowed=($classification -eq 'RetryableRuntimeExit');Reason=$reason;CleanupConfirmed=$false}
 } finally {
+    $cleanupConfirmed=$true
     if ($runtime -and $runtime.Owned) {
         $ended=$false
         try {
@@ -132,6 +134,7 @@ try {
                 $ended=[bool]$runtime.Process.WaitForExit(5000) -and [bool]$runtime.Process.HasExited
             } else { $ended=[bool]$runtime.Process.HasExited }
         } catch { $ended=$false }
+        if (-not $ended) { $cleanupConfirmed=$false }
         if ($ended -and $runtimePid -and $runtimeStartedAtUtc -and $owner) {
             try {
                 $saved=Read-CoordinatorSession $owner.SessionPath
@@ -142,6 +145,10 @@ try {
         }
         if ($runtime.Process) { $runtime.Process.Dispose() }
     }
-    if ($activation) { try { $activation.ReleaseMutex() } catch { }; $activation.Dispose() }
-    if ($owner) { try { Exit-CoordinatorOwnership $owner } catch { Write-Warning ('Store lock release failed: '+$_.Exception.Message) } }
+    if ($activation) { try { $activation.ReleaseMutex() } catch { $cleanupConfirmed=$false }; try { $activation.Dispose() } catch { $cleanupConfirmed=$false } }
+    if ($owner) { try { Exit-CoordinatorOwnership $owner } catch { $cleanupConfirmed=$false; Write-Warning ('Store lock release failed: '+$_.Exception.Message) } }
+    if ($hostOutcome.Classification -eq 'Running') { $hostOutcome.Classification='Stopped'; $hostOutcome.RetryAllowed=$false; $hostOutcome.Reason='Host stopped normally.' }
+    $hostOutcome.CleanupConfirmed=[bool]$cleanupConfirmed
+    if (-not $cleanupConfirmed) { $hostOutcome.Classification='BlockedCleanup'; $hostOutcome.RetryAllowed=$false; $hostOutcome.Reason='Host cleanup or runtime termination was not confirmed.' }
 }
+$hostOutcome

@@ -499,11 +499,13 @@ try {
     $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id
     $env:AGENT_ORG_ACCOUNTING_DIRECTORY = [string]$job.accounting_directory
     if ($job.role -ceq 'koordinator') {
-        $hostScript = Join-Path (Split-Path -Parent $PSCommandPath) '..\Start-CoordinatorHost.ps1'
-        if (-not (Test-Path -LiteralPath $hostScript -PathType Leaf)) { throw 'Coordinator host entrypoint missing.' }
+        $consoleScript = Join-Path (Split-Path -Parent $PSCommandPath) '..\Start-CoordinatorConsole.ps1'
+        if (-not (Test-Path -LiteralPath $consoleScript -PathType Leaf)) { throw 'Coordinator console entrypoint missing.' }
         Write-Host 'Koordinator-Host ist aktiv; das bestätigte Fenster bleibt geöffnet.'
-        & $hostScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -TaskId $job.task_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory
-        throw 'Koordinator-Host wurde unerwartet beendet.'
+        $runtimeExecutable=(Get-Command codex.exe -ErrorAction Stop).Source
+        $codexHome=if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -RuntimeExecutable $runtimeExecutable -CodexHome $codexHome -TaskId $job.task_id -ParentTaskId $job.parent_task_id -AccountingDirectory $job.accounting_directory
+        return
     }
     $deadline = [DateTime]::UtcNow.AddSeconds([int]$job.timeout_seconds)
     $command = Get-Command codex.cmd -ErrorAction Stop

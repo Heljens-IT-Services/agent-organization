@@ -258,11 +258,12 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
 
 function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
     while (-not $Config.StopRequested) {
+        if ($Config.RuntimeProcess -and $Config.RuntimeProcess.HasExited) { throw 'RetryableRuntimeExit: Runtime exited while coordinator pipe was idle.' }
         $server=$null
         try {
             $server=New-CoordinatorPipeServer $Config.PipeName
             $wait=$server.BeginWaitForConnection($null,$null)
-            while (-not $wait.AsyncWaitHandle.WaitOne(100)) { if ($Config.StopRequested) { break } }
+            while (-not $wait.AsyncWaitHandle.WaitOne(100)) { if ($Config.StopRequested) { break }; if ($Config.RuntimeProcess -and $Config.RuntimeProcess.HasExited) { throw 'RetryableRuntimeExit: Runtime exited while coordinator pipe was idle.' } }
             if ($Config.StopRequested) { break }
             $server.EndWaitForConnection($wait)
             $reader=New-Object IO.StreamReader($server,$script:Utf8,$false,4096,$true)
@@ -272,7 +273,7 @@ function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
             $response=& $OnRequest $request
             $writer=New-Object IO.StreamWriter($server,$script:Utf8,4096,$true); $writer.AutoFlush=$true
             $writer.WriteLine((ConvertTo-Json -InputObject $response -Depth 20 -Compress)); $writer.Dispose(); $reader.Dispose()
-        } catch { if ($server -and $server.IsConnected) { $server.Dispose() } }
+        } catch { if ($server -and $server.IsConnected) { $server.Dispose() }; if ($_.Exception.Message -like 'RetryableRuntimeExit:*' -or $_.Exception.Message -like 'BlockedRecovery:*' -or $_.Exception.Message -like 'RecoveryUnknown:*') { throw } }
         finally { if ($server) { $server.Dispose() } }
     }
 }
