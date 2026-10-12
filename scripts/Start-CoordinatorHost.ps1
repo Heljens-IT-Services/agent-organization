@@ -11,6 +11,9 @@ param(
     [string]$TaskId,
     [string]$ParentTaskId,
     [string]$AccountingDirectory,
+    [string]$WorkItemStorePath,
+    [string]$EventJournalPath,
+    [ValidateRange(1,100)][int]$AutomationCapacity=4,
     [ValidateRange(1,100)][int]$ResumeRetryLimit=3,
     [ValidateRange(100,60000)][int]$RpcTimeoutMilliseconds=15000,
     [string]$WorkingDirectory=(Get-Location).Path
@@ -93,6 +96,11 @@ try {
     } elseif ($session.NativeThreadId) { throw 'BlockedRecovery: persisted session lacks runtime history binding; controlled recovery required.' }
     else { $session.Cwd=$effectiveCwd; $session.RuntimeExecutable=$effectiveExe; $session.CodexHome=$effectiveHome; $session.HistoryBase=$effectiveHome; Write-CoordinatorAtomicJson $path $session }
     $runtimeConfig.RuntimeExecutable=$effectiveExe; $runtimeConfig.WorkingDirectory=$effectiveCwd
+    if(-not $EventJournalPath){$EventJournalPath=Join-Path $owner.DataDirectory 'events.store.json'}
+    if(-not $WorkItemStorePath){$WorkItemStorePath=Join-Path (Split-Path -Parent $PSScriptRoot) 'workitems/workitems.json'}
+    Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorEvents.psm1') -Force
+    Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorAutomation.psm1') -Force
+    if(-not (Test-Path -LiteralPath $EventJournalPath -PathType Leaf)){[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($EventJournalPath)));[IO.File]::WriteAllText($EventJournalPath,'{"schemaVersion":"1.0","events":[]}',$utf8)}
     $runtime=Start-CoordinatorRuntime $runtimeConfig
     $runtime | Add-Member -MemberType NoteProperty -Name ResumeRetryLimit -Value $ResumeRetryLimit -Force
     $runtime | Add-Member -MemberType NoteProperty -Name RpcTimeoutMilliseconds -Value $RpcTimeoutMilliseconds -Force
@@ -117,7 +125,8 @@ try {
         }
     } else {
         # Production host remains resident; callers use the single local dispatcher.
-        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request }
+        $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$ParentTaskId;Capacity=$AutomationCapacity}
+        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request } { Invoke-CoordinatorAutomationIdle $automationConfig $runtime $session $path }
     }
 } catch {
     $reason=$_.Exception.Message

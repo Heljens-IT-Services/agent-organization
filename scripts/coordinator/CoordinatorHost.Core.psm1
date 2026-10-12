@@ -211,7 +211,7 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
     if ($Request.logicalSessionId -cne $Session.LogicalSessionId) { return @{status='Rejected';requestId=$Request.requestId} }
     $history=@($Session.RequestHistory); $fingerprint=[Convert]::ToBase64String([Security.Cryptography.SHA256]::Create().ComputeHash($script:Utf8.GetBytes([string]$Request.inputText)))
     $prior=@($history|Where-Object{$_.requestId -ceq $Request.requestId}|Select-Object -First 1)
-    if($prior.Count){if($prior[0].fingerprint -cne $fingerprint){return @{status='Rejected';requestId=$Request.requestId;message='RequestId payload conflict.'}};return @{status='Duplicate';requestId=$Request.requestId;outcome=$prior[0].outcome;turnId=$prior[0].turnId;tokenUsage=$prior[0].usage;usageStatus=$(if($null -eq $prior[0].usage){'unknown'}else{'known'})} }
+    if($prior.Count){if($prior[0].fingerprint -cne $fingerprint){return @{status='Rejected';requestId=$Request.requestId;message='RequestId payload conflict.'}};if($prior[0].outcome -in @('Starting','Running','Unknown') -or -not $prior[0].decision){return @{status='BlockedRecovery';requestId=$Request.requestId;classification='Unknown'}};return @{status='Duplicate';classification='Duplicate';requestId=$Request.requestId;outcome=$prior[0].outcome;decision=$prior[0].decision;assistantText=$prior[0].assistantText;turnId=$prior[0].turnId;tokenUsage=$prior[0].usage;usageStatus=$(if($null -eq $prior[0].usage){'unknown'}else{'known'})} }
     if($history.Count -ge 256){return @{status='Rejected';requestId=$Request.requestId;message='Request history full; operator recovery required.'}}
     if ($Session.State -ne 'Ready') { return @{status='Busy';requestId=$Request.requestId} }
     $ledgerDirectory=if($Request.PSObject.Properties['accountingDirectory']){$Request.accountingDirectory}else{$null}
@@ -235,7 +235,9 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
         if (-not $terminal) { $Session.State='RecoveryUnknown'; $Session.LastOutcome='Unknown'; Write-CoordinatorAtomicJson $SessionPath $Session; return @{status='BlockedRecovery';requestId=$Request.requestId} }
         $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){$turnStatus=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'turn') 'status';if($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId) -and $turnStatus){$terminalStatus=[string]$turnStatus}}
         $Session.State='Ready'; $Session.LastOutcome=$terminalStatus; $Session.LastUsage=$usage
-        $entry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$entry.turnId=$Session.LastTurnId;$entry.outcome=$terminalStatus;$entry.usage=$usage
+        $assistantParts=@();foreach($n in @($Runtime.Notifications.ToArray())){if($n.method -eq 'item/agentMessage/delta' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$delta=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'delta';if($delta){$assistantParts+=([string]$delta)}}};$assistantText=($assistantParts -join '')
+        $decision=[ordered]@{outcome=$terminalStatus;requestId=$Request.requestId;turnId=$Session.LastTurnId;assistantText=$assistantText;usage=$usage;completedAtUtc=[DateTime]::UtcNow.ToString('o')}
+        $entry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$entry.turnId=$Session.LastTurnId;$entry.outcome=$terminalStatus;$entry.usage=$usage;$entry.assistantText=$assistantText;$entry.decision=$decision
         Write-CoordinatorAtomicJson $SessionPath $Session
         if($ledgerDirectory){
             $requestHash=[Security.Cryptography.SHA256]::Create().ComputeHash($script:Utf8.GetBytes([string]$Request.requestId))
@@ -247,7 +249,7 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
             $summary=& (Join-Path (Split-Path -Parent $PSScriptRoot) 'Get-TaskTokenUsage.ps1') -TaskId $taskId -AccountingDirectory $ledgerDirectory
             return @{status='Accepted';requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageSummary=$summary}
         }
-        return @{status=$(if($terminalStatus -eq 'completed'){'Accepted'}else{'Failed'});outcome=$terminalStatus;requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageStatus=$(if($null -eq $usage){'unknown'}else{'known'})}
+        return @{status=$(if($terminalStatus -eq 'completed'){'Accepted'}else{'Failed'});classification='Terminal';outcome=$terminalStatus;decision=$decision;assistantText=$assistantText;requestId=$Request.requestId;turnId=$Session.LastTurnId;tokenUsage=$usage;usageStatus=$(if($null -eq $usage){'unknown'}else{'known'})}
     } catch {
         if($Session.LastOutcome -in @('completed','failed','interrupted')){$Session.AccountingError=$_.Exception.Message;Write-CoordinatorAtomicJson $SessionPath $Session;return @{status='AccountingError';requestId=$Request.requestId;turnId=$Session.LastTurnId;message='Turn completed; accounting persistence failed.'}}
         $Session.State='RecoveryUnknown'; $Session.LastOutcome='Unknown'; $Session.LastError=$_.Exception.Message
@@ -256,14 +258,15 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
     }
 }
 
-function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
+function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest, [scriptblock]$OnIdle) {
+    $nextIdle=[DateTime]::UtcNow.AddSeconds(5)
     while (-not $Config.StopRequested) {
         if ($Config.RuntimeProcess -and $Config.RuntimeProcess.HasExited) { throw 'RetryableRuntimeExit: Runtime exited while coordinator pipe was idle.' }
         $server=$null
         try {
             $server=New-CoordinatorPipeServer $Config.PipeName
             $wait=$server.BeginWaitForConnection($null,$null)
-            while (-not $wait.AsyncWaitHandle.WaitOne(100)) { if ($Config.StopRequested) { break }; if ($Config.RuntimeProcess -and $Config.RuntimeProcess.HasExited) { throw 'RetryableRuntimeExit: Runtime exited while coordinator pipe was idle.' } }
+            while (-not $wait.AsyncWaitHandle.WaitOne(100)) { if ($Config.StopRequested) { break }; if ($Config.RuntimeProcess -and $Config.RuntimeProcess.HasExited) { throw 'RetryableRuntimeExit: Runtime exited while coordinator pipe was idle.' };if($OnIdle -and [DateTime]::UtcNow -ge $nextIdle){try{& $OnIdle}catch{if($_.Exception.Message -like 'BlockedRecovery:*' -or $_.Exception.Message -like 'RecoveryUnknown:*'){throw}};$nextIdle=[DateTime]::UtcNow.AddSeconds(5)} }
             if ($Config.StopRequested) { break }
             $server.EndWaitForConnection($wait)
             $reader=New-Object IO.StreamReader($server,$script:Utf8,$false,4096,$true)
@@ -271,6 +274,7 @@ function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
             if (-not $line -or $script:Utf8.GetByteCount($line) -gt 1048576) { throw 'InvalidRequest' }
             $request=$line|ConvertFrom-Json -ErrorAction Stop
             $response=& $OnRequest $request
+            $nextIdle=[DateTime]::UtcNow.AddSeconds(5)
             $writer=New-Object IO.StreamWriter($server,$script:Utf8,4096,$true); $writer.AutoFlush=$true
             $writer.WriteLine((ConvertTo-Json -InputObject $response -Depth 20 -Compress)); $writer.Dispose(); $reader.Dispose()
         } catch { if ($server -and $server.IsConnected) { $server.Dispose() }; if ($_.Exception.Message -like 'RetryableRuntimeExit:*' -or $_.Exception.Message -like 'BlockedRecovery:*' -or $_.Exception.Message -like 'RecoveryUnknown:*') { throw } }
