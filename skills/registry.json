@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "skills": [
+    {
+      "id": "task-token-usage",
+      "purpose": "Vorhandenes Task-Tokenledger lesen und deduplizierte Messwerte liefern",
+      "scriptPath": "skills/adapters/Get-TaskTokenUsageSkill.ps1",
+      "parameters": [
+        { "name": "task_id", "type": "string", "required": true },
+        { "name": "accounting_directory", "type": "string", "required": true }
+      ],
+      "result": { "description": "Bestehendes Ledger-Ergebnis; unbekannte Messwerte bleiben null." },
+      "prerequisites": [
+        "Windows PowerShell 5.1",
+        "Lesbarer Accountingbestand",
+        "Vorhandenes scripts/accounting/Get-TaskTokenUsage.ps1"
+      ]
+    },
+    {
+      "id": "github-contents-url",
+      "purpose": "GitHub-Contents-URL mit der vorhandenen reinen Python-Funktion erzeugen",
+      "scriptPath": "skills/adapters/github_contents_url.py",
+      "language": "python",
+      "interpreter": "C:/Users/Tom-OliverMarek/AppData/Roaming/uv/python/cpython-3.13-windows-x86_64-none/python.exe",
+      "parameters": [
+        { "name": "repo", "type": "string", "required": true },
+        { "name": "path", "type": "string", "required": true },
+        { "name": "ref", "type": "string", "required": true }
+      ],
+      "result": { "description": "URL-String der bestehenden github_api_contents_url-Funktion." },
+      "prerequisites": [
+        "Python-Interpreter am registrierten lokalen Pfad",
+        "Lokale github_utils.py aus skill-installer (CODEX_HOME oder USERPROFILE/.codex); andernfalls source_path angeben"
+      ]
+    }
+  ]
+}
