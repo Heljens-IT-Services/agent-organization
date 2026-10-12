@@ -181,6 +181,177 @@ Protokollquelle: [Offizielle App-server-Turn-Ereignisse](https://learn.chatgpt.c
 Maßgebliche lokale CLI-Schemas: `ThreadTokenUsageUpdatedNotification.json` und
 `ThreadReadParams.json` unter `agent-org-usage-schema/v2` im übergebenen Temp-Pfad.
 
+## Öffentliche Fortschrittsdarstellung (AR-PUBLIC-PROGRESS-20261012)
+
+Der Formatter stellt nur zum eigenen Thread und Turn gehörende öffentliche
+`item/started`-/`item/completed`-Ereignisse und Turn-Grenzen dar. Befehle zeigen
+den gelieferten Befehl einschließlich Argumenten und Arbeitsverzeichnis;
+abgeschlossene Befehle zusätzlich vorhandenen Exitcode und `aggregatedOutput`.
+Erkannte PowerShell-Wrapper mit `-Command` zeigen den Inline-Befehl getrennt
+und daneben den vollständigen maskierten Wrapper. Der Formatter führt Code
+nicht aus, interpretiert keine Shell-Escapes und dekodiert keine EncodedCommands.
+Nicht erkannte Wrapper bleiben als vollständiger maskierter Befehl lesbar.
+
+Dateiänderungen zeigen alle gelieferten Pfade, Änderungsarten und beim Abschluss
+den gelieferten Diff. MCP- und dynamische Werkzeuge zeigen konkrete Namen,
+Argumente und gelieferte Textresultate beziehungsweise strukturierte Ergebnisse
+und MCP-Fehlermeldungen. Binäre Bild-/Audioinhalte und MCP-`_meta` werden nicht
+als Text ausgegeben. `webSearch` zeigt Anfrage und vorhandene Aktion/Ergebnisse,
+`imageView` den Pfad. Vorhandene Kollaborations-Items zeigen Werkzeug, Status
+und gelieferte Zielthread-IDs, keine internen Auftragsprompts. Dies startet
+keine Delegation. Fehlende Status-, Ergebnis- oder Exitcodefelder werden nicht
+durch erfundene Angaben ersetzt; ein Suchstart behauptet keinen Sucherfolg.
+
+Die lokalen modernen Typen `functionCallOutput` und `sleep` werden ebenfalls
+dargestellt: Funktionsausgaben zeigen `namespace/name` (Namespace nur wenn
+geliefert) und beim Abschluss `output` als String beziehungsweise öffentliche
+`input_text`-Inhalte. Bild-, Audio- und verschlüsselte Inhalte bleiben verborgen.
+Sleep zeigt Start/Ende und die gelieferte `durationMs`, keinen erfundenen Status.
+
+Abgeschlossene `agentMessage`-Items mit `phase=commentary` zeigen die tatsächlich
+gelieferte öffentliche Meldung, einschließlich Code, Quellen, Begründung und
+nächstem Schritt, soweit enthalten. Es werden keine Begründungen ergänzt.
+Reasoning, Hook-/Benutzerprompts, Plan-Items, unbekannte interne Itemtypen und
+Raw-Response-Ereignisse erscheinen nicht in der Fortschrittsanzeige. Deltas
+werden nicht separat ausgegeben: abgeschlossene Items liefern den maßgeblichen
+Text und vermeiden Wiederholungen und Geheimnisfragmente an Delta-Grenzen.
+Dadurch erscheint Textausgabe erst beim Itemabschluss; die Startmeldung bleibt
+sichtbar. Abgeschlossene öffentliche `final_answer`-Items werden einmal mit
+Ergebnisüberschrift über denselben identitätsgebundenen Anzeigepfad ausgegeben.
+Unbekannte Nachrichtenphasen bleiben unterdrückt. Der Resultatvertrag `output`
+sammelt weiterhin alle eigenen abgeschlossenen Agentenmeldungen unverändert;
+er wird nicht zusätzlich als vollständiger Text im Ergebnisbereich ausgegeben.
+Bereits angezeigte Commentary wird dadurch beim Abschluss nicht wiederholt.
+
+Die öffentliche Quelle ist ausschließlich v2. Legacy-`codex/event/*` bleibt im
+technischen Log und erzeugt keine zweite Ausgabe. Wiedergabe und Livepfad
+deduplizieren je Item-ID und Start-/Endphase. Gleicher Text in verschiedenen
+Items wird erhalten; ohne ID ist zuverlässige Replay-Deduplikation unmöglich.
+Verbindliche Grenze des Teamleiters: Moderne zugeordnete v2-Items sind die
+Darstellungsquelle; ausschließlich Legacy-Events bleiben technisches Log.
+Alt und Neu erzeugen unabhängig von ihrer Reihenfolge keine doppelten
+Start-/Endzeilen. Es gibt keine Legacy-Ersatzdarstellung.
+Die geänderten Formate gelten nur für neu gestartete Runner. Bereits laufende
+Fenster laden die Funktionen nicht nach und werden nicht rückwirkend verändert.
+
+Bekannte Umgebungsgeheimnisse (sensitive Variablennamen, mindestens vier Zeichen),
+erkennbare Credential-Signaturen, Bearer-Werte, ausdrücklich benannte sensible
+Zuweisungen/Argumente und URL-Benutzerinformationen werden gezielt maskiert.
+Sensible strukturierte Felder sowie bekannte Geheimnisse in Schlüsseln und
+Werten werden vor JSON-Serialisierung maskiert. Wenn maskierte Schlüsselnamen
+kollidieren, erhalten Folgefelder numerische Suffixe; ihre Werte bleiben erhalten.
+Bekannte Werte werden längenabsteigend in einem Ersetzungsschritt verarbeitet;
+erzeugte `[maskiert]`-Platzhalter werden bei weiterer Verarbeitung erhalten,
+auch wenn `maskiert` selbst ein bekannter Wert ist.
+ANSI-/OSC-Steuersequenzen werden vor dem Geheimnisvergleich entfernt; erst
+danach erfolgt der Umbruch. Befehle und Meldungen werden nicht pauschal verborgen
+oder auf 240 Zeichen gekürzt. Nicht bekannte oder beliebig kodierte Geheimnisse
+sind damit nicht zuverlässig erkennbar; dies ist keine allgemeine DLP-Garantie.
+
+`<ResultPath>.public.txt` enthält die vollständige maskierte Darstellung vor
+dem Konsolenumbruch. Der Starter nennt diesen Pfad. Die Konsole bricht lange
+Zeilen auf ihre Darstellungsbreite um und trennt Ereignisblöcke durch Leerzeilen;
+`display`-Datensätze in `.events.jsonl` entsprechen den tatsächlichen Hostzeilen.
+Die bisherigen Ergebnis-, Job- und Rohereignisdateien bleiben technische
+Artefakte und sind **nicht** bereinigt: Sie können interne Events und sensible
+Inhalte enthalten. Für eine lesbare Weitergabe ist `.public.txt` vorgesehen.
+Vorhandene `.public.txt`-Dateien werden wie andere Starterartefakte geschützt.
+Rollenbanner, `=`-/`-`-Trenner, Abstand, Dreititel, Fensterzuordnung/-schluss und
+Tokenledger bleiben erhalten.
+
+Quellen und Belege (erfasst am 12. Oktober 2026):
+
+- [Offizielle App-server-Itemtypen und Ereignisse](https://learn.chatgpt.com/docs/app-server#items)
+  liefern Lifecycle und maßgebliche Abschluss-Items. Die lokale CLI `0.162.1`
+  bestätigt mit `codex app-server generate-ts --out <Temp-Pfad>` die tatsächlich
+  installierten Formate. Ausgabe unter
+  `%TEMP%\ar-public-progress-protocol-20261012`: `v2/ThreadItem.ts`,
+  `WebSearchItem.ts`, `v2/WebSearchAction.ts`, `v2/McpToolCallResult.ts` und
+  `v2/DynamicToolCallOutputContentItem.ts`. Lokal heißt Kollaboration
+  `collabAgentToolCall` und die Webaktion `open_page`/`find_in_page`; die
+  Dokumentation nennt auch `collabToolCall` und `openPage`/`findInPage`.
+  Beide benannten Varianten werden unterstützt.
+- Tatsächlich aufgezeichnete v2-Befehls-/Commentary-Items stammen aus
+  `%TEMP%\agent-org-ar55-final-20261012\probe.json.events.jsonl`, Thread
+  `01a12f19-d5b2-77a1-9878-c2f135a6f8eb`, Turn
+  `01a12f19-d6ab-7613-8394-a42cb567f800`. Der Befehl `Get-Location` lieferte
+  Exitcode `0` und das Repository-Arbeitsverzeichnis. Die eingebetteten Fixtures
+  behalten diese Inhalte mit neutralisierten Identitäten bei.
+- `optimierer.json.events.jsonl` im selben Verzeichnis liefert echte
+  Dateiänderungsformen und einen umfangreicheren Stream: 40 öffentliche Blöcke
+  nach Filterung/Wiedergabe. Die Datei-Fixture übernimmt Pfad/Art/Status;
+  ihr Testdiff ist synthetisch. MCP-, Dynamic-, Web-, Image- und Collab-Fixtures
+  sind Schemafixtures und kein Nachweis einer neuen Liveausführung.
+
+Fokussierte Prüfung ohne Modellstart oder neues Fenster:
+
+```powershell
+.\scripts\Test-DelegatedProgress.ps1 -EvidenceStream `
+  "$env:TEMP\agent-org-ar55-final-20261012\optimierer.json.events.jsonl" `
+  -DisplayEvidencePath "$env:TEMP\ar-public-progress-display-20261012.jsonl"
+```
+
+Die drei gemeldeten Fehlerbilder werden jeweils eigenständig geprüft, daneben
+selektive Maskierung, verlustfreier Umbruch, tatsächlicher Host-/Displaylogpfad,
+Identitätsbindung, Replay und Legacy/v2-Deduplikation. Der Lauf mit dem echten
+Optimiererstream bestand mit `passed=True`, `checkCount=52` und 40 öffentlichen
+Blöcken. Der isolierte AST-Abgleich bestätigte elf bestehende Funktionen
+außerhalb der Fortschrittsänderungen unverändert, darunter Fensterbindung,
+Tokenformatierung, Usage-Drain und RPC-Verarbeitung. `git diff --check` war sauber.
+Dieser erste Lauf ist kein neuer Livefenster- oder Modellnachweis. Die danach
+erfolgreiche sichtbare unabhängige Probe ist im folgenden Nacharbeitskontext
+belegt. Umsetzung und Offline-Nachweise ersetzen keine Elternabnahme.
+
+### Gezielte Nacharbeit nach unabhängigem FAIL
+
+Der unabhängige Review vom 12. Oktober 2026 meldete trotz der 52 vorhandenen
+Checks drei Blocker: escapte Geheimnisse in Objektschlüsseln, nicht idempotente
+Platzhalter und fehlende öffentliche Funktionsausgaben/Sleep. Diese Fälle und
+die deduplizierte Abschlussanzeige sind korrigiert. Die bestehenden Checks
+wurden gezielt angepasst, nicht vervielfacht; zusätzliche Gegenproben prüfen
+Dictionary-/Objektschlüssel mit `quote"slash\canary`, Schlüsselkollisionen und
+wiederholte Verarbeitung bei bekannten Werten `maskiert` und `CANARY_SAFE`.
+Die früher ausdrücklich unterdrückte Funktionsausgabe wird durch Fixtures der
+lokalen Schemaformen ersetzt. Beide Legacy/v2-Reihenfolgen prüfen nun Start
+und Ende sowie die technische Legacy-only-Grenze.
+
+Der abschließende fokussierte Lauf bestand mit `passed=True`, `checkCount=59`
+und **23 öffentlichen Replay-Blöcken** aus dem tatsächlichen neuen Reviewstream:
+`%TEMP%\ar-progress-review-20261012.json.events.jsonl`, Thread
+`01a12f4f-45f2-7351-9d9f-5c012db9f62e`, Turn
+`01a12f4f-46ea-7d23-a319-89b6cdb5121d`. Die Anzahl dargestellter Commentary- und
+Finalblöcke entspricht den eindeutigen gebundenen öffentlichen Items (vier
+Commentary, eine Finalantwort); ein zweiter Replay erzeugt keine Blöcke.
+Die tatsächlich mit dem Produktionswriter
+ausgegebenen Replay-Hostzeilen stimmen exakt mit den gespeicherten
+Display-Datensätzen überein: 2.442 Display-Zeilen, keine fremde Thread-/Turnbindung.
+Artefakte:
+
+- `%TEMP%\ar-progress-rework-display-20261012.jsonl`: fokussierte Writerprobe.
+- `%TEMP%\ar-progress-rework-display-20261012.jsonl.replay.events.jsonl`:
+  zeilengenaue Replay-Darstellung des neuen unabhängigen Reviewstreams.
+- `%TEMP%\ar-progress-rework-display-20261012.jsonl.replay.public.txt`:
+  vollständige maskierte Replay-Blöcke vor Umbruch.
+- `%TEMP%\ar-progress-rework-regression-20261012.json`: AST-Regressionsbeleg.
+
+Der AST-Abgleich bestätigt die elf zuvor belegten Bestandsfunktionen weiterhin
+gegen `HEAD` unverändert. Gegen den vor dieser Nacharbeit gesicherten Starter
+bleiben 17 Funktionen unverändert; verändert sind `Protect-ProgressText`,
+`ConvertTo-ProgressPayload` einschließlich `Protect-Value`, `Get-ProgressContent`
+und `Get-PublicProgress`. Die Abschlussdarstellung außerhalb dieser Funktionen
+ist bewusst verändert; eine vollständige Unverändertbehauptung wäre falsch.
+Beide `output`-Zuweisungen bleiben exakt erhalten, ebenso Catch und vollständiger
+Finally-Block einschließlich Ledger, Resultatsicherung und Fensterschluss.
+`Read-Rpc`, `Update-NativeUsage`, `Get-FinalLedgerUsage` und Tokenformatierung
+sind unverändert. `git diff --check` ist sauber. Dies sind statische und
+fokussierte Offline-Belege, keine erneut ausgelösten Livefehler-/Timeoutfälle.
+
+Die bereits erfolgreiche echte sichtbare Probe bleibt separat belegt im
+Reviewstream und `%TEMP%\ar-progress-review-20261012.json.public.txt`; die
+Nacharbeit startet keine weitere Sitzung. Neue unabhängige Prüfung und
+Elternabnahme erfolgen separat beim Teamleiter. Kein Commit/Push/PR/Merge
+erfolgte durch diese Nacharbeit.
+
 ## Weitere Grenzen
 
 Eine automatische Kopplung aller nativen Delegationswerkzeuge an dieses Skript

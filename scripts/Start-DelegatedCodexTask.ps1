@@ -58,15 +58,29 @@ function Get-FinalLedgerUsage($Evidence) {
 }
 function New-ProgressState {
     $secrets = @(Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)secret|token|password|passwd|api_?key|credential|connection_?string' -and $_.Value.Length -ge 4 } | ForEach-Object { $_.Value })
-    return @{ seen = @{}; count = 0; secrets = $secrets }
+    return @{ seen = @{}; count = 0; secrets = @($secrets | Sort-Object Length -Descending) }
 }
-function Protect-ProgressText([string]$Text, $State, [int]$Limit = 180) {
-    # Redact before truncation; never split a secret into an apparently safe prefix.
-    foreach ($secret in $State.secrets) { if ($secret) { $Text = $Text.Replace([string]$secret, '[maskiert]') } }
+function Protect-ProgressText([string]$Text, $State, [int]$Limit = [int]::MaxValue) {
+    # Normalize controls before matching secrets, so an ANSI sequence cannot
+    # separate the characters of a known value. Redact before wrapping/truncation.
+    $Text = [regex]::Replace($Text, '\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]', '')
+    $Text = $Text.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`t", '    ')
+    $Text = [regex]::Replace($Text, '[\x00-\x09\x0b-\x1f\x7f-\x9f]', '')
+    # Preserve existing placeholders; match original values once, longest first.
+    # Never rescan a replacement (a known value may itself be 'maskiert').
+    $patterns = @($State.secrets | Where-Object { $_ } | Sort-Object Length -Descending | ForEach-Object { [regex]::Escape([string]$_) })
+    if ($patterns.Count) {
+        $parts = [regex]::Split($Text, '(\[maskiert\])')
+        $Text = (@(foreach ($part in $parts) {
+            if ($part -ceq '[maskiert]') { $part }
+            else { [regex]::Replace($part, ($patterns -join '|'), '[maskiert]') }
+        }) -join '')
+    }
     $Text = [regex]::Replace($Text, '(?i)\b(?:sk-[a-z0-9_-]+|gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+|eyJ[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]+)\b', '[maskiert]')
-    $Text = [regex]::Replace($Text, '(?i)\b(?:bearer|token|password|passwd|secret|api[_-]?key|authorization)\b\s*[:=]?\s*\S+', '[maskiert]')
-    $Text = [regex]::Replace($Text, '[\x00-\x1f\x7f-\x9f]', ' ')
-    $Text = [regex]::Replace($Text, '\s+', ' ').Trim()
+    # Values, not entire commands/prose. Include quoted values containing spaces.
+    $Text = [regex]::Replace($Text, '(?i)\bBearer\s+[^\s"'';,]+', 'Bearer [maskiert]')
+    $Text = [regex]::Replace($Text, '(?i)((?:\b["'']?(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|connection[_-]?string|token|password|passwd|secret|api[_-]?key|authorization)["'']?)\s*[:=]\s*|--(?:token|password|passwd|secret|api[_-]?key|authorization)\s+)("(?:\\.|[^"\\])*"|''(?:''''|[^''])*''|\[maskiert\]|[^\s,;&}\]]+)', '$1"[maskiert]"')
+    $Text = [regex]::Replace($Text, '(?i)(https?://)[^\s/@]+:[^\s/@]+@', '$1[maskiert]@')
     if ($Text.Length -gt $Limit) { $Text = $Text.Substring(0, $Limit - 3) + '...' }
     return $Text
 }
@@ -101,24 +115,55 @@ function Format-DelegatedStartLayout([string]$RoleName, [string]$Task, [string]$
     return $lines.ToArray()
 }
 function Get-ProgressName([string]$Name, $State) {
-    if ($Name -notmatch '^[a-zA-Z][a-zA-Z0-9_.:/-]{0,100}$') { return '(unbekannt)' }
-    return Protect-ProgressText $Name $State 100
+    if ($Name) { return Protect-ProgressText $Name $State }
 }
 function Get-ProgressCommand([string]$Command, $State) {
-    # Shell arguments, inline scripts and nested payloads are never echoed.
-    if ($Command -match '^\s*(?:"[^"\r\n]*[\\/])?(?:powershell|pwsh)(?:\.exe)?"?\s+(?:-NoProfile\s+)?-Command\s+(?:''\s*Get-Location\s*''|"\s*Get-Location\s*"|Get-Location)\s*$') {
-        return 'Get-Location (sicher erkannter Wrapper)'
+    if ([string]::IsNullOrWhiteSpace($Command)) { return }
+    $safe = Protect-ProgressText $Command $State
+    # Presentation only: never evaluate, unescape or decode shell code. Anchor the
+    # known PowerShell wrapper and require -Command to consume the remaining text.
+    $wrapper = [regex]::Match($safe, '(?is)^\s*(?:"[^"\r\n]*[\\/])?(?:powershell|pwsh)(?:\.exe)?"?\s+(?:(?:-NoProfile|-NonInteractive|-NoLogo)\s+|-ExecutionPolicy\s+\w+\s+)*-Command\s+(?<inline>.+)$')
+    if ($wrapper.Success) {
+        $inline = $wrapper.Groups['inline'].Value.Trim()
+        if (($inline.StartsWith('"') -and $inline.EndsWith('"')) -or ($inline.StartsWith("'") -and $inline.EndsWith("'"))) { $inline = $inline.Substring(1, $inline.Length - 2) }
+        return "PowerShell-Inline:`n$inline`nVollständiger Befehl:`n$safe"
     }
-    $match = [regex]::Match($Command, '^\s*(?:"[^"\r\n]*[\\/])?(?<name>[a-zA-Z][a-zA-Z0-9_.-]*)(?:"?\s|$)')
-    if (-not $match.Success) { return '(Befehl nicht sicher darstellbar)' }
-    $name = $match.Groups['name'].Value
-    if ($name -notmatch '^(?i:git|rg|powershell(?:\.exe)?|pwsh(?:\.exe)?|cmd(?:\.exe)?|python(?:\.exe)?|node(?:\.exe)?|npm(?:\.cmd)?|dotnet|Get-Location|Get-Content|Get-ChildItem|Test-Path|Copy-Item|Set-Content)$') { return '(Befehl nicht sicher darstellbar)' }
-    if ($Command -match '^\s*git\s+(status|diff|log|show|branch|rev-parse|ls-files)(?:\s|$)') { $name += ' ' + $Matches[1] }
-    return (Protect-ProgressText $name $State) + ' (Argumente ausgeblendet)'
+    return $safe
 }
 function Get-ProgressPath([string]$Path, $State) {
-    if (-not $Path -or $Path -match '[\x00-\x1f\x7f-\x9f`"<>|?=&{}]' -or $Path -match '://') { return '(Pfad nicht sicher darstellbar)' }
-    return Protect-ProgressText $Path $State 120
+    if ($Path) { return Protect-ProgressText $Path $State }
+}
+function ConvertTo-ProgressPayload($Value, $State) {
+    if ($null -eq $Value) { return }
+    # Public tool arguments/results can be structured. Redact secret fields before
+    # serialization as well as recognizable values in the resulting text.
+    function Protect-Value($v) {
+        if ($null -eq $v) { return $null }
+        if ($v -is [string]) { return Protect-ProgressText $v $State }
+        if ($v -is [ValueType]) { return $v }
+        if ($v -is [System.Collections.IDictionary] -or $v -is [pscustomobject]) {
+            $copy = [ordered]@{}
+            $keys = if ($v -is [System.Collections.IDictionary]) { @($v.Keys) } else { @($v.PSObject.Properties.Name) }
+            foreach ($key in $keys) {
+                $safeKey = Protect-ProgressText ([string]$key) $State
+                # Keep distinct fields even when masking collapses their names.
+                $baseKey = $safeKey; $suffix = 2
+                while ($copy.Contains($safeKey)) { $safeKey = $baseKey + ' (' + $suffix + ')'; $suffix++ }
+                if ($key -match '^(?i:access[_-]?token|refresh[_-]?token|client[_-]?secret|connection[_-]?string|token|password|passwd|secret|api[_-]?key|authorization)$') { $copy[$safeKey] = '[maskiert]' }
+                else { $copy[$safeKey] = Protect-Value $v.$key }
+            }
+            return $copy
+        }
+        return ,@(foreach ($part in $v) { Protect-Value $part })
+    }
+    $text = if ($Value -is [string]) { $Value } else { Protect-Value $Value | ConvertTo-Json -Depth 40 }
+    return Protect-ProgressText $text $State
+}
+function Get-ProgressContent($Content, $State) {
+    foreach ($part in $Content) {
+        # Deliberately select public text, never binary images/audio or _meta.
+        if ($part.type -in @('text','inputText','input_text') -and $null -ne $part.text) { Protect-ProgressText ([string]$part.text) $State }
+    }
 }
 function Get-PublicProgress($Message, [string]$ThreadId, [string]$TurnId, $State) {
     $p = $Message.params
@@ -132,59 +177,137 @@ function Get-PublicProgress($Message, [string]$ThreadId, [string]$TurnId, $State
         $key = $Message.method
         if ($Message.method -eq 'turn/started') { $lines = @('Bearbeitung gestartet.') }
         else {
-            $status = if ($p.turn.status -in @('completed','failed','interrupted')) { $p.turn.status } else { 'unbekannt' }
-            $lines = @("Bearbeitung beendet: $status; Tokenabrechnung wird gesichert.")
+            $status = if ($p.turn.status -in @('completed','failed','interrupted')) { ": $($p.turn.status)" } else { '' }
+            $lines = @("Bearbeitung beendet$status; Tokenabrechnung wird gesichert.")
         }
     } elseif ($Message.method -in @('item/started', 'item/completed')) {
-        if ($item.type -in @('reasoning','userMessage','plan','functionCallOutput')) { return }
+        if ($item.type -in @('reasoning','userMessage','hookPrompt','plan')) { return }
         if ($item.id) { $key = $Message.method + ':' + [string]$item.id }
-        $status = if ($item.status -in @('inProgress','completed','failed','declined','interrupted')) { $item.status } else { 'unbekannt' }
+        $status = if ($item.status -in @('inProgress','completed','failed','declined','interrupted')) { "; Status $($item.status)" } else { '' }
         $stage = if ($Message.method -eq 'item/started') { 'Start' } else { 'Ende' }
         switch ($item.type) {
             'agentMessage' {
-                # Only completed public commentary: no delta spam or final-answer duplication.
-                if ($Message.method -ne 'item/completed' -or $item.phase -ne 'commentary') { return }
+                # Final answers use the same ID-bound display path, not raw output.
+                if ($Message.method -ne 'item/completed' -or $item.phase -notin @('commentary','final_answer')) { return }
                 $text = [string]$item.text
                 if (-not $text.Trim()) { return }
-                # Code, URLs, assignments and unfamiliar structured payloads use safe metadata.
-                if ($text -match '[`{}=<>]|https?://|(?i)\b(?:bearer|password|token|secret|api[_-]?key|authorization)\b') { $text = '(öffentliche Meldung; Nutzlast ausgeblendet)' }
-                $lines = @('Fortschritt: ' + (Protect-ProgressText $text $State))
-                if ($item.id) { $key = 'commentary:' + $lines[0] }
+                $label = if ($item.phase -eq 'commentary') { 'Fortschritt: ' } else { "Ergebnis (vollständig, maskiert):`n" }
+                $lines = @($label + (Protect-ProgressText $text $State))
+            }
+            'functionCallOutput' {
+                if (-not $item.name) { return }
+                $name = Get-ProgressName $item.name $State
+                if ($item.namespace) { $name = (Get-ProgressName $item.namespace $State) + '/' + $name }
+                $lines = @("Funktionsausgabe ${stage}: $name")
+                if ($stage -eq 'Ende' -and $null -ne $item.output) {
+                    $outputText = if ($item.output -is [string]) { Protect-ProgressText $item.output $State }
+                        else { @(Get-ProgressContent $item.output $State) -join "`n" }
+                    if ($outputText) { $lines += "Ausgabe:`n" + $outputText }
+                }
+            }
+            'sleep' {
+                $lines = @("Pause ${stage}")
+                if ($null -ne $item.durationMs) { $lines += "Dauer (ms): $($item.durationMs)" }
             }
             'commandExecution' {
-                $exit = if ($null -ne $item.exitCode -and [string]$item.exitCode -match '^-?\d{1,10}$') { [string]$item.exitCode } else { 'unbekannt' }
-                $lines = @("Befehl ${stage}: $(Get-ProgressCommand $item.command $State); Status $status" + $(if ($stage -eq 'Ende') { "; Exitcode $exit" } else { '' }))
+                $exit = if ($stage -eq 'Ende' -and $null -ne $item.exitCode -and [string]$item.exitCode -match '^-?\d{1,10}$') { "; Exitcode $($item.exitCode)" } else { '' }
+                $lines = @("Befehl ${stage}$status$exit")
+                if ($item.cwd) { $lines += 'Arbeitsverzeichnis: ' + (Get-ProgressPath $item.cwd $State) }
+                if ($item.command) { $lines += Get-ProgressCommand $item.command $State }
+                if ($stage -eq 'Ende' -and $null -ne $item.aggregatedOutput -and [string]$item.aggregatedOutput -ne '') { $lines += "Ausgabe:`n" + [string]$item.aggregatedOutput }
             }
             'fileChange' {
-                $paths = @($item.changes | Select-Object -First 3 | ForEach-Object { Get-ProgressPath $_.path $State })
-                if (-not $paths.Count) { $paths = @('(Pfad fehlt)') }
-                $suffix = "; Status $status" + $(if (@($item.changes).Count -gt 3) { '; weitere Pfade ausgeblendet' } else { '' })
-                $prefix = "Dateien ${stage}: "
-                $lines = @($prefix + (Protect-ProgressText ($paths -join ', ') $State (240 - $prefix.Length - $suffix.Length)) + $suffix)
+                $lines = @("Dateien ${stage}$status")
+                foreach ($change in $item.changes) {
+                    if ($change.path) { $lines += 'Pfad: ' + (Get-ProgressPath $change.path $State) }
+                    if ($change.kind.type -in @('add','delete','update')) { $lines += 'Änderung: ' + $change.kind.type }
+                    if ($stage -eq 'Ende' -and $change.diff) { $lines += "Diff:`n" + [string]$change.diff }
+                }
             }
-            'mcpToolCall' { $lines = @("MCP ${stage}: $(Get-ProgressName $item.server $State)/$(Get-ProgressName $item.tool $State); Status $status") }
+            'mcpToolCall' {
+                if (-not $item.tool -or -not $item.server) { return }
+                $lines = @("MCP ${stage}: $(Get-ProgressName $item.server $State)/$(Get-ProgressName $item.tool $State)$status")
+                if ($null -ne $item.arguments) { $lines += "Argumente:`n" + (ConvertTo-ProgressPayload $item.arguments $State) }
+                if ($stage -eq 'Ende') {
+                    $content = @(Get-ProgressContent $item.result.content $State)
+                    if ($content.Count) { $lines += "Ergebnis:`n" + ($content -join "`n") }
+                    if ($null -ne $item.result.structuredContent) { $lines += "Strukturiertes Ergebnis:`n" + (ConvertTo-ProgressPayload $item.result.structuredContent $State) }
+                    if ($item.error.message) { $lines += 'Fehler: ' + [string]$item.error.message }
+                }
+            }
             'dynamicToolCall' {
-                $success = if ($item.success -is [bool]) { [string]$item.success } else { 'unbekannt' }
-                $lines = @("Tool ${stage}: $(Get-ProgressName $item.tool $State); Status $status; Erfolg $success")
+                if (-not $item.tool) { return }
+                $success = if ($item.success -is [bool]) { "; Erfolg $($item.success)" } else { '' }
+                $name = Get-ProgressName $item.tool $State
+                if ($item.namespace) { $name = (Get-ProgressName $item.namespace $State) + '/' + $name }
+                $lines = @("Tool ${stage}: $name$status$success")
+                if ($null -ne $item.arguments) { $lines += "Argumente:`n" + (ConvertTo-ProgressPayload $item.arguments $State) }
+                if ($stage -eq 'Ende') {
+                    $content = @(Get-ProgressContent $item.contentItems $State)
+                    if ($content.Count) { $lines += "Ergebnis:`n" + ($content -join "`n") }
+                }
             }
-            default { $lines = @("Werkzeug ${stage}: unbekannte Eventform; Status $status") }
+            'webSearch' {
+                $lines = @("Werkzeug ${stage}: webSearch")
+                if ($item.query) { $lines += 'Suche: ' + [string]$item.query }
+                if ($item.action.type -in @('search','open_page','find_in_page','openPage','findInPage')) {
+                    $lines += 'Aktion: ' + [string]$item.action.type
+                    foreach ($field in @('query','queries','url','pattern')) {
+                        if ($item.action.$field) { $lines += "${field}: " + (@($item.action.$field) -join "`n") }
+                    }
+                }
+                if ($stage -eq 'Ende' -and $null -ne $item.results) { $lines += "Ergebnis:`n" + (ConvertTo-ProgressPayload $item.results $State) }
+            }
+            'imageView' {
+                $lines = @("Werkzeug ${stage}: imageView")
+                if ($item.path) { $lines += 'Pfad: ' + (Get-ProgressPath $item.path $State) }
+            }
+            { $_ -in @('collabAgentToolCall','collabToolCall') } {
+                if (-not $item.tool) { return }
+                $lines = @("Werkzeug ${stage}: $(Get-ProgressName $item.tool $State)$status")
+                # Only identities and reported status, never prompt/developer payloads.
+                if ($item.receiverThreadIds) { $lines += 'Zielthreads: ' + (@($item.receiverThreadIds) -join ', ') }
+                if ($item.receiverThreadId) { $lines += 'Zielthread: ' + [string]$item.receiverThreadId }
+            }
+            default { return } # Unmapped/internal items remain in the technical notification log.
         }
-    } else { return } # Includes reasoning, tool outputs, MCP progress and all deltas.
-    if (($key -and $State.seen.ContainsKey($key)) -or ($State.count -ge 200 -and $Message.method -ne 'turn/completed')) { return }
+    } else { return } # v2 authoritative items only: no legacy codex/event/* duplicates or deltas.
+    if ($key -and $State.seen.ContainsKey($key)) { return }
     if ($key) { $State.seen[$key] = $true }; $State.count++
-    foreach ($line in $lines) { Protect-ProgressText $line $State 240 }
+    if ($lines.Count) { Protect-ProgressText ($lines -join "`n") $State }
+}
+function Format-ProgressLines([string]$Text, [int]$Width = 88) {
+    $Width = [Math]::Max(40, [Math]::Min(120, $Width))
+    foreach ($paragraph in ($Text -split "`n")) {
+        while ($paragraph.Length -gt $Width) {
+            # Include the whitespace at the boundary: joining wrapped lines must
+            # preserve even long commands/paths byte-for-byte after sanitization.
+            $split = $paragraph.LastIndexOf(' ', $Width - 1)
+            if ($split -le 0) { $split = $Width } else { $split++ }
+            $paragraph.Substring(0, $split)
+            $paragraph = $paragraph.Substring($split)
+        }
+        $paragraph
+    }
 }
 function Write-ProgressDisplay([string]$Text) {
     # One path for actual host lines and their sanitized evidence, including final output.
-    $line = Protect-ProgressText $Text $progressState 240
-    Write-Host $line
-    Write-Event 'display' @{ text = $line; thread_id = $evidence.thread_id; turn_id = $evidence.turn_id }
+    $safe = Protect-ProgressText $Text $progressState
+    [System.IO.File]::AppendAllText($resultFile + '.public.txt', $safe + "`n`n", $utf8)
+    $width = 88
+    try { $width = [Math]::Min(88, $host.UI.RawUI.WindowSize.Width - 1) } catch { }
+    foreach ($line in (Format-ProgressLines $safe $width)) {
+        Write-Host $line
+        Write-Event 'display' @{ text = $line; thread_id = $evidence.thread_id; turn_id = $evidence.turn_id }
+    }
+    Write-Host ''
+    Write-Event 'display' @{ text = ''; thread_id = $evidence.thread_id; turn_id = $evidence.turn_id }
 }
 if ($PSCmdlet.ParameterSetName -eq 'Start') {
     # A coordinator console is user-owned: it is never automatically closed.
     if ($Role -ceq 'koordinator') { $KeepWindowOpen = $true }
     $resultFile = [System.IO.Path]::GetFullPath($ResultPath)
-    foreach ($suffix in @('', '.job.json', '.window.json', '.go.json', '.events.jsonl')) {
+    foreach ($suffix in @('', '.job.json', '.window.json', '.go.json', '.events.jsonl', '.public.txt')) {
         if (Test-Path -LiteralPath ($resultFile + $suffix)) { throw "Vorhandenes Artefakt bleibt erhalten: $resultFile$suffix" }
     }
     $workdir = (Resolve-Path -LiteralPath $WorkingDirectory).Path
@@ -292,8 +415,9 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         if ($result.token_summary.missing_count) { Write-Output ('Bekannte Teilsumme: ' + (Format-TokenUsage $result.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $result.token_summary.missing_count) }
     }
     Write-Output ('Vollständiges Resultat: ' + $resultFile)
-    if ($result.output) { Write-Output (Protect-ProgressText $result.output (New-ProgressState) 240) }
-    if ($result.error) { Write-Output (Protect-ProgressText ('Fehler: ' + $result.error) (New-ProgressState) 240) }
+    if (Test-Path -LiteralPath ($resultFile + '.public.txt')) { Write-Output ('Vollständige maskierte Darstellung: ' + $resultFile + '.public.txt') }
+    if ($result.output) { Format-ProgressLines (Protect-ProgressText $result.output (New-ProgressState)) | Write-Output }
+    if ($result.error) { Format-ProgressLines (Protect-ProgressText ('Fehler: ' + $result.error) (New-ProgressState)) | Write-Output }
     if (-not $result.success -or -not $confirmed) { exit 2 }
     exit 0
 }
@@ -419,8 +543,8 @@ try {
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $evidence.success = ($evidence.terminal_outcome -eq 'completed')
     Write-Event 'terminal' @{ outcome = $evidence.terminal_outcome; thread_id = $evidence.thread_id }
-    Write-ProgressDisplay 'Ergebnis (Kurzfassung; vollständig im Resultatartefakt):'
-    Write-ProgressDisplay $evidence.output
+    # Public final_answer items were displayed once above. Keep raw output in
+    # the result contract without replaying commentary or unknown phases here.
 } catch {
     $evidence.error = $_.Exception.Message
     Write-ProgressDisplay ('Fehler: ' + $evidence.error)
@@ -447,6 +571,7 @@ try {
         $process.Dispose()
     }
     Write-Host ('Resultat gesichert: ' + $resultFile)
+    if (Test-Path -LiteralPath ($resultFile + '.public.txt')) { Write-Host ('Vollständige maskierte Darstellung: ' + $resultFile + '.public.txt') }
     Write-Host ($(if ($evidence.usage_finalized) { 'Eigene Tokens: ' } else { 'Vorläufig beobachtete eigene Tokens: ' }) + (Format-TokenUsage $evidence.token_usage))
     if ($evidence.token_summary) {
         Write-Host ('Inklusive Unteraufträgen: ' + (Format-TokenUsage $evidence.token_summary.inclusive))
