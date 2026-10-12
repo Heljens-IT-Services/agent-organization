@@ -1,0 +1,26 @@
+{
+    "workitem":  "improvement-scripts-order",
+    "phase":  "integration-preparation",
+    "owner":  "teamleiter_agent_ressources",
+    "specialist":  "agent_ressources_optimierer",
+    "authorization":  "Existing workitem-plan.json authorization plus current explicitly authorized teamleader handoff; commit/push only",
+    "source_plan":  "runtime/scripts-order/workitem-plan.json",
+    "existing_acceptance":  "C:\\Users\\TOM-OL~1\\AppData\\Local\\Temp/agent-org-scripts-order-parent-acceptance.json",
+    "old_head":  "32399a6914ecf748545b08f842b0858c901287df",
+    "target_base":  "4dd9d1501700857d3f035ffb5050301a7c2ac4a5",
+    "goal":  "Rebase PR84 on merged Task60, sort all current PS paths and active references, verify delta and skill checks; prepare visible harmless smoke without delegation by optimizer",
+    "excluded":  [
+                     "merge",
+                     "main checkout writes",
+                     "global mirrors",
+                     "Story16 writes",
+                     "logic/model/reasoning/rights/auth changes",
+                     "CI activation",
+                     "Fast",
+                     "delegation by optimizer"
+                 ],
+    "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+    "accounting_directory":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-accounting",
+    "recorded_at":  "2026-10-12T13:05:10.7352511+02:00",
+    "executing_task_id":  "c6ad842d53d74e7e941f5fcc1500093c"
+}

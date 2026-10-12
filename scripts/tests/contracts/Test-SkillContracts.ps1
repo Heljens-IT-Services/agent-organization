@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([string]$ResultPath)
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'contracts/ContractValidation.ps1')
-$root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot '../../contracts/ContractValidation.ps1')
+$root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 if (-not $ResultPath) { $ResultPath = Join-Path $root 'docs/task60-evidence/test-results.json' }
 $tests = New-Object 'System.Collections.Generic.List[object]'
 function Check([string]$Name, [bool]$Accept, [scriptblock]$Action) {
@@ -102,7 +102,7 @@ try {
         $diagnostic = & $script:nodePath --check (Join-Path $fixtureRoot 'fixture.js') 2>&1
         if ($LASTEXITCODE -ne 0) { throw ($diagnostic -join "`n") }
     }
-    $base = '{"schemaVersion":"1.0","skills":[{"id":"test-skill","purpose":"Contract fixture","scriptPath":"scripts/Test-Contracts.ps1","parameters":[],"result":{"description":"Any JSON value including null"},"prerequisites":[]}]}' | ConvertFrom-Json
+    $base = '{"schemaVersion":"1.0","skills":[{"id":"test-skill","purpose":"Contract fixture","scriptPath":"scripts/tests/contracts/Test-Contracts.ps1","parameters":[],"result":{"description":"Any JSON value including null"},"prerequisites":[]}]}' | ConvertFrom-Json
     Check 'workitem-schema' $true { Assert-ContractDocument (Read-ContractJson (Join-Path $root 'docs/task60-evidence/workitem.json')) (Join-Path $root 'schemas/workitems.schema.json') }
     Check 'own-optimizer-role' $true { Assert-ContractRole (Assert-ContractRelativeFile $root 'teams/agent_ressources/agenten/optimierer.toml') 'agent_ressources_optimierer' }
     Check 'own-teamleader-role' $true { Assert-ContractRole (Assert-ContractRelativeFile $root 'teams/agent_ressources/teamleiter.toml') 'teamleiter_agent_ressources' }

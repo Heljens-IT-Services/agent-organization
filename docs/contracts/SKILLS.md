@@ -68,7 +68,7 @@ Sie ist nicht automatisch ein Skill nach diesem Vertrag: erst ein Metadatensatz
 mit vorhandener Skriptdatei und definiertem Antwortvertrag erfuellt die Form.
 
 Pruefung: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
-scripts/Test-SkillContracts.ps1`. Wiederverwendet wird ausschliesslich der
+scripts/tests/contracts/Test-SkillContracts.ps1`. Wiederverwendet wird ausschliesslich der
 vorhandene ContractValidation-Helfer plus eng fokussierte Skill-Invarianten.
 Der fokussierte Test verwendet vorhandenes Node/native `JSON.parse` als
 Standard-JSON-Syntaxwerkzeug, ohne Paketinstallation oder neue Projekt- oder

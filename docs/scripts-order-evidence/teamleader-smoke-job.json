@@ -1,0 +1,28 @@
+{
+    "keep_window_open":  false,
+    "task":  "Harmloser echter Starter-Smoke im freigegebenen PR84-Improvementpfad. Ownership nur dieses Ergebnis, keine Dateien bearbeiten, keine weiteren Agenten starten. Lies README.md maximal 8 Zeilen und bestaetige deinen expliziten Rollennamen, WorkingDirectory sowie Existenz von scripts/delegation/Start-DelegatedCodexTask.ps1 und scripts/tests/contracts/Test-SkillContracts.ps1. Antworte knapp mit SMOKE_OK und diesen beobachteten Fakten. Keine Repository/Global/Story16-Aenderung, keine Facharbeit oder Recherche. Dieser Aufruf ist ausschliesslich der ausdruecklich geforderte echte neue-Pfad-Smoke; regulaere Delegationssteuerung bleibt bis Umstellung auf dem stabilen Task60-Absolutlauncher.",
+    "context":  "",
+    "role_display_name":  "Bestandsanalyse",
+    "timeout_seconds":  300,
+    "developer_instructions":  "Explizit zugewiesene Rolle: agent_ressources_bestandsanalyse.\n\r\nLiefere Fachbeiträge zu übergebenen WorkItems mit Ergebnisbelegen. Umsetzung\r\nist keine Abnahme; fehlende Spezifikation meldest du deinem Teamleiter.\r\nPrüfe bereitgestellte Fähigkeitsauszüge auf Eignung und Wiederverwendung, bevor du neue Agenten empfiehlst.\r\nArbeite nur im zugewiesenen Scope und an übergebenen Dateien; erhalte fremde Änderungen.\r\nDein einziger Kontakt ist teamleiter_agent_ressources; berichte Ergebnis, Belege und offene Punkte\r\nan ihn. Keine direkte Benutzer-, Koordinator- oder Fremdteamkommunikation.\r\nLade keinen Organisationsindex und delegiere keine weiteren Aufgaben.\r\n",
+    "context_file":  null,
+    "task_id":  "7446a7a6727043278d475d0f160ebb7e",
+    "sandbox":  "danger-full-access",
+    "role":  "agent_ressources_bestandsanalyse",
+    "accounting_directory":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-backlog-accounting",
+    "parent_task_id":  "1366a0a484bd401d967c166977d72c63",
+    "cwd":  "C:\\Users\\Tom-OliverMarek\\source\\repos\\agent-organization-scripts-order",
+    "approval_policy":  "never",
+    "model":  "gpt-6-luna",
+    "window_title":  "Bestandsanalyse - Neuen Starter pruefen",
+    "task_title":  "Neuen Starter pruefen",
+    "config":  {
+                   "web_search":  "cached",
+                   "model_reasoning_effort":  "medium",
+                   "agents":  {
+                                  "enabled":  false
+                              },
+                   "model_verbosity":  "medium"
+               },
+    "result_file":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\pr84-final-new-starter-smoke.json"
+}

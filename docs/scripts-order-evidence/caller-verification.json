@@ -1,0 +1,146 @@
+{
+    "recorded_at":  "2026-10-12T13:13:47.5327519+02:00",
+    "active_files":  [
+                         "scripts/accounting/Get-TaskTokenUsage.ps1",
+                         "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                         "scripts/contracts/ContractValidation.ps1",
+                         "scripts/contracts/Test-Organization.ps1",
+                         "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                         "scripts/tests/accounting/Test-RolloutTaskUsage.ps1",
+                         "scripts/tests/accounting/Test-TaskTokenUsage.ps1",
+                         "scripts/tests/contracts/Test-Contracts.ps1",
+                         "scripts/tests/contracts/Test-SkillContracts.ps1",
+                         "scripts/tests/delegation/Test-DelegatedProgress.ps1",
+                         "scripts/tests/workitems/RecoveryWorker.ps1",
+                         "scripts/tests/workitems/Test-WorkItemStore.ps1",
+                         "scripts/tests/workitems/Test-WorkItemStoreRecovery.ps1",
+                         "scripts/tests/workitems/Worker.ps1",
+                         "scripts/workitems/Get-WorkItems.ps1",
+                         "scripts/workitems/New-WorkItem.ps1",
+                         "scripts/workitems/Set-WorkItem.ps1",
+                         "scripts/workitems/Test-WorkItems.ps1",
+                         "scripts/workitems/WorkItemStore.psm1",
+                         "README.md",
+                         "AGENTS.md",
+                         "PROJECT.md",
+                         "docs/FENSTERDELEGATION.md",
+                         "docs/WORKITEM-STORAGE.md",
+                         "docs/contracts/WORKITEMS.md",
+                         "docs/contracts/ORGANIZATION.md",
+                         "docs/contracts/SKILLS.md"
+                     ],
+    "active_old_path_hits":  [
+
+                             ],
+    "move_map":  [
+                     {
+                         "old":  "scripts/Start-DelegatedCodexTask.ps1",
+                         "new":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Get-TaskTokenUsage.ps1",
+                         "new":  "scripts/accounting/Get-TaskTokenUsage.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Import-RolloutTaskUsage.ps1",
+                         "new":  "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Get-WorkItems.ps1",
+                         "new":  "scripts/workitems/Get-WorkItems.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/New-WorkItem.ps1",
+                         "new":  "scripts/workitems/New-WorkItem.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Set-WorkItem.ps1",
+                         "new":  "scripts/workitems/Set-WorkItem.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-WorkItems.ps1",
+                         "new":  "scripts/workitems/Test-WorkItems.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-Organization.ps1",
+                         "new":  "scripts/contracts/Test-Organization.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-Contracts.ps1",
+                         "new":  "scripts/tests/contracts/Test-Contracts.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-DelegatedProgress.ps1",
+                         "new":  "scripts/tests/delegation/Test-DelegatedProgress.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-TaskTokenUsage.ps1",
+                         "new":  "scripts/tests/accounting/Test-TaskTokenUsage.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-RolloutTaskUsage.ps1",
+                         "new":  "scripts/tests/accounting/Test-RolloutTaskUsage.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-WorkItemStore.ps1",
+                         "new":  "scripts/tests/workitems/Test-WorkItemStore.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-WorkItemStoreRecovery.ps1",
+                         "new":  "scripts/tests/workitems/Test-WorkItemStoreRecovery.ps1",
+                         "target_exists":  true
+                     },
+                     {
+                         "old":  "scripts/Test-SkillContracts.ps1",
+                         "new":  "scripts/tests/contracts/Test-SkillContracts.ps1",
+                         "target_exists":  true
+                     }
+                 ],
+    "callers":  [
+                    {
+                        "reference":  "../../contracts/ContractValidation.ps1",
+                        "caller":  "scripts/tests/contracts/Test-SkillContracts.ps1:4",
+                        "target":  "scripts/contracts/ContractValidation.ps1"
+                    },
+                    {
+                        "reference":  "scripts/tests/contracts/Test-Contracts.ps1",
+                        "caller":  "scripts/tests/contracts/Test-SkillContracts.ps1:105",
+                        "target":  "scripts/tests/contracts/Test-Contracts.ps1"
+                    },
+                    {
+                        "reference":  "../accounting/Get-TaskTokenUsage.ps1",
+                        "caller":  "scripts/delegation/Start-DelegatedCodexTask.ps1:561",
+                        "target":  "scripts/accounting/Get-TaskTokenUsage.ps1"
+                    },
+                    {
+                        "reference":  "scripts\\workitems\\Test-WorkItems.ps1",
+                        "caller":  "scripts/workitems/WorkItemStore.psm1",
+                        "target":  "scripts/workitems/Test-WorkItems.ps1"
+                    },
+                    {
+                        "reference":  "../../workitems/Test-WorkItems.ps1",
+                        "caller":  "scripts/tests/contracts/Test-Contracts.ps1",
+                        "target":  "scripts/workitems/Test-WorkItems.ps1"
+                    }
+                ],
+    "historical_exclusions":  [
+                                  "docs/story15-evidence",
+                                  "docs/task60-evidence",
+                                  "STORY14/STORY15/AR55/EPIC5 acceptance reports",
+                                  "SCRIPTS-ORDER-PREPARATION.md historical map and former transition gate"
+                              ],
+    "root_ps_count":  0
+}

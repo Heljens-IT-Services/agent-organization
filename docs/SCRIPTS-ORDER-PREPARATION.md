@@ -1,5 +1,11 @@
 # improvement-scripts-order: Vorbereitung zur Review
 
+Historische Vorbereitungsabnahme vor PR83/Task60. Der aktuelle Folgeauftrag
+und der ersetzte Story16-/Starter-Uebergangsgate stehen verbindlich in
+[SCRIPTS-ORDER-INTEGRATION.md](SCRIPTS-ORDER-INTEGRATION.md). Bis Umstellung
+verwenden alle Starts den dort genannten stabilen absoluten Task60-Starter.
+Die unten dokumentierten damaligen Gates und Messungen bleiben historisch.
+
 Stand: 2026-10-12. Fachbeitrag an `teamleiter_agent_ressources`. WorkItem `improvement-scripts-order`: **preparation-accepted-for-review**. Die eigene Teamleiter-Vorbereitungsabnahme ist erteilt; Commit, Push und Review-PR auf develop sind beauftragt. Integration, Merge und Gesamtabschluss bleiben offen; globaler Rollout ist nicht freigegeben.
 
 ## Freigabe, Ownership und Teilziele

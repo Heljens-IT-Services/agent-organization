@@ -1,0 +1,534 @@
+{
+    "task":  60,
+    "runtime":  "5.1.26100.9549",
+    "total":  87,
+    "passed":  87,
+    "failed":  0,
+    "tests":  [
+                  {
+                      "name":  "javascript-fixture-syntax",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "workitem-schema",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "own-optimizer-role",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "own-teamleader-role",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "powershell-default",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "language-python",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "language-javascript",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "language-open_language",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "missing-id",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: id"
+                  },
+                  {
+                      "name":  "missing-purpose",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: purpose"
+                  },
+                  {
+                      "name":  "missing-scriptPath",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: scriptPath"
+                  },
+                  {
+                      "name":  "missing-parameters",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: parameters"
+                  },
+                  {
+                      "name":  "missing-result",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: result"
+                  },
+                  {
+                      "name":  "missing-prerequisites",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: prerequisites"
+                  },
+                  {
+                      "name":  "path-docs/contracts/WORKITEMS.md",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Documentation/data is not executable script code."
+                  },
+                  {
+                      "name":  "path-missing.ps1",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Missing referenced file: missing.ps1"
+                  },
+                  {
+                      "name":  "path-../outside.ps1",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Unsafe relative reference: ../outside.ps1"
+                  },
+                  {
+                      "name":  "path-C:/outside.ps1",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema pattern at $.skills[0].scriptPath"
+                  },
+                  {
+                      "name":  "path-scripts",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Missing referenced file: scripts"
+                  },
+                  {
+                      "name":  "path-scripts/../../outside.ps1",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Unsafe relative reference: scripts/../../outside.ps1"
+                  },
+                  {
+                      "name":  "duplicate-id",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate skill ID."
+                  },
+                  {
+                      "name":  "status",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema additional property at $.skills[0]: status"
+                  },
+                  {
+                      "name":  "bad-id",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema pattern at $.skills[0].id"
+                  },
+                  {
+                      "name":  "case",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $.skills[0]: purpose"
+                  },
+                  {
+                      "name":  "bad-purpose",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema pattern at $.skills[0].purpose"
+                  },
+                  {
+                      "name":  "bad-result",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema type at $.skills[0].result: expected object"
+                  },
+                  {
+                      "name":  "bad-parameters",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema type at $.skills[0].parameters: expected array"
+                  },
+                  {
+                      "name":  "bad-prerequisites",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema type at $.skills[0].prerequisites[0]: expected string"
+                  },
+                  {
+                      "name":  "interpreter-command",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema pattern at $.skills[0].interpreter"
+                  },
+                  {
+                      "name":  "language-mismatch",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Declared language and script extension differ."
+                  },
+                  {
+                      "name":  "no-alternative-interpreter",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Alternative language needs an explicit interpreter."
+                  },
+                  {
+                      "name":  "duplicate-parameter",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate parameter name."
+                  },
+                  {
+                      "name":  "unknown-parameter-ref",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Unknown result parameter reference."
+                  },
+                  {
+                      "name":  "default-type",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Parameter default does not match declared JSON type."
+                  },
+                  {
+                      "name":  "response-null",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "response-boolean",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "response-number",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "response-string",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "response-object",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "response-array",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "issue60-original-success",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "issue60-original-failure",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "runner-error-template",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "failure-result-arbitrary",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result-1e400",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result--1e400",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result-{\"huge\":1e400,\"nested\":[-1e400,{\"tiny\":1e-4000}]}",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result-[1e400,1e-4000]",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result-{\"x\":1,\"x\":2}",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "unrestricted-result-{\"Result\":1,\"result\":2}",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "failure-result-large-number",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "duplicate-response-{\"isSuccessful\":false,\"isSuccessful\":true,\"exception\":null,\"result\":null}",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate top-level response key: isSuccessful"
+                  },
+                  {
+                      "name":  "duplicate-response-{\"isSuccessful\":true,\"exception\":null,\"exception\":null,\"result\":null}",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate top-level response key: exception"
+                  },
+                  {
+                      "name":  "duplicate-response-{\"isSuccessful\":true,\"exception\":null,\"result\":1,\"result\":2}",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate top-level response key: result"
+                  },
+                  {
+                      "name":  "duplicate-response-{\"isSuccessful\":true,\"exception\":null,\"result\":1,\"\\u0072esult\":2}",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Duplicate top-level response key: result"
+                  },
+                  {
+                      "name":  "response-key-case-distinct",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Die JSON-Zeichenfolge kann nicht konvertiert werden, weil ein aus der Zeichenfolge konvertiertes Wörterbuch die doppelten Schlüssel \"result\" und \"Result\" enthält."
+                  },
+                  {
+                      "name":  "invalid-response-0",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $: isSuccessful"
+                  },
+                  {
+                      "name":  "invalid-response-1",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $: isSuccessful"
+                  },
+                  {
+                      "name":  "invalid-response-2",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $: exception"
+                  },
+                  {
+                      "name":  "invalid-response-3",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $: result"
+                  },
+                  {
+                      "name":  "invalid-response-4",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema required at $: isSuccessful"
+                  },
+                  {
+                      "name":  "invalid-response-5",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-6",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-7",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-8",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-9",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-10",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-11",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema anyOf at $"
+                  },
+                  {
+                      "name":  "invalid-response-12",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema additional property at $: status"
+                  },
+                  {
+                      "name":  "invalid-response-13",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "invalid-response-14",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Native JSON.parse rejected stdout: \u003canonymous_script\u003e:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":null} {}\r\n                                                     ^\r\n\r\nSyntaxError: Unexpected non-whitespace character after JSON at position 53 (line 1 column 54)\r\n    at JSON.parse (\u003canonymous\u003e)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n"
+                  },
+                  {
+                      "name":  "invalid-response-15",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "invalid-response-16",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "invalid-response-17",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema type at $: expected object"
+                  },
+                  {
+                      "name":  "invalid-response-18",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Schema type at $: expected object"
+                  },
+                  {
+                      "name":  "invalid-response-19",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "invalid-response-20",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Native JSON.parse rejected stdout: \u003canonymous_script\u003e:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":null,}\r\n                                                    ^\r\n\r\nSyntaxError: Expected double-quoted property name in JSON at position 52 (line 1 column 53)\r\n    at JSON.parse (\u003canonymous\u003e)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n"
+                  },
+                  {
+                      "name":  "invalid-response-21",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Native JSON.parse rejected stdout: \u003canonymous_script\u003e:1\r\n{\"isSuccessful\":true,\"exception\":null,\"result\":01}\r\n                                                ^\r\n\r\nSyntaxError: Unexpected number in JSON at position 48 (line 1 column 49)\r\n    at JSON.parse (\u003canonymous\u003e)\r\n    at [eval]:1:37\r\n    at runScriptInThisContext (node:internal/vm:219:10)\r\n    at node:internal/process/execution:451:12\r\n    at [eval]-wrapper:6:24\r\n    at runScriptInContext (node:internal/process/execution:449:60)\r\n    at evalFunction (node:internal/process/execution:283:30)\r\n    at evalTypeScript (node:internal/process/execution:295:3)\r\n    at node:internal/main/eval_string:71:3\r\n\r\nNode.js v24.19.0\r\n"
+                  },
+                  {
+                      "name":  "invalid-response-22",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "invalid-response-23",
+                      "expectedAcceptance":  false,
+                      "passed":  true,
+                      "detail":  "Non-JSON syntax on stdout."
+                  },
+                  {
+                      "name":  "parameter-null",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-boolean",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-integer",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-number",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-string",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-object",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  },
+                  {
+                      "name":  "parameter-array",
+                      "expectedAcceptance":  true,
+                      "passed":  true,
+                      "detail":  "accepted"
+                  }
+              ],
+    "globalStoreGraphValidator":  "NOT_RUN",
+    "independentQA":  "PENDING",
+    "teamLeaderAcceptance":  "PENDING"
+}
