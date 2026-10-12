@@ -34,3 +34,24 @@ durch Agenten geschlossen. Andere Rollen schließen nur ihr eigenes Aufgabenfens
 
 Tokenberichte verwenden gemessenen Eigenverbrauch und deduplizierte Unteraufträge.
 Fehlende Messungen bleiben unbekannt; inklusive Kindersummen werden nicht doppelt gezählt.
+
+# Pragmatische Prüfregel
+
+Prüfungen bleiben im Änderungsscope und richten sich nach dem Risiko. Kleine
+Tasks erfordern keine Volltests pro Schritt. Gültige Evidenz für unveränderte
+Inhalte und Verhalten wird über alle Ebenen wiederverwendet; Wiederholungen
+sind nur bei neuen Änderungen, Fehlern oder offenen Risiken erforderlich.
+Zum Epicabschluss sind die vollständige relevante Regression und Integration
+nachzuweisen.
+
+Tatsächlich geändertes Verhalten und konkrete Fehlerfälle brauchen gezielte
+Nachweise. Änderungen an Prozessbeendigung, Sitzungsbindung oder atomaren
+Schreibvorgängen dürfen ohne erforderliche Funktionsevidenz nicht gemergt
+werden. Dokumentation und mechanische Umordnung werden angemessen auf Inhalt,
+Referenzen und betroffene Parser geprüft. Keine neue Testinfrastruktur oder
+Spiegeltests einführen.
+
+QA und Elternrollen prüfen vorhandene passende Evidenz ohne pauschalen
+Suitezwang. Jede Abnahme dokumentiert Scope, wiederverwendete Evidenz, neue
+Prüfungen und ausstehende Epic-Regression. Kinderabschlüsse ersetzen keine
+eigene Elternabnahme.
