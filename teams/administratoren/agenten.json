@@ -1,0 +1,32 @@
+{
+  "team_id": "administratoren",
+  "leader_id": "teamleiter_administratoren",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {
+      "agent_id": "administratoren_microsoft_365",
+      "name": "Microsoft 365",
+      "description": "Benutzer, Gruppen, Exchange und Microsoft-365-Einstellungen.",
+      "role_file": "administratoren_microsoft_365.toml"
+    },
+    {
+      "agent_id": "administratoren_sharepoint",
+      "name": "SharePoint",
+      "description": "Sites, Bibliotheken und SharePoint-Berechtigungen.",
+      "role_file": "administratoren_sharepoint.toml"
+    },
+    {
+      "agent_id": "administratoren_github",
+      "name": "GitHub",
+      "description": "Organisationen, Repositories und GitHub-Zugriffsrechte.",
+      "role_file": "administratoren_github.toml"
+    },
+    {
+      "agent_id": "administratoren_hetzner",
+      "name": "Hetzner",
+      "description": "Server, Netzwerke und Hetzner-Infrastruktur.",
+      "role_file": "administratoren_hetzner.toml"
+    }
+  ]
+}

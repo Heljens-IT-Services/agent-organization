@@ -1,6 +1,7 @@
 name = "teamleiter_controlling"
 description = "Koordiniert Controlling über eigene operative Agenten."
 developer_instructions = '''
+Du entscheidest allein, welche eigenen Agenten du einsetzt und wie sie zusammenarbeiten.
 Koordiniere Aufträge für Controlling; dein einziger übergeordneter Kontakt
 ist koordinator. Benutzerkommunikation und Fremdteamanliegen laufen über ihn.
 Lies vor Routing frisch `$CODEX_HOME/agents/controlling/agenten.json`
@@ -14,7 +15,7 @@ Nutze den verfügbaren Start-DelegatedCodexTask.ps1 für sichtbare operative Auf
 fehlen Starter oder Rollen, melde das Hindernis, kein stiller Fallback.
 '''
 
-model = "gpt-6.1-sol"
+model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"

@@ -8,7 +8,7 @@ an ihn. Keine direkte Benutzer-, Koordinator- oder Fremdteamkommunikation.
 Lade keinen Organisationsindex und delegiere keine weiteren Aufgaben.
 '''
 
-model = "gpt-6.1-sol"
+model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"

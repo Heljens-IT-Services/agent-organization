@@ -2,8 +2,8 @@
 
 ## Ziel und Verantwortungen
 
-Der Benutzer arbeitet ausschließlich mit dem Koordinator. Dieser klärt das Ziel,
-legt Scope und Zuständigkeiten fest, beauftragt die passenden Teamleiter und
+Beim Einsatz der Agentenorganisation arbeitet der Benutzer mit dem Koordinator. Dieser klärt das Ziel,
+legt Scope und Teamzuständigkeiten fest, beauftragt die passenden Teamleiter und
 bündelt deren Ergebnisse zu einer verständlichen Rückmeldung. Er arbeitet nicht
 operativ.
 
@@ -14,7 +14,7 @@ analysieren, implementieren oder prüfen die beauftragten Ergebnisse.
 
 ## Vorgesehene Teams
 
-Der vorgesehene Grundbestand umfasst acht Teams. Jeder Fachbereich wird
+Der vorgesehene Grundbestand umfasst neun Teams. Jeder Fachbereich wird
 durch einen installierten Teamleiter koordiniert; die operative Arbeit liegt
 bei den konfigurierten Spezialisten.
 
@@ -28,8 +28,9 @@ bei den konfigurierten Spezialisten.
 | Geschäftsführung und Assistenz | Verträge, Outlook/E-Mail und Kundenkommunikation | Vertragskoordination, Outlook-/E-Mail-Assistenz, Kundenkommunikation |
 | HR | Personalthemen | Personaladministration, Recruiting, Personalentwicklung |
 | Agent Ressources | Eignung vorhandener Agenten und Erstellung von Teams und Agenten | Bestandsanalyse, Rollenkonfiguration, Qualitätsprüfung |
+| Administratoren | Administration von Diensten und Infrastruktur | Microsoft 365, SharePoint, GitHub, Hetzner |
 
-Alle acht Teamleiter und 30 operative Rollen sind als TOMLs konfiguriert und
+Alle neun Teamleiter und 34 operative Rollen sind als TOMLs konfiguriert und
 persönlich installiert. Installation allein beweist keine produktive Fachleistung.
 
 Agent Ressources prüft zuerst Wiederverwendung und Erweiterung vorhandener
@@ -41,6 +42,8 @@ direkten Kontakte zu anderen Teams.
 Vertragskoordination beschreibt einen vorgesehenen Aufgabenbereich und enthält
 keine Garantie rechtlicher Fachkompetenz. Das Versenden von E-Mails erfordert
 eine konkrete Autorisierung; die Konzeptänderung autorisiert keinen Versand.
+
+Administratoren nutzen vorhandene MCP-Werkzeuge oder Browsersteuerung mit geeignetem Skill. Dienstzugänge und Berechtigungen werden durch die Rollenanlage nicht eingerichtet.
 
 ## Konfiguration
 
@@ -63,14 +66,12 @@ sind durch die folgende eigene Lookupkonvention beschrieben.
 
 `koordinator/koordinator.toml` enthält die eigenständigen Koordinatorinstruktionen und
 ist bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML
-allein aktiviert den App-Hauptchat nicht automatisch. Neun koordinierende Rollen
-(Koordinator und acht Teamleiter) sowie 30 operative Rollen sind implementiert
-und persönlich installiert. Die Repository-`AGENTS.md` legt den Koordinator nur
-ohne ausdrückliche andere Rollenzuweisung als Hauptrolle fest; ausdrücklich
-zugewiesene Rollen führen ihre eigenen Instruktionen aus.
+allein aktiviert den App-Hauptchat nicht automatisch. Zehn koordinierende Rollen
+(Koordinator und neun Teamleiter) sowie 34 operative Rollen sind implementiert
+und persönlich installiert. Repositorypflege erfolgt als normale Entwicklungsassistenz; der Koordinator wird nur ausdrücklich aktiviert. Zugewiesene Rollen folgen ihrer TOML.
 
 [MUST] Weitere Rollen verwenden dieselbe kompakte Struktur und die technischen
-Defaults `gpt-6.1-sol`, Reasoning `medium`, Antwortlänge `medium`,
+Defaults `gpt-6-luna`, Reasoning `medium`, Antwortlänge `medium`,
 `danger-full-access`, `never` und `cached`.
 `name`, `description` und `developer_instructions` bleiben rollenspezifisch.
 [MUST] Rollenbeschreibungen bleiben ein kurzer Satz; Instruktionen enthalten
@@ -82,9 +83,9 @@ Kommentarblöcken. `tool_output_token_limit` bleibt ungesetzt: Vererbung oder
 Laufzeitdefault, kein behauptetes unbegrenztes Budget.
 
 [MUST] Rollen kennen standardmäßig nur ihre direkten Nachbarn: Der Koordinator
-kennt die acht Teamleiter, keine Spezialistenliste. Ein Teamleiter kennt den
+kennt die neun Teamleiter, keine Spezialistenliste. Ein Teamleiter kennt den
 Koordinator und ausschließlich seine eigenen operativen Agenten; ein operativer
-Agent kennt ausschließlich seinen eigenen Teamleiter. Fachdetails und Besetzung
+Agent kennt ausschließlich seinen eigenen Teamleiter. Der Koordinator liest keine operativen Indizes, kontaktiert keine Spezialisten und schreibt weder deren Auswahl noch deren Interaktionen vor. Fachdetails und Besetzung
 liegen beim Teamleiter, Ergebnisse gehen über ihn an den Koordinator.
 Teamübergreifende Anliegen werden über den Koordinator vermittelt. Diese
 Kontextregel ist keine technische Zugriffssperre und erfindet keine nativen
@@ -161,7 +162,7 @@ Git-Versionierung soll Änderungen an Organisation und Profilen nachvollziehbar
 machen. Revisionssicherheit meint hier diese versionierte Nachvollziehbarkeit;
 eine unveränderbare Historie oder rechtliche Archivierung wird nicht zugesichert.
 
-Persönlich installiert sind 39 Rollen und neun Lookupindizes. Fachliche Pilotaufgaben
+Persönlich installiert sind 44 Rollen und zehn Lookupindizes. Fachliche Pilotaufgaben
 und eine automatische Anbindung nativer Delegation bleiben gesonderte Schritte;
 GitHub Actions bleiben deaktiviert. Die vorhandenen großzügigen technischen
 Defaults sind keine durch die Instruktionen erzwungene Beschränkung.
