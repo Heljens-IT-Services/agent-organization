@@ -410,11 +410,13 @@ function Resume-BoundWorkItemResult($BoundJob) {
 }
 function Test-DelegatedJobSsotBinding {
     param([Parameter(Mandatory=$true)]$Job)
-    $fields=@('execution_id','work_item_store_path','work_item_request_path')
-    $present=0
-    foreach($field in $fields) { if (-not [string]::IsNullOrWhiteSpace([string]$Job.$field)) { $present++ } }
-    if ($present -ne 0 -and $present -ne $fields.Count) { throw 'SavedSSOTBindingIncomplete; recovery required.' }
-    return ($present -eq $fields.Count)
+    $hasExecution=-not [string]::IsNullOrWhiteSpace([string]$Job.execution_id)
+    $hasRequest=-not [string]::IsNullOrWhiteSpace([string]$Job.work_item_request_path)
+    # A manual job may carry the shared store solely to bind its own context.
+    # SSOT identity begins with execution/request authority, never storePath alone.
+    if(-not $hasExecution -and -not $hasRequest){return $false}
+    if(-not $hasExecution -or -not $hasRequest -or [string]::IsNullOrWhiteSpace([string]$Job.work_item_store_path)){throw 'SavedSSOTBindingIncomplete; recovery required.'}
+    return $true
 }
 
 if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-owned: it is never automatically closed.
@@ -443,11 +445,12 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         if ([IO.Path]::GetFullPath([string]$oldJob.result_file) -cne $resultFile -or -not $oldJob.payload_hash -or -not $oldJob.registry_directory -or $oldJob.registry_dispatch_id -cne $oldJob.dispatch_id) { throw 'SavedJobBindingIncomplete; recovery required.' }
         if ($ContextFile -and [IO.File]::ReadAllText($ContextFile,$utf8) -cne [string]$oldJob.context) { throw 'IdempotencyConflict: context content changed.' }
     }
-    $modeParts=@([string]$ExecutionId,[string]$WorkItemStorePath,[string]$WorkItemRequestPath)
-    $modePresent=@($modeParts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
-    if ($modePresent -ne 0 -and $modePresent -ne 3) { throw 'IncompleteWorkItemStart; recovery required.' }
-    if ($ResumeAssessment -and $modePresent -ne 3) { throw 'IncompleteWorkItemStart; recovery required.' }
-    $workItemMode=($modePresent -eq 3)
+    $authorityParts=@([string]$ExecutionId,[string]$WorkItemRequestPath)
+    $authorityPresent=@($authorityParts|Where-Object{-not [string]::IsNullOrWhiteSpace($_)}).Count
+    if($authorityPresent -notin @(0,2)){throw 'IncompleteWorkItemStart; recovery required.'}
+    if($authorityPresent -eq 2 -and [string]::IsNullOrWhiteSpace($WorkItemStorePath)){throw 'IncompleteWorkItemStoreBinding; recovery required.'}
+    if ($ResumeAssessment -and $authorityPresent -ne 2) { throw 'IncompleteWorkItemStart; recovery required.' }
+    $workItemMode=($authorityPresent -eq 2)
     $rootCoordinatorMode=($Role -ceq 'koordinator' -and -not $workItemMode)
     if($rootCoordinatorMode -and (-not $CoordinatorLaunchConfigPath -or $ParentTaskId)){throw 'Root coordinator requires an explicit launch input and must be parentless.'}
     $journalMode=[bool]$Purpose -or [bool]$Generation -or [bool]$DispatchJournalPath
@@ -473,7 +476,45 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         Write-Output ('Gebundenes Resultat wiederaufgenommen: '+$oldJob.task_id)
         return
     }
-    $resolved=$null; $parentThreadId=$null; $parentTurnId=$null
+    $resolved=$null; $parentThreadId=$null; $parentTurnId=$null; $parentContextRecord=$null
+    if(-not $PSBoundParameters.ContainsKey('ParentTaskId')){$ParentTaskId=$env:AGENT_ORG_PARENT_TASK_ID}
+    if($ParentTaskId){$ParentTaskId=([guid]$ParentTaskId).ToString('N')}
+    if($ParentTaskId -and $env:AGENT_ORG_PARENT_TASK_ID -and $ParentTaskId -cne ([guid]$env:AGENT_ORG_PARENT_TASK_ID).ToString('N')){throw 'ParentTaskBindingConflict'}
+    # Choose a complete immutable parent group before SSOT resolution or any required-context assertion.
+    $inheritedParentJob=[string]$env:AGENT_ORG_PARENT_JOB_FILE
+    $inheritedParentContext=[string]$env:AGENT_ORG_PARENT_CONTEXT_PATH
+    $inheritedParentHash=[string]$env:AGENT_ORG_PARENT_CONTEXT_HASH
+    $explicitContextGroup=$PSBoundParameters.ContainsKey('ParentContextPath') -or $PSBoundParameters.ContainsKey('ParentContextHash')
+    if($explicitContextGroup -and (-not $PSBoundParameters.ContainsKey('ParentContextPath') -or -not $PSBoundParameters.ContainsKey('ParentContextHash'))){throw 'ExplicitParentContextGroupIncomplete'}
+    if($explicitContextGroup -and (-not $ParentContextPath -or -not $ParentContextHash)){throw 'ExplicitParentContextGroupEmpty'}
+    if($ParentJobPath -and $inheritedParentJob -and [IO.Path]::GetFullPath($ParentJobPath) -cne [IO.Path]::GetFullPath($inheritedParentJob)){throw 'ParentJobBindingConflict'}
+    if(-not $ParentJobPath){$ParentJobPath=$inheritedParentJob}
+    if(([bool]$inheritedParentContext) -ne ([bool]$inheritedParentHash)){throw 'InheritedParentContextGroupIncomplete'}
+    if(-not $explicitContextGroup){$ParentContextPath=$inheritedParentContext;$ParentContextHash=$inheritedParentHash}
+    if($explicitContextGroup -and $inheritedParentContext -and ([IO.Path]::GetFullPath($ParentContextPath) -cne [IO.Path]::GetFullPath($inheritedParentContext) -or $ParentContextHash -cne $inheritedParentHash)){
+        throw 'ExplicitParentContextBindingConflict'
+    }
+    if(-not $AccountingDirectory){$AccountingDirectory=[string]$env:AGENT_ORG_ACCOUNTING_DIRECTORY}
+    if($AccountingDirectory){$AccountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)}
+    if($PSBoundParameters.ContainsKey('AccountingDirectory') -and $env:AGENT_ORG_ACCOUNTING_DIRECTORY -and [IO.Path]::GetFullPath($AccountingDirectory) -cne [IO.Path]::GetFullPath($env:AGENT_ORG_ACCOUNTING_DIRECTORY)){throw 'AccountingDirectoryBindingConflict'}
+    if(-not $explicitContextGroup -and $ParentTaskId -and $ParentJobPath -and $AccountingDirectory -and $ParentContextPath){
+        $candidateJob=Read-AdmissionJson ([IO.Path]::GetFullPath($ParentJobPath))
+        if($candidateJob.task_id -cne $ParentTaskId -or [IO.Path]::GetFullPath([string]$candidateJob.accounting_directory) -cne $AccountingDirectory){throw 'ParentJobEnvironmentBindingMismatch'}
+        $activePath=[IO.Path]::GetFullPath($ParentJobPath)+'.active.json'
+        if(-not [IO.File]::Exists($activePath)){throw 'ParentJobActiveContextMissing'}
+        $active=Read-AdmissionJson $activePath
+        $activeContextPath=[string]$active.context_path;$activeContextHash=[string]$active.context_hash
+        if(-not $active.job_hash -or -not $active.thread_id -or -not $active.turn_id -or -not $activeContextPath -or -not $activeContextHash -or $active.task_id -cne $ParentTaskId -or $active.state -notin @('Running','RunningTurn','Ready')){throw 'ParentJobActiveContextBindingIncomplete'}
+        $activeContextPath=[IO.Path]::GetFullPath($activeContextPath)
+        $activeRecord=& $contextModule {param($p,$h,$j,$t,$s,$a)Assert-ExecutionContext $p $h $j $t $s $a} $activeContextPath $activeContextHash ([IO.Path]::GetFullPath($ParentJobPath)) $ParentTaskId ([string]$candidateJob.work_item_store_path) $AccountingDirectory
+        if($active.job_hash -cne $activeRecord.jobHash -or $active.thread_id -cne $activeRecord.threadId -or $active.turn_id -cne $activeRecord.turnId -or $activeRecord.outcome -cne 'Running'){throw 'ParentJobActiveContextMismatch'}
+        & $contextModule {param($p,$h,$s,$a)Assert-ExecutionAncestors $p $h $s $a|Out-Null} $activeContextPath $activeContextHash ([string]$candidateJob.work_item_store_path) $AccountingDirectory
+        if([IO.Path]::GetFullPath($ParentContextPath) -cne $activeContextPath -or $ParentContextHash -cne $activeContextHash){
+            # Replace only a stale inherited ancestor group with this exact parent's verified active ACK group.
+            $ParentContextPath=$activeContextPath;$ParentContextHash=$activeContextHash
+        }
+    }
+    if(([bool]$ParentContextPath) -ne ([bool]$ParentContextHash)){throw 'ParentContextBindingPairRequired'}
     if ($workItemMode) {
         if (-not $ParentTaskId) { $ParentTaskId=$env:AGENT_ORG_PARENT_TASK_ID }
         if (-not $ParentTaskId) { throw 'Persisted parent required for SSOT start.' }
@@ -487,7 +528,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         try { $executionKey=([BitConverter]::ToString($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($ExecutionId)))).Replace('-','').ToLowerInvariant() } finally { $h.Dispose() }
         if ([IO.File]::Exists((Join-Path $AccountingDirectory ('execution-'+$executionKey+'.json')))) { throw 'Execution reservation without matching saved job; recovery required, no duplicate start.' }
         if ([IO.File]::Exists($WorkItemRequestPath)) { throw 'Request locator exists without matching job; preserve for recovery.' }
-        $resolved=& (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ParentTaskId $ParentTaskId -AccountingDirectory $AccountingDirectory -ParentContextPath $ParentContextPath -ParentContextHash $ParentContextHash -ResumeAssessment $ResumeAssessment
+        $resolved=& (Join-Path $PSScriptRoot 'Resolve-DelegatedWorkItem.ps1') -Path $WorkItemStorePath -RepositoryRoot $RepositoryRoot -WorkItemId $WorkItemId -ParentTaskId $ParentTaskId -ParentJobPath $ParentJobPath -AccountingDirectory $AccountingDirectory -ParentContextPath $ParentContextPath -ParentContextHash $ParentContextHash -ResumeAssessment $ResumeAssessment
         $resolved=$resolved|ConvertFrom-Json
         if ($Role -and $Role -cne $resolved.role) { throw 'RoleOverrideConflict' }
         $Role=[string]$resolved.role
@@ -545,10 +586,22 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
     $config = @{ agents = @{ enabled = ($agents.Groups[1].Value -eq 'true') } }
     foreach ($key in @('model_reasoning_effort', 'model_verbosity', 'web_search')) { $config[$key] = Read-RoleString $roleText $key }
     $context = if ($ContextFile -and -not $workItemMode) { [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $ContextFile).Path, $utf8) } else { '' }
-    if (-not $PSBoundParameters.ContainsKey('ParentTaskId')) { $ParentTaskId = $env:AGENT_ORG_PARENT_TASK_ID }
-    if ($ParentTaskId) { $ParentTaskId = ([guid]$ParentTaskId).ToString('N') }
+    if(-not $AccountingDirectory -and -not $ParentContextPath){$AccountingDirectory=Join-Path (Split-Path -Parent $resultFile) 'token-accounting'}
+    if(-not $workItemMode -and $ParentContextPath){
+        if(-not $ParentTaskId -or -not $ParentJobPath -or -not $AccountingDirectory){throw 'ParentContextRequiresCompleteParentJobBinding'}
+        $ParentJobPath=[IO.Path]::GetFullPath($ParentJobPath);$ParentContextPath=[IO.Path]::GetFullPath($ParentContextPath)
+        $parentJob=Read-AdmissionJson $ParentJobPath
+        if($parentJob.task_id -cne $ParentTaskId -or [IO.Path]::GetFullPath([string]$parentJob.accounting_directory) -cne [IO.Path]::GetFullPath($AccountingDirectory)){throw 'ParentJobEnvironmentBindingMismatch'}
+        $parentContextRecord=& $contextModule {param($p,$h,$j,$t,$s,$a) Assert-ExecutionContext $p $h $j $t $s $a} $ParentContextPath $ParentContextHash $ParentJobPath $ParentTaskId ([string]$parentJob.work_item_store_path) $AccountingDirectory
+        & $contextModule {param($p,$h,$s,$a) Assert-ExecutionAncestors $p $h $s $a|Out-Null} $ParentContextPath $ParentContextHash ([string]$parentJob.work_item_store_path) $AccountingDirectory
+        if($parentJob.role -ceq 'koordinator'){$parentContextRecord=& $contextModule {param($p,$h,$j,$t,$s,$a) Assert-ExecutionContext $p $h $j $t $s $a -RequireTerminal -RequireLiveCoordinator} $ParentContextPath $ParentContextHash $ParentJobPath $ParentTaskId ([string]$parentJob.work_item_store_path) $AccountingDirectory}
+        elseif($parentJob.role -notmatch '^teamleiter_[a-z][a-z0-9_]*$' -or $parentContextRecord.outcome -cne 'Running'){throw 'DelegatedParentMustBeTeamLeaderWithRunningAck'}
+        if($parentJob.role -ceq 'koordinator') {if($Role -notmatch '^teamleiter_[a-z][a-z0-9_]*$'){throw 'CoordinatorMayStartOnlyTeamLeader'}}
+        else{$teamPrefix=$parentJob.role.Substring('teamleader_'.Length)+'_';if($Role -notlike ($teamPrefix+'*') -or $Role -match '^teamleiter_' -or $Role -ceq $parentJob.role){throw 'TeamLeaderMayStartOnlyOwnOperationalRoles'}}
+        & $contextModule {param($p,$h,$s,$a)Assert-ExecutionAncestors $p $h $s $a -MaxLevels 2|Out-Null} $ParentContextPath $ParentContextHash ([string]$parentJob.work_item_store_path) $AccountingDirectory
+        $parentThreadId=[string]$parentContextRecord.threadId;$parentTurnId=[string]$parentContextRecord.turnId
+    }
     if($rootCoordinatorMode -and ($ParentTaskId -or $oldJob -and ($oldJob.parent_task_id -or $oldJob.parent_job_path -or $oldJob.work_item_id -or $oldJob.execution_id -or $oldJob.work_item_request_path))){throw 'Root coordinator job must have no parent or delegated WorkItem binding.'}
-    if (-not $PSBoundParameters.ContainsKey('AccountingDirectory')) { $AccountingDirectory = $env:AGENT_ORG_ACCOUNTING_DIRECTORY }
     if (-not $AccountingDirectory) { $AccountingDirectory = Join-Path (Split-Path -Parent $resultFile) 'token-accounting' }
     $AccountingDirectory = [System.IO.Path]::GetFullPath($AccountingDirectory)
     New-Item -ItemType Directory -Path $AccountingDirectory -Force | Out-Null
@@ -565,7 +618,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
     $spec = @{
         task_id = $(if ($StableTaskId) { $StableTaskId } elseif($DispatchId -match '^[0-9a-fA-F-]{36}$') { ([guid]$DispatchId).ToString('N') } else { $DispatchId }); dispatch_id = $DispatchId; payload_hash = $payloadHash; request_hash=$(if($workItemMode){$startAuthority.requestPayloadHash}else{$null}); work_item_id=$WorkItemId;dispatch_work_item_id=$WorkItemId;execution_id=$ExecutionId;work_item_store_path=$WorkItemStorePath;work_item_request_path=$WorkItemRequestPath;resume_assessment=$ResumeAssessment;purpose=$Purpose;generation=$(if($Generation){$Generation}else{$null});dispatch_journal_path=$DispatchJournalPath; role = $Role; task = $Task; context = $context
         parent_job_path=$(if($workItemMode){[IO.Path]::GetFullPath($resolved.parentJobPath)}elseif($ParentTaskId){if($ParentJobPath){[IO.Path]::GetFullPath($ParentJobPath)}else{$env:AGENT_ORG_PARENT_JOB_FILE}}else{$null});parent_job_hash=$(if($workItemMode){$startAuthority.parentJobHash}else{$null})
-        parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId; parent_context_path=$(if($workItemMode){$ParentContextPath}else{$null});parent_context_hash=$(if($workItemMode){$ParentContextHash}else{$null});start_intent_path=$(if($workItemMode){$StartIntentPath}else{$null});start_intent_hash=$(if($workItemMode){$StartIntentHash}else{$null});resume_assessment_path=$null;resume_assessment_hash=$null
+        parent_thread_id=$parentThreadId; parent_turn_id=$parentTurnId; parent_context_path=$(if($ParentContextPath){$ParentContextPath}else{$null});parent_context_hash=$(if($ParentContextHash){$ParentContextHash}else{$null});start_intent_path=$(if($workItemMode){$StartIntentPath}else{$null});start_intent_hash=$(if($workItemMode){$StartIntentHash}else{$null});resume_assessment_path=$null;resume_assessment_hash=$null
         role_display_name = $RoleDisplayName; task_title = $TaskTitle; window_title = $(if ($Role -ceq 'koordinator') { 'Koordinator' } else { $RoleDisplayName + ' - ' + $TaskTitle })
         context_file = $(if ($ContextFile) { (Resolve-Path -LiteralPath $ContextFile).Path } else { $null })
         parent_task_id = $(if ($ParentTaskId) { $ParentTaskId } else { $null }); accounting_directory = $AccountingDirectory
@@ -575,6 +628,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
         approval_policy = (Read-RoleString $roleText 'approval_policy')
     }
+    if(-not $workItemMode -and $ParentContextPath){$spec.work_item_store_path=[IO.Path]::GetFullPath([string]$parentJob.work_item_store_path)}
     if($rootCoordinatorMode){
         foreach($field in @('workItemStorePath','eventJournalPath','registryDirectory','runtimeExecutable','codexHome')){if([string]::IsNullOrWhiteSpace([string]$launchInput.$field)){throw "Coordinator launch input $field must be explicit."}}
         if(-not $launchInput.runtimeArguments -or -not $launchInput.resultDirectories -or -not $spec.admission_capacity -or -not $spec.coordinator_data_directory){throw 'Coordinator launch capacity, result roots, arguments, and data directory must be explicitly bound.'}
@@ -604,9 +658,9 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         $registryReservation=$enrollment
     }else{
         if(-not $workItemMode){
-            if(-not $spec.parent_job_path -or -not $ParentContextPath -or -not $ParentContextHash){throw 'AdmissionUnknown: LegacyActualHistoricalContextRequired'}
-            $parent=Read-AdmissionJson $spec.parent_job_path;$context=Read-AdmissionJson $ParentContextPath
-            if((Get-AdmissionHash ([IO.File]::ReadAllBytes($ParentContextPath))) -cne $ParentContextHash -or $context.taskId -cne $parent.task_id -or $context.jobPath -cne [IO.Path]::GetFullPath($spec.parent_job_path) -or $context.outcome -notin @('Running','Completed')){throw 'AdmissionUnknown: LegacyHistoricalContextMismatch'}
+            if(-not $spec.parent_job_path -or -not $ParentContextPath -or -not $ParentContextHash){throw 'AdmissionUnknown: CoordinatorHandoffContextRequired'}
+            $parent=Read-AdmissionJson $spec.parent_job_path
+            if($parent.task_id -cne $ParentTaskId -or $parentContextRecord.taskId -cne $ParentTaskId){throw 'AdmissionUnknown: LegacyHistoricalContextMismatch'}
             if(-not $StartIntentPath){
                 $authorityParameters=[ordered]@{StableTaskId=$spec.task_id;DispatchId=$DispatchId;ResultPath=$resultFile;Role=$Role;DispatchJournalPath=$DispatchJournalPath;CoordinatorDataDirectory=$executionDirectory;AdmissionCapacity=$AdmissionCapacity}
                 $legacyAuthority=[ordered]@{kind='admission-legacy-start-authority-v1';parameters=$authorityParameters;payloadHash=$payloadHash;parentJobPath=$spec.parent_job_path;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash}
@@ -620,7 +674,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         $admissionRoot=Get-AdmissionRoot $spec.parent_job_path
         $rootLaunch=Read-AdmissionJson $admissionRoot.Job.coordinator_launch.inputPath
         if([IO.Path]::GetFullPath($rootLaunch.registryDirectory) -cne $executionDirectory -or [int]$admissionRoot.Job.admission_capacity -ne $AdmissionCapacity){throw 'AdmissionUnknown: InheritedRootScopeMismatch'}
-        $target=[ordered]@{taskId=$spec.task_id;dispatchId=$DispatchId;payloadHash=$payloadHash;resultPath=$resultFile;role=$Role;dispatchJournalPath=$DispatchJournalPath;startIntentPath=$StartIntentPath;startIntentHash=$StartIntentHash;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash}
+        $target=[ordered]@{taskId=$spec.task_id;dispatchId=$DispatchId;payloadHash=$payloadHash;resultPath=$resultFile;role=$Role;dispatchJournalPath=$DispatchJournalPath;startIntentPath=$StartIntentPath;startIntentHash=$StartIntentHash;parentJobPath=$spec.parent_job_path;parentContextPath=$ParentContextPath;parentContextHash=$ParentContextHash}
         if($AdmissionReservationJson){$provided=ConvertFrom-Json -InputObject $AdmissionReservationJson -ErrorAction Stop}
         else{$provided=Request-CoordinatorAdmission $admissionRoot.Path $target ([int](Get-AdmissionField (Get-AdmissionField $rootLaunch 'admissionPolicy') 'scanBudgetMilliseconds' 10000))}
         $registryReservation=& $registry -Action ReadAdmissionReservation -DataDirectory $executionDirectory -TargetJson (ConvertTo-Json -InputObject $target -Depth 50 -Compress) -AdmissionRequestHash $provided.admission.requestHash
@@ -790,6 +844,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
 
 # Eigener sichtbarer Runner: Taskdaten stehen nicht in einer Shell-Kommandozeile.
 $job = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $JobFile).Path, $utf8) | ConvertFrom-Json
+$contextModule=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
 $jobSsotMode=Test-DelegatedJobSsotBinding -Job $job
 $resultFile = [string]$job.result_file
 $parentJobPath = [string]$job.parent_job_path
@@ -848,6 +903,7 @@ $script:admissionNextRpc=100000
 $script:admissionMutation=[long]0
 $script:admissionGap=[long]0
 $script:admissionProvider=$null
+$script:admissionDiagnosticRequestHash=$null
 $script:admissionRpcDeadline=$null
 $script:admissionRequests=@{}
 $script:admissionLastRpcReceipt=$null
@@ -864,7 +920,7 @@ function Invoke-RunnerWaitRpcPump {
         $budget=New-AdmissionBudget $remaining
         $rpc={param($m,$p,$ms)Invoke-RunnerAdmissionRpc $m $p $ms}
         $markers={@{mutation=$script:admissionMutation;gap=$script:admissionGap;rpc=$script:admissionLastRpcReceipt}}
-        Invoke-AdmissionCallerPump $job.registry_directory $script:admissionProvider $budget $rpc $markers $script:admissionWaitingResponse
+        Invoke-AdmissionCallerPump $job.registry_directory $script:admissionProvider $budget $rpc $markers $script:admissionWaitingResponse $script:admissionDiagnosticRequestHash
     }finally{$script:admissionPumping=$false}
 }
 function Read-Rpc {
@@ -935,7 +991,10 @@ try {
         Write-Host 'Koordinator-Host ist aktiv; das bestätigte Fenster bleibt geöffnet.'
         $launchPath=[IO.Path]::GetFullPath([string]$job.coordinator_launch.inputPath)
         if(-not $launchPath -or (& $contextModule {param($b)Get-ContextHash $b} ([IO.File]::ReadAllBytes($launchPath))) -cne $job.coordinator_launch.inputHash){throw 'Coordinator launch input changed after root job persistence.'}
-        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -TaskId $job.task_id -AccountingDirectory $job.accounting_directory -CoordinatorJobPath ([IO.Path]::GetFullPath($env:AGENT_ORG_PARENT_JOB_FILE)) -CoordinatorLaunchConfigPath $launchPath -CoordinatorLaunchConfigHash $job.coordinator_launch.inputHash
+        $rootJobPath=[IO.Path]::GetFullPath($env:AGENT_ORG_PARENT_JOB_FILE)
+        $rootLaunch=Read-AdmissionJson $launchPath
+        $rootJobHash=& $contextModule {param($j)Get-ExecutionJobHash $j} $job
+        & $consoleScript -DataDirectory $job.coordinator_data_directory -WorkingDirectory $job.cwd -TaskId $job.task_id -AccountingDirectory $job.accounting_directory -CoordinatorJobPath $rootJobPath -CoordinatorJobHash $rootJobHash -CoordinatorLaunchConfigPath $launchPath -CoordinatorLaunchConfigHash $job.coordinator_launch.inputHash -WorkItemStorePath $rootLaunch.workItemStorePath -EventJournalPath $rootLaunch.eventJournalPath -ResultDirectories @($rootLaunch.resultDirectories) -RegistryDirectory $rootLaunch.registryDirectory -RuntimeExecutable $rootLaunch.runtimeExecutable -RuntimeArguments @($rootLaunch.runtimeArguments) -CodexHome $rootLaunch.codexHome -PinnedRuntimeExecutable $rootLaunch.runtimeExecutable -PinnedCodexHome $rootLaunch.codexHome -PinnedDataDirectory $job.coordinator_data_directory -PinnedWorkingDirectory $job.cwd -PinnedCapacity $job.admission_capacity -PinnedAccountingDirectory $job.accounting_directory
         return
     }
     $deadline = [DateTime]::UtcNow.AddSeconds([int]$job.timeout_seconds)
@@ -959,9 +1018,20 @@ try {
     $providerReceipt=New-AdmissionProviderReceipt $process $JobFile $rootForRunner.Path $runnerSessionPath $job.admission_runtime.executable @($job.admission_runtime.arguments) $job.admission_runtime.codexHome $initializeReply 'cli'
     [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action BindProvider -DataDirectory $job.registry_directory -TaskId $job.task_id -ProviderBindingJson (ConvertTo-Json -InputObject $providerReceipt -Depth 60 -Compress))
     $script:admissionProvider=$providerReceipt.receipt
+    Send-Rpc 'initialized' @{} 0
+    $runnerRpc={param($m,$p,$ms)Invoke-RunnerAdmissionRpc $m $p $ms}.GetNewClosure()
+    $runnerMarkers={@{mutation=$script:admissionMutation;gap=$script:admissionGap;rpc=$script:admissionLastRpcReceipt}}.GetNewClosure()
+    $pinnedRootLaunchPath=[IO.Path]::GetFullPath([string]$rootForRunner.Job.coordinator_launch.inputPath)
+    if(-not $pinnedRootLaunchPath -or (Get-AdmissionHash ([IO.File]::ReadAllBytes($pinnedRootLaunchPath))) -cne [string]$rootForRunner.Job.coordinator_launch.inputHash){throw 'AdmissionPolicyRootLaunchPinMismatch'}
+    $pinnedRootLaunch=Read-AdmissionJson $pinnedRootLaunchPath
+    $runnerAdmissionPolicy=Get-AdmissionField $pinnedRootLaunch 'admissionPolicy'
+    $runnerScanBudgetValue=Get-AdmissionField $runnerAdmissionPolicy 'scanBudgetMilliseconds' $null
+    if($null -eq $runnerScanBudgetValue -or [int]$runnerScanBudgetValue -le 0){throw 'AdmissionPolicyInvalid'}
+    $runnerScanBudget=[int]$runnerScanBudgetValue
+    $setDiagnosticOwnership={param($hash)$script:admissionDiagnosticRequestHash=$hash}
+    [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)
     $capability=Get-AdmissionInstalledContract $script:admissionProvider
     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}
-    Send-Rpc 'initialized' @{} 0
     Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
     $thread = Wait-Rpc 2
     $evidence.thread_id = $thread.thread.id
@@ -993,20 +1063,23 @@ try {
         $env:AGENT_ORG_PARENT_JOB_FILE = $resultFile + '.job.json'
         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash
     }
-    Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } 3
+    $turnStartRpcId=3
+    Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
-    if($jobSsotMode -and $job.work_item_store_path -and $job.payload_hash){
+    if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){
         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
         $payloadBytes=[Text.Encoding]::UTF8.GetBytes([string]$job.payload_hash);$turnAuthorityHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $payloadBytes
         $ackBytes=$utf8.GetBytes(($turn|ConvertTo-Json -Depth 50 -Compress));$ackHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $ackBytes
-        $turnContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome Running -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id ([string]$job.execution_id) ([string]$job.task_id) $turnAuthorityHash $ackHash
+        $turnRequestId=if($jobSsotMode){[string]$job.execution_id}else{[string]$turnStartRpcId}
+        $turnSessionId=if($jobSsotMode){[string]$job.execution_id}else{[string]$script:admissionProvider.generation}
+        $turnContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome Running -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $ackHash
         $env:AGENT_ORG_PARENT_CONTEXT_PATH=$turnContext.path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=$turnContext.hash;$env:AGENT_ORG_PARENT_THREAD_ID=$evidence.thread_id;$env:AGENT_ORG_PARENT_TURN_ID=$evidence.turn_id
     }
-    if ($jobSsotMode) {
-        Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; job_hash=$(if($turnContext){$turnContext.record.jobHash}else{$null});thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; store_path=$job.work_item_store_path; accounting_directory=$job.accounting_directory;state='RunningTurn';context_path=$(if($turnContext){$turnContext.path}else{$null});context_hash=$(if($turnContext){$turnContext.hash}else{$null});recorded_at=[DateTime]::UtcNow.ToString('o') })
+    if ($turnContext) {
+        Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; job_hash=$turnContext.record.jobHash;thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; store_path=$job.work_item_store_path; accounting_directory=$job.accounting_directory;state='RunningTurn';context_path=$turnContext.path;context_hash=$turnContext.hash;recorded_at=[DateTime]::UtcNow.ToString('o') })
     } else {
         Write-Json ($resultFile + '.job.json.active.json') ([ordered]@{ task_id=$job.task_id; role=$job.role; thread_id=$evidence.thread_id; turn_id=$evidence.turn_id; work_item_id=$null; execution_id=$null; store_path=$null; accounting_directory=$job.accounting_directory; recorded_at=[DateTime]::UtcNow.ToString('o') })
     }
@@ -1021,7 +1094,7 @@ try {
         if ($null -eq $completion) { [void](Read-Rpc) }
     }
     $evidence.terminal_outcome = $completion.params.turn.status
-    if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id ([string]$job.execution_id) ([string]$job.task_id) $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
+    if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }

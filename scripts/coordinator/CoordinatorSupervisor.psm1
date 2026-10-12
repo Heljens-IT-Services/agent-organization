@@ -45,7 +45,7 @@ function Invoke-CoordinatorSupervisor {
                 $hostParameters=@{DataDirectory=$data;WorkingDirectory=[IO.Path]::GetFullPath($WorkingDirectory);RuntimeExecutable=[IO.Path]::GetFullPath($RuntimeExecutable)}
                 if ($AccountingDirectory) { $hostParameters.AccountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory) }
                 if ($TaskContext) {
-                    foreach ($name in @('TaskId','ParentTaskId','PipeName','ResumeRetryLimit','RpcTimeoutMilliseconds')) {
+                    foreach ($name in @('TaskId','ParentTaskId','PipeName','ResumeRetryLimit','RpcTimeoutMilliseconds','CoordinatorJobPath','CoordinatorJobHash','CoordinatorLaunchConfigPath','CoordinatorLaunchConfigHash','WorkItemStorePath','EventJournalPath','ResultDirectories','RegistryDirectory','RuntimeArguments','PinnedRuntimeExecutable','PinnedCodexHome','PinnedDataDirectory','PinnedWorkingDirectory','PinnedCapacity','PinnedAccountingDirectory')) {
                         $property=$TaskContext.PSObject.Properties[$name]
                         if ($property -and $null -ne $property.Value) { $hostParameters[$name]=$property.Value }
                     }

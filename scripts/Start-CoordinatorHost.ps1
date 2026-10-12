@@ -43,10 +43,16 @@ $owner=$null; $runtime=$null; $activation=$null
 $session=$null
 $runtimePid=$null; $runtimeStartedAtUtc=$null
 $hostOutcome=[pscustomobject]@{Classification='Running';RetryAllowed=$false;Reason=$null;CleanupConfirmed=$false}
+$callerInputs=[ordered]@{}
+foreach($name in @('DataDirectory','WorkingDirectory','RuntimeExecutable','AccountingDirectory','WorkItemStorePath','EventJournalPath','ResultDirectories','RegistryDirectory','NativeInventoryPath','CompleteEpoch','AutomationCapacity','RuntimeArguments')){if($PSBoundParameters.ContainsKey($name)){$callerInputs[$name]=Get-Variable -Name $name -ValueOnly}}
 try {
     $CoordinatorJobPath=[IO.Path]::GetFullPath($CoordinatorJobPath);$CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)
     $rootJob=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorJobPath
     $launch=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorLaunchConfigPath
+    foreach($name in $callerInputs.Keys){$supplied=$callerInputs[$name];$expected=switch($name){'DataDirectory'{$rootJob.coordinator_launch.dataDirectory};'WorkingDirectory'{$rootJob.cwd};'RuntimeExecutable'{$launch.runtimeExecutable};'AccountingDirectory'{$rootJob.accounting_directory};'WorkItemStorePath'{$launch.workItemStorePath};'EventJournalPath'{$launch.eventJournalPath};'ResultDirectories'{$launch.resultDirectories};'RegistryDirectory'{$launch.registryDirectory};'NativeInventoryPath'{$launch.nativeInventoryPath};'CompleteEpoch'{$launch.completeEpoch};'AutomationCapacity'{$rootJob.admission_capacity};'RuntimeArguments'{$launch.runtimeArguments}}
+        if($name -in @('ResultDirectories','RuntimeArguments')){$equal=(ConvertTo-Json -InputObject @($supplied) -Depth 10 -Compress) -ceq (ConvertTo-Json -InputObject @($expected) -Depth 10 -Compress)}elseif($name -in @('AutomationCapacity')){$equal=[int]$supplied -eq [int]$expected}elseif($expected -and $supplied){$equal=[IO.Path]::GetFullPath([string]$supplied) -ceq [IO.Path]::GetFullPath([string]$expected)}else{$equal=([string]$supplied) -ceq ([string]$expected)}
+        if(-not $equal){throw ('BlockedRecovery: caller-supplied root input mismatch: '+$name)}
+    }
     if(-not $TaskId -or $rootJob.role -cne 'koordinator' -or $rootJob.parent_task_id -or $rootJob.parent_job_path -or $rootJob.work_item_id -or $rootJob.execution_id -or $rootJob.work_item_request_path -or $rootJob.task_id -cne $TaskId -or (& $contextModule {param($j)Get-ExecutionJobHash $j} $rootJob) -cne $CoordinatorJobHash -or $rootJob.coordinator_launch.inputPath -cne $CoordinatorLaunchConfigPath -or $rootJob.coordinator_launch.inputHash -cne $CoordinatorLaunchConfigHash -or (& $contextModule {param($b)Get-ContextHash $b} ([IO.File]::ReadAllBytes($CoordinatorLaunchConfigPath))) -cne $CoordinatorLaunchConfigHash){throw 'BlockedRecovery: root ownership or launch input mismatch.'}
     if(-not $AccountingDirectory -or [IO.Path]::GetFullPath($AccountingDirectory) -cne [IO.Path]::GetFullPath($rootJob.accounting_directory) -or [IO.Path]::GetFullPath($WorkingDirectory) -cne [IO.Path]::GetFullPath($rootJob.cwd) -or [IO.Path]::GetFullPath($rootJob.coordinator_launch.dataDirectory) -cne [IO.Path]::GetFullPath($DataDirectory) -or [int]$rootJob.coordinator_launch.capacity -ne [int]$rootJob.admission_capacity){throw 'BlockedRecovery: root job accounting/CWD/data/capacity mismatch.'}
     if(-not $PinnedDataDirectory -or [IO.Path]::GetFullPath($PinnedDataDirectory) -cne [IO.Path]::GetFullPath($DataDirectory) -or [IO.Path]::GetFullPath($PinnedWorkingDirectory) -cne [IO.Path]::GetFullPath($WorkingDirectory) -or [int]$PinnedCapacity -ne [int]$rootJob.admission_capacity -or [IO.Path]::GetFullPath($PinnedAccountingDirectory) -cne [IO.Path]::GetFullPath($AccountingDirectory) -or [IO.Path]::GetFullPath($PinnedRuntimeExecutable) -cne [IO.Path]::GetFullPath($launch.runtimeExecutable) -or [IO.Path]::GetFullPath($PinnedCodexHome) -cne [IO.Path]::GetFullPath($launch.codexHome) -or (ConvertTo-Json -InputObject @($RuntimeArguments) -Compress) -cne (ConvertTo-Json -InputObject @($launch.runtimeArguments) -Compress)){throw 'BlockedRecovery: supervisor root launch group differs from pinned launch input.'}
@@ -139,6 +145,11 @@ try {
     Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorAutomation.psm1') -Force
     if(-not (Test-Path -LiteralPath $EventJournalPath -PathType Leaf)){[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($EventJournalPath)));[IO.File]::WriteAllText($EventJournalPath,'{"schemaVersion":"1.0","events":[]}',$utf8)}
     $runtime=Start-CoordinatorRuntime $runtimeConfig
+    # Keep the exact, already validated context binding on the runtime object
+    # consumed by Invoke-CoordinatorTurn; the config itself is not that object.
+    foreach($name in @('ContextJobPath','ContextStorePath','ContextDirectory')){
+        $runtime|Add-Member -MemberType NoteProperty -Name $name -Value ([string](Get-CoordinatorConfigValue $runtimeConfig $name)) -Force
+    }
     $runtime | Add-Member -MemberType NoteProperty -Name ResumeRetryLimit -Value $ResumeRetryLimit -Force
     $runtime | Add-Member -MemberType NoteProperty -Name RpcTimeoutMilliseconds -Value $RpcTimeoutMilliseconds -Force
     $runtime | Add-Member -MemberType NoteProperty -Name TurnTimeoutMilliseconds -Value 600000 -Force
@@ -174,7 +185,16 @@ try {
         # Production host remains resident; callers use the single local dispatcher.
         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq 'completed'}|Select-Object -Last 1)
         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties['retryBaseSeconds']){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties['retryCeilingSeconds']){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties['retryAttemptCeiling']){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties['eventBatchLimit']){[int]$launch.eventBatchLimit}else{256})}
-        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request) if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};Invoke-CoordinatorTurn $runtime $session $path $request } { Invoke-CoordinatorAutomationIdle $automationConfig $runtime $session $path }
+        Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)
+            if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}
+            $response=Invoke-CoordinatorTurn $runtime $session $path $request
+            $requestHistory=@((Get-CoordinatorHistory $session)|Where-Object{$_.requestId -ceq [string]$request.requestId})
+            if($requestHistory.Count -eq 1 -and $requestHistory[0].outcome -ceq 'completed' -and $requestHistory[0].decision -and $requestHistory[0].decision.outcome -ceq 'completed'){
+                try { Update-CoordinatorAutomationParentContext $automationConfig $session ([string]$request.requestId) 'completed' }
+                catch { Write-Warning ('Coordinator parent context refresh failed for completed request '+[string]$request.requestId+': '+$_.Exception.Message) }
+            }
+            return $response
+        } { Invoke-CoordinatorAutomationIdle $automationConfig $runtime $session $path }
     }
 } catch {
     $reason=$_.Exception.Message

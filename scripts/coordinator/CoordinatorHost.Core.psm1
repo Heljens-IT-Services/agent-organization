@@ -233,6 +233,9 @@ function Initialize-CoordinatorRuntime($Runtime, $Session, [string]$SessionPath,
     $Runtime.ProviderReceipt=$receipt.receipt
     $registryScript=Join-Path $PSScriptRoot 'Register-CoordinatorExecution.ps1'
     & $registryScript -Action BindProvider -DataDirectory $launchForAdmission.registryDirectory -TaskId $jobForAdmission.task_id -ProviderBindingJson (ConvertTo-Json -InputObject $receipt -Depth 60 -Compress) | Out-Null
+    $diagnosticRpc={param($m,$q,$ms)Invoke-CoordinatorRuntimeRpc $Runtime $m $q ([int][Math]::Min($ms,$Runtime.RpcTimeoutMilliseconds))}.GetNewClosure()
+    $diagnosticMarkers={@{mutation=$Runtime.MutationGeneration;gap=$Runtime.GapGeneration;rpc=$Runtime.LastRpcReceipt}}.GetNewClosure()
+    [void](Invoke-AdmissionReadDiagnostics $launchForAdmission.registryDirectory $JobPath $SessionPath $registryScript $Runtime.ProviderReceipt ([int](Get-AdmissionField $launchForAdmission.admissionPolicy 'scanBudgetMilliseconds' 10000)) $diagnosticRpc $diagnosticMarkers)
     # No thread/resume/start until actual installed API and native consistency contracts are present.
     $capability=Get-AdmissionInstalledContract $Runtime.ProviderReceipt
     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('BlockedRecovery: MissingExternalAccess:'+($capability.missing -join ','))}

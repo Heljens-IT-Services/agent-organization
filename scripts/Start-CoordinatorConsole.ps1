@@ -7,6 +7,21 @@ param(
     [string]$TaskId,
     [string]$ParentTaskId,
     [string]$AccountingDirectory,
+    [string]$CoordinatorJobPath,
+    [string]$CoordinatorJobHash,
+    [string]$CoordinatorLaunchConfigPath,
+    [string]$CoordinatorLaunchConfigHash,
+    [string]$WorkItemStorePath,
+    [string]$EventJournalPath,
+    [string[]]$ResultDirectories,
+    [string]$RegistryDirectory,
+    [string[]]$RuntimeArguments,
+    [string]$PinnedRuntimeExecutable,
+    [string]$PinnedCodexHome,
+    [string]$PinnedDataDirectory,
+    [string]$PinnedWorkingDirectory,
+    [int]$PinnedCapacity,
+    [string]$PinnedAccountingDirectory,
     [switch]$RestartRequestedByHuman
 )
 <#
@@ -44,8 +59,8 @@ try {
     $CodexHome=[IO.Path]::GetFullPath($CodexHome)
     $env:CODEX_HOME=$CodexHome
     $context=$null
-    if ($TaskId -or $ParentTaskId -or $RestartRequestedByHuman) {
-        $context=[pscustomobject]@{TaskId=$TaskId;ParentTaskId=$ParentTaskId;RestartRequestedByHuman=[bool]$RestartRequestedByHuman}
+    if ($TaskId -or $ParentTaskId -or $RestartRequestedByHuman -or $CoordinatorJobPath) {
+        $context=[pscustomobject]@{TaskId=$TaskId;ParentTaskId=$ParentTaskId;RestartRequestedByHuman=[bool]$RestartRequestedByHuman;CoordinatorJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;CoordinatorLaunchConfigPath=$CoordinatorLaunchConfigPath;CoordinatorLaunchConfigHash=$CoordinatorLaunchConfigHash;WorkItemStorePath=$WorkItemStorePath;EventJournalPath=$EventJournalPath;ResultDirectories=@($ResultDirectories);RegistryDirectory=$RegistryDirectory;RuntimeArguments=@($RuntimeArguments);PinnedRuntimeExecutable=$PinnedRuntimeExecutable;PinnedCodexHome=$PinnedCodexHome;PinnedDataDirectory=$PinnedDataDirectory;PinnedWorkingDirectory=$PinnedWorkingDirectory;PinnedCapacity=$PinnedCapacity;PinnedAccountingDirectory=$PinnedAccountingDirectory}
     }
     $supervisorPath=Join-Path $PSScriptRoot 'coordinator/CoordinatorSupervisor.psm1'
     if (-not (Test-Path -LiteralPath $supervisorPath -PathType Leaf)) { throw "Coordinator supervisor module is not available: $supervisorPath" }
