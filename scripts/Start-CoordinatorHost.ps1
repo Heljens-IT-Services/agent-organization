@@ -38,10 +38,12 @@ try {
         if(-not $session.PSObject.Properties[$pair[0]]) { $session | Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] }
     }
     if ($session.PSObject.Properties.Name -notcontains 'NativeThreadId') { throw 'BlockedRecovery: Session contract incomplete.' }
-    if ($session.RuntimePid) {
+    if ($null -ne $session.RuntimePid) {
+        $validatedRuntimePid=0
+        if (-not [int]::TryParse([string]$session.RuntimePid,[ref]$validatedRuntimePid) -or $validatedRuntimePid -le 0) { throw 'BlockedRecovery: persisted runtime PID is invalid; no process was stopped.' }
         $old=$null
         $missing=$false
-        try { $old=[Diagnostics.Process]::GetProcessById([int]$session.RuntimePid) }
+        try { $old=[Diagnostics.Process]::GetProcessById($validatedRuntimePid) }
         catch {
             $exception=$_.Exception
             while ($exception -and -not ($exception -is [ArgumentException])) { $exception=$exception.InnerException }
@@ -75,8 +77,11 @@ try {
     if ($runtimeConfig -is [System.Collections.IDictionary]) { $runtimeConfig['RpcTimeoutMilliseconds']=$RpcTimeoutMilliseconds; $runtimeConfig['TurnTimeoutMilliseconds']=600000 }
     else { $runtimeConfig | Add-Member -MemberType NoteProperty -Name RpcTimeoutMilliseconds -Value $RpcTimeoutMilliseconds -Force; $runtimeConfig | Add-Member -MemberType NoteProperty -Name TurnTimeoutMilliseconds -Value 600000 -Force }
     $effectiveCwd=[IO.Path]::GetFullPath([string]$runtimeConfig.WorkingDirectory)
-    $effectiveExe=if ($runtimeConfig.PSObject.Properties['RuntimeExecutable'] -and $runtimeConfig.RuntimeExecutable) { (Resolve-Path -LiteralPath ([string]$runtimeConfig.RuntimeExecutable) -ErrorAction Stop).Path } else { (Get-Command codex.exe -ErrorAction Stop).Source }
+    $configuredExe=Get-CoordinatorConfigValue $runtimeConfig 'RuntimeExecutable'
+    $effectiveExe=if ($configuredExe) { [IO.Path]::GetFullPath((Resolve-Path -LiteralPath ([string]$configuredExe) -ErrorAction Stop).Path) } else { [IO.Path]::GetFullPath((Get-Command codex.exe -ErrorAction Stop).Source) }
     $effectiveHome=if ($env:CODEX_HOME) { [IO.Path]::GetFullPath($env:CODEX_HOME) } else { [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE '.codex')) }
+    if ($runtimeConfig -is [System.Collections.IDictionary]) { $runtimeConfig['CodexHome']=$effectiveHome }
+    else { $runtimeConfig | Add-Member -MemberType NoteProperty -Name CodexHome -Value $effectiveHome -Force }
     if ($session.RuntimeExecutable -or $session.CodexHome -or $session.HistoryBase) {
         if (-not $session.RuntimeExecutable -or -not $session.CodexHome -or -not $session.HistoryBase -or
             -not ([IO.Path]::GetFullPath([string]$session.Cwd)).Equals($effectiveCwd,[StringComparison]::OrdinalIgnoreCase) -or
@@ -121,7 +126,7 @@ try {
     if ($runtime -and $runtime.Owned) {
         $ended=$false
         try {
-            if ($runtime.JobHandle -and $runtime.JobHandle -ne [IntPtr]::Zero) { [void][CoordinatorRuntimeJob]::CloseHandle($runtime.JobHandle); $runtime.JobHandle=[IntPtr]::Zero }
+            if ($runtime.JobHandle -and $runtime.JobHandle -ne [IntPtr]::Zero) { $handleClosed=[CoordinatorRuntimeJob]::CloseHandle($runtime.JobHandle); if ($handleClosed) { $runtime.JobHandle=[IntPtr]::Zero } else { Write-Warning 'Runtime job handle close was not confirmed; observing the child process directly.' } }
             if (-not $runtime.Process.HasExited) {
                 try { $runtime.Input.Close() } catch { }
                 $ended=[bool]$runtime.Process.WaitForExit(5000) -and [bool]$runtime.Process.HasExited

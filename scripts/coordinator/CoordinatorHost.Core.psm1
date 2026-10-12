@@ -21,6 +21,17 @@ function Read-CoordinatorSession([string]$Path) {
     catch { throw 'BlockedRecovery: Sessiondaten unlesbar oder unvollständig.' }
 }
 
+function Get-CoordinatorConfigValue($Config, [string]$Name) {
+    if ($null -eq $Config) { return $null }
+    if ($Config -is [System.Collections.IDictionary]) {
+        if ($Config.Contains($Name)) { return $Config[$Name] }
+        return $null
+    }
+    $property = $Config.PSObject.Properties[$Name]
+    if ($property) { return $property.Value }
+    return $null
+}
+
 function Get-CoordinatorPrivateStoreModule {
     $modulePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'workitems/WorkItemStore.psm1'
     if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) { return $null }
@@ -78,15 +89,29 @@ function Invoke-CoordinatorRuntimeRpc($Runtime, [string]$Method, $Params, [int]$
 }
 
 function Test-CoordinatorNotificationBinding($Notification, [string]$ThreadId, [string]$TurnId) {
-    if (-not $Notification -or -not $Notification.params -or $Notification.params.threadId -cne $ThreadId) { return $false }
-    $candidate=$Notification.params.turnId
-    if ($Notification.params.turn -and $Notification.params.turn.id) { $candidate=$Notification.params.turn.id }
-    return ([string]$candidate -ceq $TurnId)
+    if ($null -eq $Notification -or [string]::IsNullOrEmpty($ThreadId) -or [string]::IsNullOrEmpty($TurnId)) { return $false }
+    $paramsValue=Get-CoordinatorConfigValue $Notification 'params'
+    $threadValue=Get-CoordinatorConfigValue $paramsValue 'threadId'
+    if ([string]$threadValue -cne $ThreadId) { return $false }
+    $paramsTurnId=Get-CoordinatorConfigValue $paramsValue 'turnId'
+    $paramsTurn=Get-CoordinatorConfigValue $paramsValue 'turn'
+    $paramsNestedTurnId=Get-CoordinatorConfigValue $paramsTurn 'id'
+    $topTurnId=Get-CoordinatorConfigValue $Notification 'turnId'
+    $topTurn=Get-CoordinatorConfigValue $Notification 'turn'
+    $topNestedTurnId=Get-CoordinatorConfigValue $topTurn 'id'
+    $foundTurnId=$false
+    foreach($candidate in @($paramsTurnId,$paramsNestedTurnId,$topTurnId,$topNestedTurnId)) {
+        if ($null -eq $candidate) { continue }
+        $foundTurnId=$true
+        if ([string]$candidate -cne $TurnId) { return $false }
+    }
+    return $foundTurnId
 }
 
 function Start-CoordinatorRuntime($Config) {
     if ($Config.PSObject.Properties['RuntimeFactory'] -and $Config.RuntimeFactory) { return & $Config.RuntimeFactory $Config }
-    $exe = if ($Config.PSObject.Properties['RuntimeExecutable'] -and $Config.RuntimeExecutable) { $Config.RuntimeExecutable } else { (Get-Command codex.exe -ErrorAction Stop).Source }
+    $configuredExe=Get-CoordinatorConfigValue $Config 'RuntimeExecutable'
+    $exe = if ($configuredExe) { [string]$configuredExe } else { (Get-Command codex.exe -ErrorAction Stop).Source }
     $psi = New-Object Diagnostics.ProcessStartInfo
     $psi.FileName = $exe
     if ($Config.PSObject.Properties['RuntimeArguments'] -and $Config.RuntimeArguments) { $psi.Arguments=(@($Config.RuntimeArguments|ForEach-Object { '"'+([string]$_).Replace('"','\"')+'"' }) -join ' ') }
@@ -94,6 +119,8 @@ function Start-CoordinatorRuntime($Config) {
     $psi.UseShellExecute=$false
     $psi.RedirectStandardInput=$true; $psi.RedirectStandardOutput=$true; $psi.RedirectStandardError=$true
     $psi.CreateNoWindow=$true; $psi.WorkingDirectory=$Config.WorkingDirectory
+    $codexHome=Get-CoordinatorConfigValue $Config 'CodexHome'
+    if ($codexHome) { $psi.EnvironmentVariables['CODEX_HOME']=[string]$codexHome }
     $p = New-Object Diagnostics.Process; $p.StartInfo=$psi
     if (-not $p.Start()) { throw 'Unavailable: Runtime start failed.' }
     $jobHandle = [IntPtr]::Zero
@@ -199,14 +226,14 @@ function Invoke-CoordinatorTurn($Runtime, $Session, [string]$SessionPath, $Reque
         $Session.State='RunningTurn'; Write-CoordinatorAtomicJson $SessionPath $Session
         $turnTimeout=if($Runtime.TurnTimeoutMilliseconds){[int]$Runtime.TurnTimeoutMilliseconds}else{600000};$watch=[Diagnostics.Stopwatch]::StartNew(); $terminal=$false
         $usage=$null
-        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$usage=$n.params.tokenUsage.last}; if ($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true } }
+        foreach($n in @($Runtime.Notifications.ToArray())) { if($n.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'tokenUsage') 'last'}; if ($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true } }
         while ($watch.ElapsedMilliseconds -lt $turnTimeout -and -not $Runtime.Process.HasExited) {
             if (-not $Runtime.PendingRead) { $Runtime.PendingRead=$Runtime.Reader.ReadLineAsync() }
-            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; if ($m.method) { if($Runtime.Notifications.Count -ge 256){$Runtime.Notifications.RemoveAt(0)};[void]$Runtime.Notifications.Add($m) };if($m.method -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)){$usage=$m.params.tokenUsage.last};if ($m.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true; break } } }
+            if ($Runtime.PendingRead.Wait(100)) { $line=$Runtime.PendingRead.Result;$Runtime.PendingRead=$null; if ($line) { $m=$line|ConvertFrom-Json; $messageMethod=Get-CoordinatorConfigValue $m 'method'; if ($messageMethod) { $messageId=Get-CoordinatorConfigValue $m 'id';if($null -ne $messageId){throw 'BlockedRecovery: unsupported runtime server request.'};if($Runtime.Notifications.Count -ge 256){$Runtime.Notifications.RemoveAt(0)};[void]$Runtime.Notifications.Add($m) };if($messageMethod -eq 'thread/tokenUsage/updated' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)){$usage=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $m 'params') 'tokenUsage') 'last'};if ($messageMethod -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $m $Session.NativeThreadId $Session.LastTurnId)) { $terminal=$true; break } } }
             if ($terminal) { break }
         }
         if (-not $terminal) { $Session.State='RecoveryUnknown'; $Session.LastOutcome='Unknown'; Write-CoordinatorAtomicJson $SessionPath $Session; return @{status='BlockedRecovery';requestId=$Request.requestId} }
-        $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){if($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId) -and $n.params.turn.status){$terminalStatus=[string]$n.params.turn.status}}
+        $terminalStatus='completed';foreach($n in @($Runtime.Notifications.ToArray())){$turnStatus=Get-CoordinatorConfigValue (Get-CoordinatorConfigValue (Get-CoordinatorConfigValue $n 'params') 'turn') 'status';if($n.method -eq 'turn/completed' -and (Test-CoordinatorNotificationBinding $n $Session.NativeThreadId $Session.LastTurnId) -and $turnStatus){$terminalStatus=[string]$turnStatus}}
         $Session.State='Ready'; $Session.LastOutcome=$terminalStatus; $Session.LastUsage=$usage
         $entry=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $Request.requestId})[0];$entry.turnId=$Session.LastTurnId;$entry.outcome=$terminalStatus;$entry.usage=$usage
         Write-CoordinatorAtomicJson $SessionPath $Session
@@ -250,4 +277,4 @@ function Start-CoordinatorPipe($Config, [scriptblock]$OnRequest) {
     }
 }
 
-Export-ModuleMember -Function Write-CoordinatorAtomicJson,Read-CoordinatorSession,Get-CoordinatorPrivateStoreModule,Invoke-CoordinatorPrivateStore,Enter-CoordinatorOwnership,Exit-CoordinatorOwnership,Invoke-CoordinatorRuntimeRpc,Test-CoordinatorNotificationBinding,Start-CoordinatorRuntime,New-CoordinatorPipeServer,Initialize-CoordinatorRuntime,Invoke-CoordinatorTurn,Start-CoordinatorPipe
+Export-ModuleMember -Function Write-CoordinatorAtomicJson,Read-CoordinatorSession,Get-CoordinatorPrivateStoreModule,Get-CoordinatorConfigValue,Invoke-CoordinatorPrivateStore,Enter-CoordinatorOwnership,Exit-CoordinatorOwnership,Invoke-CoordinatorRuntimeRpc,Test-CoordinatorNotificationBinding,Start-CoordinatorRuntime,New-CoordinatorPipeServer,Initialize-CoordinatorRuntime,Invoke-CoordinatorTurn,Start-CoordinatorPipe
