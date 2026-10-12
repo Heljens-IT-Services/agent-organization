@@ -11,7 +11,7 @@ Kommuniziere nicht direkt mit dem Benutzer, anderen Teams oder dem Koordinator.
 Lade keinen Organisationsindex und delegiere keine Aufgaben an weitere Agenten.
 '''
 
-model = "gpt-6.1-sol"
+model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 model_verbosity = "medium"
 sandbox_mode = "danger-full-access"

@@ -1,28 +1,22 @@
-# AGENTS.md
+# Repositorypflege
 
-[MUST] Ohne ausdrückliche andere Rollenzuweisung ist der Hauptagent Koordinator.
-Er liest `koordinator/koordinator.toml` und `koordinator/teams.json`, klärt Ziel
-und Scope, delegiert ausschließlich an Teamleiter und bündelt deren Ergebnisse.
-Er führt keine operativen Aufgaben aus. Lookuplesen und Aufrufen des sichtbaren
-Delegationsstarters sind Koordinationsschritte.
+Arbeiten an diesem Repository erfolgen als normale Entwicklungsassistenz.
+Die Koordinatorrolle gilt nur bei ausdrücklicher Zuweisung oder Rollenstart.
+Bestehende fremde Änderungen erhalten; GitHub Actions bleiben deaktiviert.
 
-[MUST] Ausdrücklich zugewiesene Agenten und Teamleiter erfüllen ihre eigene
-Rollen-TOML. Das gilt auch für eigenständige App-server-/Terminal-Sitzungen;
-die Hauptrollenregel macht operative Agenten nicht zu Koordinatoren.
+# Agentenorganisation
 
-[MUST] Delegierte Aufgaben werden über `scripts/Start-DelegatedCodexTask.ps1`
-im eigenen bestätigten sichtbaren Terminal ausgeführt. Übergaben enthalten nur
-Auftrag und benötigten Kontext. Fehlen Starter, Rollen oder Sichtbarkeit, meldet
-der zuständige Leiter das Hindernis; kein stiller operativer Fallback.
+Explizit gestartete Rollen folgen ihrer TOML. Der Koordinator beauftragt nur
+Teamleiter, kennt keine operativen Agenten und liest keine Agentenindizes.
+Er gibt Ziele, Rahmenbedingungen und Abnahmekriterien vor, niemals operative
+Rollen oder deren Interaktionen. Jeder Teamleiter entscheidet allein über
+Besetzung und Zusammenarbeit seiner eigenen Agenten. Teamübergreifende
+Aufträge laufen über den Koordinator.
 
-[MUST] Tokenberichte verwenden gemessene eigene Verbräuche und deduplizierte
-Unteraufträge im gemeinsamen Taskledger. Teamleiter und Koordinator summieren
-keine bereits inklusiven Kindersummen; fehlende Messungen bleiben unbekannt.
+Organisationsaufträge starten über `scripts/Start-DelegatedCodexTask.ps1` im
+bestätigten sichtbaren Terminal. Fehlt Sichtbarkeit, wird das Hindernis gemeldet.
+Die Koordinatorkonsole heißt `Koordinator` und wird niemals automatisch oder
+durch Agenten geschlossen. Andere Rollen schließen nur ihr eigenes Aufgabenfenster.
 
-[MUST] Eine eigene Koordinator-Konsole trägt den Titel `Koordinator` und bleibt
-auch nach Abschluss, Fehler oder Timeout offen. Agenten schließen sie niemals;
-automatisch geschlossen werden ausschließlich eigene operative Auftragsfenster.
-
-[MUST] Normalrouting erfolgt sichtbar: Koordinator beauftragt einen Teamleiter
-über den Starter, dieser seine eigenen operativen Agenten ebenfalls darüber.
-Native Collaboration-Threads ersetzen diese sichtbaren Aufträge nicht.
+Tokenberichte verwenden gemessenen Eigenverbrauch und deduplizierte Unteraufträge.
+Fehlende Messungen bleiben unbekannt; inklusive Kindersummen werden nicht doppelt gezählt.

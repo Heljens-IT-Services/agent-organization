@@ -17,14 +17,15 @@ und persönlich installiert. Sie aktiviert den App-Hauptchat nicht automatisch.
 
 ## Fachliche Leitplanken
 
-[MUST] Der Benutzer kommuniziert ausschließlich mit dem Koordinator.
+[MUST] Bei Einsatz der Agentenorganisation kommuniziert der Benutzer mit dem
+Koordinator. Repositorypflege erfolgt als normale Entwicklungsassistenz.
 
 [MUST] Der Koordinator delegiert Arbeit an Teamleiter und führt keine operativen
 Aufgaben aus. Teamleiter koordinieren ihren Fachbereich und delegieren die
 operative Arbeit an Spezialisten.
 
-[MUST] Die acht Teams Softwareentwicklung, Design, Marketing, Controlling,
-Buchhaltung, Geschäftsführung und Assistenz, HR sowie Agent Ressources bilden den vorgesehenen
+[MUST] Die neun Teams Softwareentwicklung, Design, Marketing, Controlling,
+Buchhaltung, Geschäftsführung und Assistenz, HR, Agent Ressources und Administratoren bilden den vorgesehenen
 Grundbestand.
 
 [MUST] Revisionssicherheit bezeichnet hier versionierte Nachvollziehbarkeit.
@@ -36,15 +37,15 @@ Es wird keine Unveränderbarkeitsgarantie zugesichert.
 begrifflich getrennt. Eigene Organisationsfelder dürfen nicht als native
 Codex-Konfigurationsschlüssel ausgegeben werden.
 
-[MUST] Der implementierte Scope umfasst Koordinator, acht Teamleiter, 30 operative
+[MUST] Der implementierte Scope umfasst Koordinator, neun Teamleiter, 34 operative
 Agenten und ihre Lookupindizes mit bytegleichen persönlichen Kopien. Der sichtbare
 Terminalstarter ist implementiert; native Delegation besitzt keinen automatischen
 Fensterhook.
 
-[MUST] Die Repository-`AGENTS.md` weist ohne ausdrückliche andere Rollenzuweisung
-die Hauptrolle Koordinator zu. Ausdrücklich zugewiesene Rollen bleiben operativ
-oder koordinierend gemäß ihrer TOML. Persönliche AGENTS und globale Konfiguration
-werden dadurch nicht geändert.
+[MUST] Die Repository-`AGENTS.md` aktiviert den Koordinator nur bei ausdrücklicher
+Zuweisung oder Rollenstart. Er kontaktiert nur Teamleiter und bestimmt keine
+operativen Rollen oder Interaktionen. Teamleiter entscheiden selbst über ihre
+Agenten. Persönliche AGENTS und globale Konfiguration werden nicht geändert.
 
 [MUST] Änderungen müssen auf den jeweils ausdrücklich zugewiesenen Scope
 begrenzt bleiben; vorhandene fremde Arbeiten dürfen nicht überschrieben werden.

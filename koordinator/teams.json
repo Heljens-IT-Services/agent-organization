@@ -95,6 +95,18 @@
       ],
       "leader_id": "teamleiter_agent_ressources",
       "role_file": "teamleiter_agent_ressources.toml"
+    },
+    {
+      "team_id": "administratoren",
+      "name": "Administratoren",
+      "description": "Administration von Microsoft 365, SharePoint, GitHub und Hetzner.",
+      "tasks": [
+        "Administrationsaufträge koordinieren",
+        "Zugänge und Berechtigungen verwalten",
+        "Änderungen und Nachweise bündeln"
+      ],
+      "leader_id": "teamleiter_administratoren",
+      "role_file": "teamleiter_administratoren.toml"
     }
   ]
 }

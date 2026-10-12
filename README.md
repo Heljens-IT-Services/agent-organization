@@ -4,14 +4,14 @@ Versionierte Agentenorganisation für Heljens IT Services: Ein Koordinator nimmt
 Anfragen entgegen, Teamleiter koordinieren Fachbereiche und Spezialisten führen
 die operative Arbeit aus.
 
-Vorgesehen sind acht Teams: Softwareentwicklung, Design, Marketing,
-Controlling, Buchhaltung, Geschäftsführung und Assistenz, HR sowie Agent Ressources.
+Es gibt neun Teams: Softwareentwicklung, Design, Marketing, Controlling,
+Buchhaltung, Geschäftsführung und Assistenz, HR, Agent Ressources und Administratoren.
 
 **Status:** [koordinator/koordinator.toml](koordinator/koordinator.toml) ist implementiert und
 bytegleich unter `~/.codex/agents/koordinator.toml` installiert. Die TOML allein
-aktiviert den App-Hauptchat nicht automatisch. Alle acht Teamleiter und 30
-operative Rollen sind implementiert und persönlich installiert: neun
-koordinierende Rollen einschließlich Koordinator, insgesamt 39 TOMLs.
+aktiviert den App-Hauptchat nicht automatisch. Alle neun Teamleiter und 34
+operative Rollen sind implementiert und persönlich installiert: zehn
+koordinierende Rollen einschließlich Koordinator, insgesamt 44 TOMLs.
 Die Teamleiter nutzen ihre jeweiligen `teams/<team_id>/agenten.json`-Indizes.
 
 [Fensterdelegation](docs/FENSTERDELEGATION.md) startet einen parametrischen Auftrag
@@ -21,9 +21,12 @@ QA-Aufgabe geprüft. Die automatische Anbindung sämtlicher Delegationen ist off
 
 Das [Konzept](docs/CONCEPT.md) beschreibt Hierarchie, Teams, Konfigurationsidee
 und offene Umsetzungspunkte. Die [Projektleitplanken](PROJECT.md) begrenzen den
-aktuellen Scope. [AGENTS.md](AGENTS.md) legt ohne ausdrückliche andere
-Rollenzuweisung den Koordinator als Hauptrolle fest; ausdrücklich zugewiesene
-Agenten erfüllen ihre eigene TOML, auch in eigenständigen Terminal-Sitzungen.
+aktuellen Scope. [AGENTS.md](AGENTS.md) trennt normale Repositorypflege von
+explizit gestarteten Organisationsrollen. Der Koordinator beauftragt ausschließlich
+Teamleiter; diese entscheiden selbst über ihre operative Besetzung.
+
+Alle Rollen verwenden `gpt-6-luna` mit Reasoning `medium`. Administratoren nutzen
+vorhandene MCP-Werkzeuge oder Browsersteuerung; Dienstzugänge sind separat nötig.
 
 Voraussetzung ist Codex mit standalone Custom Agents. Build und CI sind nicht
 vorhanden; GitHub Actions sind deaktiviert.
