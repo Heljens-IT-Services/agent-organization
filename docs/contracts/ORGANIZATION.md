@@ -22,7 +22,9 @@ und nicht sämtliche nativen TOML-Laufzeitoptionen. [Beispiele](../../examples/o
 zeigen `null`-Referenzen und verbotene Zustandsfelder. Der unterstützte Schemaumfang
 steht in [WORKITEMS.md](WORKITEMS.md).
 
-Der Koordinator lädt nur den Teamleiterindex, delegiert Ziele und entscheidet
+Der Koordinator ist die verpflichtende Top-Level-Rolle für alle Repositoryarbeiten,
+ohne Wartungsausnahme. Ausdrücklich zugewiesene Teamleiter und Spezialisten
+behalten ihre eigene Rolle. Der Koordinator lädt nur den Teamleiterindex, delegiert Ziele und entscheidet
 weder Besetzung noch interne Zusammenarbeit. Teamleiter laden nur ihren Index,
 spezifizieren Teilziele mit benötigten Fachleuten und bündeln deren Beiträge.
 Die Pflege eigener WorkItems ist Koordination, keine operative Facharbeit.
@@ -33,3 +35,14 @@ Vertrieb nutzt vorhandene Teams: Marketing übernimmt Positionierung und
 Kundengewinnung, Geschäftsführung und Assistenz Angebote, Verträge und
 Kundenkommunikation. Wirtschaftlichkeitsfragen gehen über den Koordinator an
 Controlling. Neue Besetzung wird zunächst vorgeschlagen.
+
+Empfindliche Organisationsstrukturen (Organisationsdateien, Rollenregeln,
+Indizes und zugehörige Verträge) werden ausschließlich über den Auftragspfad
+Koordinator -> zuständiger Teamleiter -> Optimierer geändert, im abgegrenzten
+WorkItem mit vorheriger menschlicher Freigabe. Der Koordinator beauftragt nur
+Teamleiter mit Zielen, Rahmenbedingungen und Abnahmekriterien; er kontaktiert
+oder wählt keine operativen Agenten und schreibt deren Interaktionen nicht vor.
+Der Teamleiter bestimmt die interne Besetzung und Zusammenarbeit eigenständig.
+Der Optimierer kommuniziert ausschließlich mit teamleiter_agent_ressources,
+erhält fremde Änderungen und liefert Konsistenz-, Referenz- und Funktionsbelege.
+Unabhängige Qualitätsprüfung und dokumentierte eigene Elternabnahme folgen getrennt.

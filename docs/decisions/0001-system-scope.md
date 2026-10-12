@@ -35,7 +35,19 @@ Implementierung; der laufende Aufgabenbestand liegt künftig in der eigenen Verw
   integrierten Gesamtpilot einschließlich Wiederanlauf und Mehrzielbetrieb nachweisen.
 
 Diese Orte und Grenzen sind festgelegt, die Folgefunktionen noch nicht implementiert.
-Im Organisationsbetrieb ist der Koordinator Gesprächspartner; Repositorypflege
-erfolgt als normale Entwicklungsassistenz. Fachliche Architektur braucht
+Der Koordinator ist für alle Repositoryarbeiten die verpflichtende Top-Level-Rolle
+und der Benutzerkontakt, ohne Wartungsausnahme. Ausdrücklich zugewiesene Teamleiter
+und Spezialisten behalten ihre eigene Rolle. Fachliche Architektur braucht
 Spezialistenbeiträge. Vertrieb bleibt innerhalb vorhandener Teams; neue Besetzung
 wird zunächst vorgeschlagen.
+
+Empfindliche Organisationsstrukturen (Organisationsdateien, Rollenregeln,
+Indizes und zugehörige Verträge) werden ausschließlich über den Auftragspfad
+Koordinator -> zuständiger Teamleiter -> Optimierer geändert, im abgegrenzten
+WorkItem mit vorheriger menschlicher Freigabe. Der Koordinator beauftragt nur
+Teamleiter mit Zielen, Rahmenbedingungen und Abnahmekriterien; er kontaktiert
+oder wählt keine operativen Agenten und schreibt deren Interaktionen nicht vor.
+Der Teamleiter bestimmt die interne Besetzung und Zusammenarbeit eigenständig.
+Der Optimierer kommuniziert ausschließlich mit teamleiter_agent_ressources,
+erhält fremde Änderungen und liefert Konsistenz-, Referenz- und Funktionsbelege.
+Unabhängige Qualitätsprüfung und dokumentierte eigene Elternabnahme folgen getrennt.

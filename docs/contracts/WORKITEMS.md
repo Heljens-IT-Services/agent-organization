@@ -84,3 +84,12 @@ Sie unterstützt nur verwendete Schlüssel: lokale `$defs`/`$ref`, `type`, `cons
 `minItems`, `uniqueItems`, `minLength`, `pattern`, `format: date-time`, Metadaten
 und Übergangsliste. Unbekannte Schema-Schlüssel werden abgewiesen. Die Schema-Dateien
 sind JSON Schema 2020-12; der PowerShell-Prüfer ist kein allgemeiner Schema-Validator.
+
+## OrganisationsÄnderungen
+
+Änderungen empfindlicher Organisationsstrukturen benötigen ein abgegrenztes
+WorkItem und vorherige menschliche Freigabe. Es gilt ausschließlich
+Koordinator -> zuständiger Teamleiter -> Optimierer; der Teamleiter entscheidet
+über interne Besetzung und Zusammenarbeit. Die Umsetzung liefert Ergebnisbelege,
+keine eigene Elternabnahme. Unabhängige Prüfung und abschließende Entscheidung
+bleiben separat; [AR55](AR55-IMPLEMENTATION.md) dokumentiert diesen Auftrag.

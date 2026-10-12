@@ -56,6 +56,130 @@ function Get-FinalLedgerUsage($Evidence) {
     if ($Evidence.usage_finalized) { return $Evidence.token_usage }
     return $null
 }
+function New-ProgressState {
+    $secrets = @(Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)secret|token|password|passwd|api_?key|credential|connection_?string' -and $_.Value.Length -ge 4 } | ForEach-Object { $_.Value })
+    return @{ seen = @{}; count = 0; secrets = $secrets }
+}
+function Protect-ProgressText([string]$Text, $State, [int]$Limit = 180) {
+    # Redact before truncation; never split a secret into an apparently safe prefix.
+    foreach ($secret in $State.secrets) { if ($secret) { $Text = $Text.Replace([string]$secret, '[maskiert]') } }
+    $Text = [regex]::Replace($Text, '(?i)\b(?:sk-[a-z0-9_-]+|gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+|eyJ[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]+)\b', '[maskiert]')
+    $Text = [regex]::Replace($Text, '(?i)\b(?:bearer|token|password|passwd|secret|api[_-]?key|authorization)\b\s*[:=]?\s*\S+', '[maskiert]')
+    $Text = [regex]::Replace($Text, '[\x00-\x1f\x7f-\x9f]', ' ')
+    $Text = [regex]::Replace($Text, '\s+', ' ').Trim()
+    if ($Text.Length -gt $Limit) { $Text = $Text.Substring(0, $Limit - 3) + '...' }
+    return $Text
+}
+function Format-DelegatedStartLayout([string]$RoleName, [string]$Task, [string]$Context, [int]$Width = 88, $State = @{ secrets = @() }) {
+    $Width = [Math]::Max(40, [Math]::Min(120, $Width))
+    $lines = New-Object 'System.Collections.Generic.List[string]'
+    $lines.Add(('=' * $Width))
+    $lines.Add('')
+    $lines.Add((Protect-ProgressText $RoleName $State 200).ToUpperInvariant())
+    $lines.Add('')
+    foreach ($section in @(@{ name = 'AUFTRAG'; text = $Task }, @{ name = 'KONTEXT'; text = $Context })) {
+        if ($section.name -eq 'KONTEXT' -and [string]::IsNullOrWhiteSpace($section.text)) { continue }
+        $lines.Add(('-' * $Width))
+        $lines.Add($section.name)
+        $lines.Add('')
+        foreach ($paragraph in ([string]$section.text -split '\r?\n')) {
+            $text = Protect-ProgressText $paragraph $State ([int]::MaxValue)
+            while ($text.Length -gt $Width) {
+                $split = $text.LastIndexOf(' ', $Width)
+                if ($split -le 0) { $split = $Width }
+                $lines.Add($text.Substring(0, $split))
+                $text = $text.Substring($split).TrimStart()
+            }
+            $lines.Add($text)
+        }
+        $lines.Add('')
+    }
+    $lines.Add(('=' * $Width))
+    $lines.Add('')
+    $lines.Add('FORTSCHRITT')
+    $lines.Add('')
+    return $lines.ToArray()
+}
+function Get-ProgressName([string]$Name, $State) {
+    if ($Name -notmatch '^[a-zA-Z][a-zA-Z0-9_.:/-]{0,100}$') { return '(unbekannt)' }
+    return Protect-ProgressText $Name $State 100
+}
+function Get-ProgressCommand([string]$Command, $State) {
+    # Shell arguments, inline scripts and nested payloads are never echoed.
+    if ($Command -match '^\s*(?:"[^"\r\n]*[\\/])?(?:powershell|pwsh)(?:\.exe)?"?\s+(?:-NoProfile\s+)?-Command\s+(?:''\s*Get-Location\s*''|"\s*Get-Location\s*"|Get-Location)\s*$') {
+        return 'Get-Location (sicher erkannter Wrapper)'
+    }
+    $match = [regex]::Match($Command, '^\s*(?:"[^"\r\n]*[\\/])?(?<name>[a-zA-Z][a-zA-Z0-9_.-]*)(?:"?\s|$)')
+    if (-not $match.Success) { return '(Befehl nicht sicher darstellbar)' }
+    $name = $match.Groups['name'].Value
+    if ($name -notmatch '^(?i:git|rg|powershell(?:\.exe)?|pwsh(?:\.exe)?|cmd(?:\.exe)?|python(?:\.exe)?|node(?:\.exe)?|npm(?:\.cmd)?|dotnet|Get-Location|Get-Content|Get-ChildItem|Test-Path|Copy-Item|Set-Content)$') { return '(Befehl nicht sicher darstellbar)' }
+    if ($Command -match '^\s*git\s+(status|diff|log|show|branch|rev-parse|ls-files)(?:\s|$)') { $name += ' ' + $Matches[1] }
+    return (Protect-ProgressText $name $State) + ' (Argumente ausgeblendet)'
+}
+function Get-ProgressPath([string]$Path, $State) {
+    if (-not $Path -or $Path -match '[\x00-\x1f\x7f-\x9f`"<>|?=&{}]' -or $Path -match '://') { return '(Pfad nicht sicher darstellbar)' }
+    return Protect-ProgressText $Path $State 120
+}
+function Get-PublicProgress($Message, [string]$ThreadId, [string]$TurnId, $State) {
+    $p = $Message.params
+    if (-not $ThreadId -or -not $TurnId -or $p.threadId -cne $ThreadId) { return }
+    $eventTurn = if ($Message.method -in @('turn/started', 'turn/completed')) { $p.turn.id } else { $p.turnId }
+    if ($eventTurn -cne $TurnId) { return }
+    $item = $p.item
+    $lines = @()
+    $key = $null
+    if ($Message.method -in @('turn/started', 'turn/completed')) {
+        $key = $Message.method
+        if ($Message.method -eq 'turn/started') { $lines = @('Bearbeitung gestartet.') }
+        else {
+            $status = if ($p.turn.status -in @('completed','failed','interrupted')) { $p.turn.status } else { 'unbekannt' }
+            $lines = @("Bearbeitung beendet: $status; Tokenabrechnung wird gesichert.")
+        }
+    } elseif ($Message.method -in @('item/started', 'item/completed')) {
+        if ($item.type -in @('reasoning','userMessage','plan','functionCallOutput')) { return }
+        if ($item.id) { $key = $Message.method + ':' + [string]$item.id }
+        $status = if ($item.status -in @('inProgress','completed','failed','declined','interrupted')) { $item.status } else { 'unbekannt' }
+        $stage = if ($Message.method -eq 'item/started') { 'Start' } else { 'Ende' }
+        switch ($item.type) {
+            'agentMessage' {
+                # Only completed public commentary: no delta spam or final-answer duplication.
+                if ($Message.method -ne 'item/completed' -or $item.phase -ne 'commentary') { return }
+                $text = [string]$item.text
+                if (-not $text.Trim()) { return }
+                # Code, URLs, assignments and unfamiliar structured payloads use safe metadata.
+                if ($text -match '[`{}=<>]|https?://|(?i)\b(?:bearer|password|token|secret|api[_-]?key|authorization)\b') { $text = '(öffentliche Meldung; Nutzlast ausgeblendet)' }
+                $lines = @('Fortschritt: ' + (Protect-ProgressText $text $State))
+                if ($item.id) { $key = 'commentary:' + $lines[0] }
+            }
+            'commandExecution' {
+                $exit = if ($null -ne $item.exitCode -and [string]$item.exitCode -match '^-?\d{1,10}$') { [string]$item.exitCode } else { 'unbekannt' }
+                $lines = @("Befehl ${stage}: $(Get-ProgressCommand $item.command $State); Status $status" + $(if ($stage -eq 'Ende') { "; Exitcode $exit" } else { '' }))
+            }
+            'fileChange' {
+                $paths = @($item.changes | Select-Object -First 3 | ForEach-Object { Get-ProgressPath $_.path $State })
+                if (-not $paths.Count) { $paths = @('(Pfad fehlt)') }
+                $suffix = "; Status $status" + $(if (@($item.changes).Count -gt 3) { '; weitere Pfade ausgeblendet' } else { '' })
+                $prefix = "Dateien ${stage}: "
+                $lines = @($prefix + (Protect-ProgressText ($paths -join ', ') $State (240 - $prefix.Length - $suffix.Length)) + $suffix)
+            }
+            'mcpToolCall' { $lines = @("MCP ${stage}: $(Get-ProgressName $item.server $State)/$(Get-ProgressName $item.tool $State); Status $status") }
+            'dynamicToolCall' {
+                $success = if ($item.success -is [bool]) { [string]$item.success } else { 'unbekannt' }
+                $lines = @("Tool ${stage}: $(Get-ProgressName $item.tool $State); Status $status; Erfolg $success")
+            }
+            default { $lines = @("Werkzeug ${stage}: unbekannte Eventform; Status $status") }
+        }
+    } else { return } # Includes reasoning, tool outputs, MCP progress and all deltas.
+    if (($key -and $State.seen.ContainsKey($key)) -or ($State.count -ge 200 -and $Message.method -ne 'turn/completed')) { return }
+    if ($key) { $State.seen[$key] = $true }; $State.count++
+    foreach ($line in $lines) { Protect-ProgressText $line $State 240 }
+}
+function Write-ProgressDisplay([string]$Text) {
+    # One path for actual host lines and their sanitized evidence, including final output.
+    $line = Protect-ProgressText $Text $progressState 240
+    Write-Host $line
+    Write-Event 'display' @{ text = $line; thread_id = $evidence.thread_id; turn_id = $evidence.turn_id }
+}
 if ($PSCmdlet.ParameterSetName -eq 'Start') {
     # A coordinator console is user-owned: it is never automatically closed.
     if ($Role -ceq 'koordinator') { $KeepWindowOpen = $true }
@@ -168,8 +292,8 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         if ($result.token_summary.missing_count) { Write-Output ('Bekannte Teilsumme: ' + (Format-TokenUsage $result.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $result.token_summary.missing_count) }
     }
     Write-Output ('Vollständiges Resultat: ' + $resultFile)
-    if ($result.output) { Write-Output $result.output }
-    if ($result.error) { Write-Output ('Fehler: ' + $result.error) }
+    if ($result.output) { Write-Output (Protect-ProgressText $result.output (New-ProgressState) 240) }
+    if ($result.error) { Write-Output (Protect-ProgressText ('Fehler: ' + $result.error) (New-ProgressState) 240) }
     if (-not $result.success -or -not $confirmed) { exit 2 }
     exit 0
 }
@@ -182,14 +306,10 @@ $host.UI.RawUI.WindowTitle = $title
 $handle = [AgentTerminalWindow]::GetConsoleWindow()
 $windowPid = [uint32]0
 [void][AgentTerminalWindow]::GetWindowThreadProcessId($handle, [ref]$windowPid)
-Write-Host '================ DELEGIERTER AUFTRAG ================'
-Write-Host ('Rolle: ' + $job.role_display_name)
-Write-Host ('Auftrag: ' + $job.task)
-Write-Host ('Scope / Arbeitsverzeichnis: ' + $job.cwd)
-Write-Host ('Kontextdatei: ' + $(if ($job.context_file) { $job.context_file } else { '(keine)' }))
-Write-Host '---------------- Benötigter Kontext ----------------'
-Write-Host $(if ($job.context) { $job.context } else { '(kein zusätzlicher Kontext)' })
-Write-Host '---------------- Ende des Kontextes ----------------'
+$startState = New-ProgressState
+$layoutWidth = 88
+try { $layoutWidth = [Math]::Min(88, $host.UI.RawUI.WindowSize.Width - 1) } catch { }
+foreach ($line in (Format-DelegatedStartLayout $job.role_display_name $job.task $job.context $layoutWidth $startState)) { Write-Host $line }
 Write-Host 'Arbeit beginnt nach bestätigtem Fenster und zehn Sekunden zum Mitlesen.'
 $evidence = [ordered]@{
     task_id = $job.task_id; role = $job.role; runner_pid = $PID; window_handle = $handle.ToInt64(); title = $title
@@ -197,6 +317,7 @@ $evidence = [ordered]@{
     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
 }
 $notifications = New-Object System.Collections.Generic.List[object]
+$progressState = New-ProgressState
 $process = $null
 function Update-NativeUsage($Notification) {
     if ($Notification.method -eq 'thread/tokenUsage/updated' -and
@@ -230,12 +351,7 @@ function Read-Rpc {
         $notifications.Add($message)
         Update-NativeUsage $message
         if ($message.id) { throw ('Interaktive Serveranforderung: ' + $message.method) }
-        if ($message.method -eq 'item/agentMessage/delta' -and $message.params.threadId -ceq $evidence.thread_id) { Write-Host -NoNewline ([string]$message.params.delta) }
-        elseif ($message.method -eq 'turn/started') { Write-Host 'Der Agent bearbeitet den Auftrag.' }
-        elseif ($message.method -eq 'turn/completed') { Write-Host "`nBearbeitung beendet; Tokenabrechnung wird gesichert." }
-        elseif ($message.method -eq 'item/started' -and $message.params.item.type -in @('commandExecution', 'fileChange')) {
-            Write-Host $(if ($message.params.item.type -eq 'commandExecution') { 'Der Agent führt einen Arbeitsschritt aus.' } else { 'Der Agent bearbeitet Dateien.' })
-        }
+        Get-PublicProgress $message $evidence.thread_id $evidence.turn_id $progressState | ForEach-Object { Write-ProgressDisplay $_ }
     }
     return $message
 }
@@ -283,7 +399,11 @@ try {
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
-    foreach ($notification in $notifications) { Update-NativeUsage $notification }
+    # turn/started and items can precede the turn/start response; replay once after binding.
+    foreach ($notification in $notifications) {
+        Update-NativeUsage $notification
+        Get-PublicProgress $notification $evidence.thread_id $evidence.turn_id $progressState | ForEach-Object { Write-ProgressDisplay $_ }
+    }
     $completion = $null
     while ($null -eq $completion) {
         $completion = $notifications | Where-Object { $_.method -eq 'turn/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turn.id -ceq $evidence.turn_id } | Select-Object -Last 1
@@ -299,11 +419,11 @@ try {
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $evidence.success = ($evidence.terminal_outcome -eq 'completed')
     Write-Event 'terminal' @{ outcome = $evidence.terminal_outcome; thread_id = $evidence.thread_id }
-    Write-Host "`nErgebnis:"
-    Write-Host $evidence.output
+    Write-ProgressDisplay 'Ergebnis (Kurzfassung; vollständig im Resultatartefakt):'
+    Write-ProgressDisplay $evidence.output
 } catch {
     $evidence.error = $_.Exception.Message
-    Write-Host ('Fehler: ' + $evidence.error)
+    Write-ProgressDisplay ('Fehler: ' + $evidence.error)
     if ($process -and $evidence.turn_id -and -not $evidence.terminal_outcome) {
         try { Send-Rpc 'turn/interrupt' @{ threadId = $evidence.thread_id; turnId = $evidence.turn_id } 4 } catch { }
     }
