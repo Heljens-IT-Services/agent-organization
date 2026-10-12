@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory)][string]$WorkItemId,
     [Parameter(Mandatory)][string]$ParentTaskId,
     [Parameter(Mandatory)][string]$AccountingDirectory,
+    [string]$ParentJobPath,
     [string]$ParentContextPath,
     [string]$ParentContextHash,
     [string]$ResumeAssessment,
@@ -19,7 +20,8 @@ if (-not $RepositoryRoot) { $RepositoryRoot = Split-Path -Parent (Split-Path -Pa
 $storePath = [IO.Path]::GetFullPath($Path)
 $accounting = [IO.Path]::GetFullPath($AccountingDirectory)
 $parentId = ([guid]$ParentTaskId).ToString('N')
-$parentJobPath = $env:AGENT_ORG_PARENT_JOB_FILE
+$parentJobPath = if($ParentJobPath){$ParentJobPath}else{$env:AGENT_ORG_PARENT_JOB_FILE}
+if($ParentJobPath -and $env:AGENT_ORG_PARENT_JOB_FILE -and [IO.Path]::GetFullPath($ParentJobPath) -cne [IO.Path]::GetFullPath($env:AGENT_ORG_PARENT_JOB_FILE)){throw 'ExplicitParentJobBindingConflict'}
 if (-not $parentJobPath -or -not (Test-Path -LiteralPath $parentJobPath -PathType Leaf)) { throw 'Persistierter Elternjob fehlt; WorkItem-Start fail-closed.' }
 $parentJobPath = [IO.Path]::GetFullPath($parentJobPath)
 $parent = Read-StrictJson $parentJobPath

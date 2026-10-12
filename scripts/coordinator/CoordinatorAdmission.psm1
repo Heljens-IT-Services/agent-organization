@@ -127,6 +127,8 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
         }
     }
     foreach($e in $work){
+        # A threadless slot stays counted, but without its durable job/receipt
+        # and provably unclaimed prestart state it remains unknown to admission.
         try{
             $jp=[string](Get-AdmissionField $e 'jobPath');if(-not $jp){$rp=[string](Get-AdmissionField $e 'resultPath');if($rp){$jp=$rp+'.job.json'}}
             if(-not $jp){throw 'AdmittedJobBindingMissing'}
@@ -149,11 +151,20 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
             if(-not $Target.taskId -or -not $Target.dispatchId -or -not $Target.payloadHash -or -not $Target.resultPath){throw 'AdmissionTargetIncomplete'}
             $a=Add-AdmissionPin $pins $Target.startIntentPath
             if($pins[[IO.Path]::GetFullPath($Target.startIntentPath)] -cne $Target.startIntentHash){throw 'AdmissionTargetAuthorityHashMismatch'}
+            if([IO.Path]::GetFullPath([string]$Target.parentJobPath) -cne [IO.Path]::GetFullPath([string]$a.parentJobPath)){throw 'AdmissionTargetParentJobMismatch'}
+            if([IO.Path]::GetFullPath([string]$Target.parentContextPath) -cne [IO.Path]::GetFullPath([string]$a.parentContextPath) -or [string]$Target.parentContextHash -cne [string]$a.parentContextHash){throw 'AdmissionTargetParentContextMismatch'}
             if($a.kind -ceq 'admission-legacy-start-authority-v1'){
                 if($a.payloadHash -cne $Target.payloadHash){throw 'AdmissionLegacyPayloadMismatch'}
-            }elseif($a.kind -cne 'delegated-start-authority-v1' -or $Target.payloadHash -cne $Target.startIntentHash){throw 'AdmissionTargetAuthorityMismatch'}
+            }elseif($a.kind -ceq 'delegated-start-authority-v1'){
+                if($Target.payloadHash -cne $Target.startIntentHash){throw 'AdmissionSSOTAuthorityFileHashMismatch'}
+            }else{throw 'AdmissionTargetAuthorityKindUnknown'}
             $ap=$a.parameters
             foreach($pair in @(@('StableTaskId','taskId'),@('DispatchId','dispatchId'),@('ResultPath','resultPath'),@('Role','role'),@('DispatchJournalPath','dispatchJournalPath'))){if([string](Get-AdmissionField $ap $pair[0]) -cne [string](Get-AdmissionField $Target $pair[1])){throw ('AdmissionTargetMismatch:'+ $pair[0])}}
+            $parentJob=Read-AdmissionJson $a.parentJobPath;$cm=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
+            if($a.kind -ceq 'delegated-start-authority-v1'){
+                $parentJobHash=& $cm {param($j)Get-ExecutionJobHash $j} $parentJob
+                if($parentJobHash -cne $a.parentJobHash -or $ap.ParentTaskId -cne $parentJob.task_id -or [IO.Path]::GetFullPath([string]$ap.WorkItemStorePath) -cne [IO.Path]::GetFullPath([string]$launch.workItemStorePath) -or [IO.Path]::GetFullPath([string]$ap.AccountingDirectory) -cne [IO.Path]::GetFullPath([string]$root.accounting_directory) -or [IO.Path]::GetFullPath([string]$a.parentContextPath) -cne [IO.Path]::GetFullPath([string]$Target.parentContextPath) -or [string]$a.parentContextHash -cne [string]$Target.parentContextHash){throw 'AdmissionSSOTParentAuthorityBindingMismatch'}
+            }
             if([int]$ap.AdmissionCapacity -ne [int]$root.admission_capacity -or $ap.CoordinatorDataDirectory -cne $launch.registryDirectory){throw 'AdmissionTargetScopeMismatch'}
             if($a.kind -ceq 'delegated-start-authority-v1' -and ($ap.WorkItemStorePath -cne $launch.workItemStorePath -or $ap.AccountingDirectory -cne $root.accounting_directory)){throw 'AdmissionTargetStoreOrAccountingMismatch'}
             $targetResult=[IO.Path]::GetFullPath($Target.resultPath);$inRoot=$false
@@ -161,6 +172,8 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
             if(-not $inRoot){throw 'AdmissionTargetResultRootMismatch'}
             $pr=Get-AdmissionRoot $a.parentJobPath;if($pr.Path -cne [IO.Path]::GetFullPath($RootJobPath)){throw 'AdmissionTargetAncestorMismatch'};foreach($p in $pr.Chain){[void](Add-AdmissionPin $pins $p)}
             [void](Add-AdmissionPin $pins $a.parentContextPath);if($pins[[IO.Path]::GetFullPath($a.parentContextPath)] -cne $a.parentContextHash){throw 'AdmissionHistoricalContextMismatch'}
+            $parentContext=& $cm {param($p,$h,$j,$t,$s,$acc)Assert-ExecutionContext -ContextPath $p -ContextHash $h -JobPath $j -TaskId $t -StorePath $s -AccountingDirectory $acc} $a.parentContextPath $a.parentContextHash $a.parentJobPath $parentJob.task_id $launch.workItemStorePath $root.accounting_directory
+            & $cm {param($p,$h,$s,$acc)Assert-ExecutionAncestors -ContextPath $p -ContextHash $h -StorePath $s -AccountingDirectory $acc|Out-Null} $a.parentContextPath $a.parentContextHash $launch.workItemStorePath $root.accounting_directory
             if($Target.dispatchJournalPath){$j=Add-AdmissionPin $pins $Target.dispatchJournalPath;$match=@($j.executions|Where-Object{(Get-AdmissionGuid $_.executionId) -ceq (Get-AdmissionGuid $Target.dispatchId)});if($match.Count -ne 1 -or $match[0].input.payloadHash -cne $Target.payloadHash -or $match[0].state -notin @('Prepared','LaunchIntent')){throw 'AdmissionTargetDispatchMismatch'}}elseif($a.kind -cne 'admission-legacy-start-authority-v1'){throw 'AdmissionTargetDispatchMissing'}
         }catch{$unknown.Add($_.Exception.Message)}
     }
@@ -271,7 +284,7 @@ function Invoke-AdmissionRegistryLocked {
     if($existing.Count){throw 'AdmissionUnknown: ExistingReservationRequiresReceiptOnlyRecovery'}
     if($count.Count -ge $scope.Capacity){throw 'CoordinatorCapacityFull'}
     [void](Get-AdmissionRemainingMilliseconds $Budget)
-    $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $Target.taskId);dispatchId=(Get-AdmissionGuid $Target.dispatchId);executionId=(Get-AdmissionGuid $Target.dispatchId);nativeThreadId=$null;role=$Target.role;resultPath=$Target.resultPath;jobPath=($Target.resultPath+'.job.json');payloadHash=$Target.payloadHash;dispatchJournalPath=$Target.dispatchJournalPath;state='reserved';createdAt=[DateTime]::UtcNow.ToString('o');terminalAt=$null;inventoryAbsentAt=$null;admission=@{requestHash=$RequestHash;scopeHash=$scope.Hash;targetHash=$request.targetHash;revision=($revision+1);consumedBy=$request.targetHash;rootJobPath=$scope.RootJobPath;logicalSessionId=$scope.LogicalSessionId}}
+    $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $Target.taskId);dispatchId=(Get-AdmissionGuid $Target.dispatchId);executionId=(Get-AdmissionGuid $Target.dispatchId);nativeThreadId=$null;role=$Target.role;resultPath=$Target.resultPath;jobPath=$null;payloadHash=$Target.payloadHash;dispatchJournalPath=$Target.dispatchJournalPath;parentJobPath=$Target.parentJobPath;parentContextPath=$Target.parentContextPath;parentContextHash=$Target.parentContextHash;startIntentPath=$Target.startIntentPath;startIntentHash=$Target.startIntentHash;state='reserved';createdAt=[DateTime]::UtcNow.ToString('o');terminalAt=$null;inventoryAbsentAt=$null;admission=@{requestHash=$RequestHash;scopeHash=$scope.Hash;targetHash=$request.targetHash;revision=($revision+1);consumedBy=$request.targetHash;rootJobPath=$scope.RootJobPath;logicalSessionId=$scope.LogicalSessionId}}
     $bytesHash=Write-AdmissionJson $file @($Entries+$entry) # leading durable commit
     [void](Get-AdmissionRemainingMilliseconds $Budget) # late write is ambiguous, reservation retained
     [void](Write-AdmissionJson $metaPath @{mutationRevision=($revision+1);inFlight=@{hash=$RequestHash;state='Consumed';consumedBy=$request.targetHash};committedRegistryHash=$bytesHash;snapshotReuse=$false})
@@ -279,14 +292,21 @@ function Invoke-AdmissionRegistryLocked {
 }
 function Get-AdmissionInstalledContract($Provider) {
     # Static readback artifact supplies installation hashes; API knowledge must be code-reviewed.
-    $manifest=Read-AdmissionJson (Join-Path $PSScriptRoot 'AdmissionInstalledContract.json')
+    $manifestPath=Join-Path $PSScriptRoot 'AdmissionInstalledContract.json';$manifestBytes=[IO.File]::ReadAllBytes($manifestPath);$manifest=Read-AdmissionJson $manifestPath
     $errors=[Collections.Generic.List[string]]::new()
     foreach($p in @($manifest.files)){if(-not [IO.File]::Exists($p.path) -or (Get-AdmissionHash ([IO.File]::ReadAllBytes($p.path))) -cne $p.sha256){$errors.Add('InstalledSourceOrBinaryChanged')}}
     if($Provider.executable -cne $manifest.binaryPath -or $Provider.executableHash -cne $manifest.binaryHash -or $Provider.version -cne $manifest.version){$errors.Add('EffectiveBinaryVersionUnbound')}
-    # npm 0.162.1 contains launcher/native executable, not thread API declarations.
-    # Desktop consumer code, if accessible, is not an effective-CLI native birth/completion contract.
-    $errors.Add('CLI01621ThreadApiDeclarationsMissing');$errors.Add('AtomicProviderCompletionMissing');$errors.Add('NativeBirthFenceMissing')
-    [pscustomobject]@{version=$manifest.version;api=$null;completionMode='Unknown';missing=@($errors.ToArray())}
+    if(-not $Provider.installationContractHash -or $Provider.installationContractHash -cne (Get-AdmissionHash $manifestBytes)){$errors.Add('EffectiveInstallationContractUnbound')}
+    $api=$null
+    $sourceCommit='092d3acd6bec3e3a14bdc7e7a2810ab628ab759d'
+    $sourceHashes=[ordered]@{thread='553d99d01eed0c7a9073f481938f7dd68ef633879be0e1ffd8373778c937b158';common='e25ebb90bf79be79def79ebf2dd704057577fa9806710fbea0ee240a909d0dc1';protocol='499bd1fd429418778d26998c48da2a5a22fe2965f4684e69fdf99e6b4c7e4330'}
+    if(-not $errors.Count -and $manifest.version -ceq '0.162.1' -and $manifest.binaryPath -ceq 'C:\nvm4w\nodejs\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe' -and $manifest.binaryHash -ceq 'dd13bdb162a184fa04039488b234a8258ef9b76f84e926c505d5742b19249a6a'){
+        $api=[pscustomobject]@{threadList='thread/list';threadLoadedList='thread/loaded/list';threadRead='thread/read';loadedIdsField='data';sourceKinds=@($script:AdmissionAllSources);threadReadIncludeTurns=$false;sourceCommit=$sourceCommit;sourceHashes=$sourceHashes}
+    }
+    # Read capability is source-pinned; completion and native birth fencing are
+    # separate contracts and remain unknown even when metadata reads are usable.
+    $errors.Add('AtomicProviderCompletionMissing');$errors.Add('NativeBirthFenceMissing')
+    [pscustomobject]@{version=$manifest.version;api=$api;completionMode='Unknown';sourceCommit=$(if($api){$sourceCommit}else{$null});sourceHashes=$(if($api){$sourceHashes}else{$null});missing=@($errors.ToArray())}
 }
 function New-AdmissionProviderReceipt($Process,[string]$JobPath,[string]$RootJobPath,[string]$SessionPath,[string]$Executable,[string[]]$Arguments,[string]$CodexHome,$InitializeReply,[string]$Kind='cli') {
     $job=Read-AdmissionJson $JobPath;$session=Read-AdmissionJson $SessionPath;$manifest=Read-AdmissionJson (Join-Path $PSScriptRoot 'AdmissionInstalledContract.json')
@@ -309,31 +329,41 @@ function Invoke-AdmissionProviderCollection {
         if(-not $contract.api){throw ('MissingExternalAccess:'+($contract.missing -join ','))}
         $api=$contract.api
         if((Get-AdmissionObjectHash @($api.sourceKinds|Sort-Object)) -cne (Get-AdmissionObjectHash @($script:AdmissionAllSources|Sort-Object))){throw 'VersionBoundAllSourceEnumIncomplete'}
-        $ids=@{};foreach($t in @($Envelope.Request.boundThreads)) {if($t.origin -ceq $Provider.origin -and $t.generation -ceq $Provider.generation -and $t.id){$ids[[string]$t.id]=$true}}
+        $ids=@{};$catalogRecords=@{};foreach($t in @($Envelope.Request.boundThreads)) {if($t.origin -ceq $Provider.origin -and $t.generation -ceq $Provider.generation -and $t.id){$ids[[string]$t.id]=$true}}
         foreach($archived in @($false,$true)){
             $cursor=$null;$seen=@{}
             do{
-                $params=@{cursor=$cursor;limit=100;archived=$archived;sortKey='updated_at';modelProviders=@();sourceKinds=@($script:AdmissionAllSources);useStateDbOnly=$true}
+                $params=@{limit=100;archived=$archived;sortKey='updated_at';modelProviders=@();sourceKinds=@($script:AdmissionAllSources);useStateDbOnly=$true};if($null -ne $cursor){$params.cursor=$cursor}
                 $start=[DateTime]::UtcNow.ToString('o');$page=& $Rpc 'thread/list' $params (Get-AdmissionRemainingMilliseconds $Budget)
                 Add-AdmissionRpcReceipt $receipts 'thread/list' $Provider $Markers
                 [void](Get-AdmissionRemainingMilliseconds $Budget)
                 if(-not $page.PSObject.Properties['data'] -or -not $page.PSObject.Properties['nextCursor']){throw 'ThreadListPageFieldsMissing'}
                 [void]$receipts.Add(@{method='thread/list';request=$params;requestHash=(Get-AdmissionObjectHash $params);reply=$page;replyHash=(Get-AdmissionObjectHash $page);startedUtc=$start;endedUtc=[DateTime]::UtcNow.ToString('o');generation=$Provider.generation})
-                foreach($t in @($page.data)){if(-not $t.id){throw 'ThreadCatalogIdMissing'};$ids[[string]$t.id]=$true}
+                foreach($t in @($page.data)){
+                    if(-not $t.id){throw 'ThreadCatalogIdMissing'}
+                    $id=[string]$t.id;$fingerprint=Get-AdmissionObjectHash $t
+                    if($catalogRecords.ContainsKey($id) -and $catalogRecords[$id] -cne $fingerprint){throw 'ThreadListPaginationRecordConflict'}
+                    $catalogRecords[$id]=$fingerprint;$ids[$id]=$true
+                }
                 $cursor=$page.nextCursor;if($null -ne $cursor){if(-not [string]$cursor -or $seen.ContainsKey([string]$cursor)){throw 'ThreadListCursorCycle'};$seen[[string]$cursor]=$true}
             }while($null -ne $cursor)
         }
-        $loaded=& $Rpc 'thread/loaded/list' $null (Get-AdmissionRemainingMilliseconds $Budget)
-        Add-AdmissionRpcReceipt $receipts 'thread/loaded/list' $Provider $Markers
-        if(-not $loaded.PSObject.Properties[$api.loadedIdsField]){throw 'LoadedThreadIdsMissing'}
-        foreach($id in @($loaded.($api.loadedIdsField))){if(-not $id){throw 'LoadedThreadIdMissing'};$ids[[string]$id]=$true}
-        [void]$receipts.Add(@{method='thread/loaded/list';request=$null;reply=$loaded;replyHash=(Get-AdmissionObjectHash $loaded);generation=$Provider.generation})
+        $cursor=$null;$seenLoaded=@{}
+        do{
+            $params=@{};if($null -ne $cursor){$params.cursor=$cursor}
+            $loaded=& $Rpc 'thread/loaded/list' $params (Get-AdmissionRemainingMilliseconds $Budget)
+            Add-AdmissionRpcReceipt $receipts 'thread/loaded/list' $Provider $Markers
+            if(-not $loaded.PSObject.Properties[$api.loadedIdsField] -or -not $loaded.PSObject.Properties['nextCursor']){throw 'LoadedThreadIdsOrCursorMissing'}
+            foreach($id in @($loaded.($api.loadedIdsField))){if(-not $id){throw 'LoadedThreadIdMissing'};$ids[[string]$id]=$true}
+            [void]$receipts.Add(@{method='thread/loaded/list';request=$params;requestHash=(Get-AdmissionObjectHash $params);reply=$loaded;replyHash=(Get-AdmissionObjectHash $loaded);generation=$Provider.generation})
+            $cursor=$loaded.nextCursor;if($null -ne $cursor){if(-not [string]$cursor -or $seenLoaded.ContainsKey([string]$cursor)){throw 'LoadedThreadCursorCycle'};$seenLoaded[[string]$cursor]=$true}
+        }while($null -ne $cursor)
         foreach($id in @($ids.Keys)){
-            $params=@{threadId=$id;includeTurns=$true};$read=& $Rpc 'thread/read' $params (Get-AdmissionRemainingMilliseconds $Budget)
+            $params=@{threadId=$id;includeTurns=[bool]$api.threadReadIncludeTurns};$read=& $Rpc 'thread/read' $params (Get-AdmissionRemainingMilliseconds $Budget)
             Add-AdmissionRpcReceipt $receipts 'thread/read' $Provider $Markers
             if($read.thread.id -cne $id -or -not $read.thread.status.type){throw 'ThreadReadIdentityOrStatusMissing'}
             [void]$receipts.Add(@{method='thread/read';request=$params;requestHash=(Get-AdmissionObjectHash $params);reply=$read;replyHash=(Get-AdmissionObjectHash $read);generation=$Provider.generation})
-            [void]$observations.Add(@{threadId=$id;status=$read.thread.status.type;turns=$read.thread.turns;origin=$Provider.origin;generation=$Provider.generation})
+            [void]$observations.Add(@{threadId=$id;status=$read.thread.status.type;origin=$Provider.origin;generation=$Provider.generation})
         }
         $completion='BothArchivedAndLoadedAndRead'
         if($contract.completionMode -eq 'Unknown'){$errors.Add('MissingExternalAccess:ProviderCompletionAndNativeBirthFence')}
@@ -343,7 +373,7 @@ function Invoke-AdmissionProviderCollection {
     [pscustomobject]@{kind='admission-answer-v1';requestHash=$Envelope.Hash;scopeHash=$Envelope.Request.scope.Hash;origin=$Provider.origin;providerHash=(Get-AdmissionObjectHash $Provider);generation=$Provider.generation;pageCompletion=$completion;receipts=@($receipts);observations=@($observations);mutationBefore=$before.mutation;mutationAfter=$after.mutation;gapBefore=$before.gap;gapAfter=$after.gap;errors=@($errors.ToArray());completedUtc=[DateTime]::UtcNow.ToString('o')}
 }
 function Invoke-AdmissionCallerPump {
-    param([string]$Directory,$Provider,$Budget,[scriptblock]$Rpc,[scriptblock]$Markers,[bool]$Busy=$false)
+    param([string]$Directory,$Provider,$Budget,[scriptblock]$Rpc,[scriptblock]$Markers,[bool]$Busy=$false,[string]$LocallyOwnedDiagnosticRequestHash)
     $path=Join-Path $Directory 'execution-inventory.json';if(-not [IO.File]::Exists($path)){return}
     $meta=Read-AdmissionJson $path;$pending=Get-AdmissionField $meta 'inFlight';if((Get-AdmissionField $pending 'state') -cne 'Collecting'){return}
     $request=Get-AdmissionField $pending 'request';$hash=[string](Get-AdmissionField $pending 'hash')
@@ -357,9 +387,31 @@ function Invoke-AdmissionCallerPump {
     $now=[DateTime]::UtcNow
     if($now -lt $started -or $now -ge $expires){throw 'AdmissionUnknown: CallerRequestExpiredOrClockRollback'}
     $local=New-AdmissionBudget ([int][Math]::Min((Get-AdmissionRemainingMilliseconds $Budget),[Math]::Min([int]$request.remainingMilliseconds,($expires-$now).TotalMilliseconds)))
-    if($Busy){$answer=@{requestHash=$hash;scopeHash=$request.scope.Hash;providerHash=(Get-AdmissionObjectHash $provider);origin=$provider.origin;generation=$provider.generation;pageCompletion='Incomplete';errors=@('ReaderBusyNoSafeReentrantCollection')}}
+    if($Busy){if($LocallyOwnedDiagnosticRequestHash -ceq $hash){return};$answer=@{requestHash=$hash;scopeHash=$request.scope.Hash;providerHash=(Get-AdmissionObjectHash $provider);origin=$provider.origin;generation=$provider.generation;pageCompletion='Incomplete';errors=@('ReaderBusyNoSafeReentrantCollection')}}
     else{$envlp=[pscustomobject]@{Hash=$hash;Request=$request};$answer=Invoke-AdmissionProviderCollection $envlp $provider $local $Rpc $Markers}
     [void](Write-AdmissionJson $answerPath $answer -Immutable)
+}
+function Invoke-AdmissionReadDiagnostics {
+    param([string]$Directory,[string]$RootJobPath,[string]$SessionPath,[string]$RegistryScript,$Provider,[int]$BudgetMilliseconds,[scriptblock]$Rpc,[scriptblock]$Markers,[scriptblock]$SetLocalOwnership)
+    $budget=New-AdmissionBudget $BudgetMilliseconds;$envelope=$null
+    try{
+        $envelope=& $RegistryScript -Action BeginAdmission -DataDirectory $Directory -RootJobPath $RootJobPath -SessionPath $SessionPath -TargetJson 'null' -AdmissionBudget $budget
+        $bound=@($envelope.Request.scope.Providers|Where-Object{$_.origin -ceq $Provider.origin -and $_.generation -ceq $Provider.generation})
+        if($bound.Count -ne 1){throw 'AdmissionDiagnosticProviderNotBound'}
+        if($SetLocalOwnership){& $SetLocalOwnership ([string]$envelope.Hash)}
+        $answerPath=Join-Path ($Provider.origin+'.inventory') ($envelope.Hash+'.answer.json')
+        if(-not [IO.File]::Exists($answerPath)){
+            $answer=Invoke-AdmissionProviderCollection ([pscustomobject]@{Hash=$envelope.Hash;Request=$envelope.Request}) $bound[0] $budget $Rpc $Markers
+            [void](Write-AdmissionJson $answerPath $answer -Immutable)
+        }
+    }catch{
+        # Read diagnostics never authorize work; retain any already written
+        # answer/observations and let the caller's normal gate report unknown.
+        return $_.Exception.Message
+    }finally{
+        if($SetLocalOwnership){try{& $SetLocalOwnership $null}catch{}}
+        if($envelope){try{& $RegistryScript -Action InvalidateAdmission -DataDirectory $Directory -AdmissionRequestHash $envelope.Hash -TargetJson (ConvertTo-Json -InputObject @{reason='ReadDiagnosticsCompleteNoGrant'} -Compress) -AdmissionBudget (New-AdmissionBudget 1000)|Out-Null}catch{}}
+    }
 }
 function Invoke-CoordinatorAdmission {
     param($Runtime,$Session,[string]$SessionPath,$Target,[string]$RegistryScript,[int]$CallerRemainingMilliseconds=2147483647,[Parameter(Mandatory=$true)][scriptblock]$HostRpc,[Parameter(Mandatory=$true)][scriptblock]$HostMarkers)
@@ -398,4 +450,4 @@ function Request-CoordinatorAdmission([string]$RootJobPath,$Target,[int]$BudgetM
         if($reply.status -cne 'Reserved' -or -not $reply.reservation.admission.requestHash){throw ('AdmissionUnknown: '+$reply.reason)};$reply.reservation
     }finally{if($writer){$writer.Dispose()};if($reader){$reader.Dispose()};$pipe.Dispose()}
 }
-Export-ModuleMember -Function Get-AdmissionField,Get-AdmissionHash,Get-AdmissionObjectHash,Read-AdmissionJson,Write-AdmissionJson,New-AdmissionBudget,Get-AdmissionRemainingMilliseconds,Get-AdmissionGuid,Get-AdmissionCount,Get-AdmissionRoot,Get-AdmissionScope,Invoke-AdmissionRegistryLocked,Get-AdmissionInstalledContract,New-AdmissionProviderReceipt,Invoke-AdmissionProviderCollection,Invoke-AdmissionCallerPump,Invoke-CoordinatorAdmission,Request-CoordinatorAdmission
+Export-ModuleMember -Function Get-AdmissionField,Get-AdmissionHash,Get-AdmissionObjectHash,Read-AdmissionJson,Write-AdmissionJson,New-AdmissionBudget,Get-AdmissionRemainingMilliseconds,Get-AdmissionGuid,Get-AdmissionCount,Get-AdmissionRoot,Get-AdmissionScope,Invoke-AdmissionRegistryLocked,Get-AdmissionInstalledContract,New-AdmissionProviderReceipt,Invoke-AdmissionProviderCollection,Invoke-AdmissionCallerPump,Invoke-AdmissionReadDiagnostics,Invoke-CoordinatorAdmission,Request-CoordinatorAdmission

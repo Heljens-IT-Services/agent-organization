@@ -296,6 +296,27 @@ function Get-AutomationHistoryDecision($Session, $Dispatch, [string]$Fingerprint
     return [pscustomobject]@{ Entry = $entry; Decision = $decision; Outcome = $outcome; ThreadId = $thread; TurnId = $turn }
 }
 
+function Update-CoordinatorAutomationParentContext($Config,$Session,[string]$RequestId,[string]$RequiredOutcome='completed') {
+    $matches=@($Session.RequestHistory|Where-Object{$_.requestId -ceq $RequestId})
+    if($matches.Count -ne 1){$Config.ParentContextPath=$null;$Config.ParentContextHash=$null;throw 'AutomationTerminalRequestContextAmbiguous'}
+    $entry=$matches[0]
+    if($entry.outcome -cne 'completed' -or $RequiredOutcome -cne 'completed'){return}
+    $latestSuccessful=@($Session.RequestHistory|Where-Object{$_.outcome -ceq 'completed' -and $_.decision -and $_.decision.outcome -ceq 'completed'}|Select-Object -Last 1)
+    if($latestSuccessful.Count -ne 1 -or $latestSuccessful[0].requestId -cne $RequestId){return} # replay cannot roll back the newest successful decision turn
+    # Once this is the newest success, stale context must not authorize a new start during refresh.
+    $Config.ParentContextPath=$null;$Config.ParentContextHash=$null
+    try {
+        if(-not $entry.terminalContextPath -or -not $entry.terminalContextHash -or $entry.threadId -cne $Session.NativeThreadId -or -not $entry.turnId){throw 'AutomationSuccessfulTerminalRequestContextMissing'}
+        $cm=Import-Module $script:ExecutionContextModule -PassThru -Force
+        $context=& $cm {param($p,$h,$j,$t,$s,$a)Assert-ExecutionContext -ContextPath $p -ContextHash $h -JobPath $j -TaskId $t -StorePath $s -AccountingDirectory $a -RequireTerminal -RequireLiveCoordinator} $entry.terminalContextPath $entry.terminalContextHash $Config.ParentJobPath $Config.TaskId $Config.WorkItemStorePath $Config.AccountingDirectory
+        if($context.requestId -cne $RequestId -or $context.threadId -cne $entry.threadId -or $context.turnId -cne $entry.turnId -or $context.logicalSessionId -cne $Session.LogicalSessionId -or $context.outcome -cne 'Completed' -or $entry.decision.requestId -cne $RequestId -or $entry.decision.turnId -cne $entry.turnId -or $entry.decision.outcome -cne 'completed'){throw 'AutomationTerminalRequestContextBindingMismatch'}
+        $Config.ParentContextPath=$entry.terminalContextPath;$Config.ParentContextHash=$entry.terminalContextHash
+    }
+    catch {
+        $Config.ParentContextPath=$null;$Config.ParentContextHash=$null
+        throw
+    }
+}
 function Get-AutomationEffectState($Config) {
     $path = Join-Path $Config.DataDirectory 'automation-effects.json'
     return [pscustomobject]@{ Path = $path; Data = (Read-AutomationJson $path ([pscustomobject]@{ executions = @() })) }
@@ -492,12 +513,12 @@ function Invoke-CoordinatorEventTurn($Config, $Runtime, $Session, [string]$Sessi
                 baseRevision = [string]$dispatch.input.storeRevision; threadId = [string]$Session.NativeThreadId
             }
             $result = Invoke-CoordinatorTurn $Runtime $Session $SessionPath $request
-            if ((Get-AutomationValue $result 'status') -eq 'AccountingError') {
-                $history = Get-AutomationHistoryDecision $Session $dispatch $fingerprint
-                $decision = $history.Decision
-            } elseif ((Get-AutomationValue $result 'classification') -eq 'Terminal') {
-                $decision = Get-AutomationValue $result 'decision'
-            } else { throw 'CoordinatorTurnNotTerminal' }
+            # The persisted exact request history is authoritative even when pipe accounting
+            # or duplicate recovery changes the response classification.
+            $history = Get-AutomationHistoryDecision $Session $dispatch $fingerprint
+            if($history.Outcome -cne 'completed'){throw 'CoordinatorTurnNotSuccessful'}
+            $decision = $history.Decision
+            if((Get-AutomationValue $result 'classification') -ceq 'Terminal' -and (ConvertTo-Json -InputObject (Get-AutomationValue $result 'decision') -Depth 70 -Compress) -cne (ConvertTo-Json -InputObject $decision -Depth 70 -Compress)){throw 'RequestHistoryDecisionMismatch'}
         }
         if (-not $decision) { $decision = $history.Decision }
         if ($dispatch.state -in @('Prepared', 'LaunchIntent')) {
@@ -510,6 +531,7 @@ function Invoke-CoordinatorEventTurn($Config, $Runtime, $Session, [string]$Sessi
         }
     }
     if (-not $decision) { throw 'CoordinatorTerminalDecisionMissing' }
+    Update-CoordinatorAutomationParentContext $Config $Session ([string]$dispatch.requestId) 'completed'
     $history = Get-AutomationHistoryDecision $Session $dispatch $fingerprint
     if ((ConvertTo-Json -InputObject $history.Decision -Depth 70 -Compress) -cne (ConvertTo-Json -InputObject $decision -Depth 70 -Compress)) { throw 'RequestHistoryDecisionMismatch' }
     try {
@@ -721,7 +743,7 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
             $dispatchInput=[ordered]@{authorityPath=$authority.path;authorityHash=$authority.hash;parentJobPath=$Config.ParentJobPath;parentJobHash=$Config.CoordinatorJobHash;parentContextPath=$Config.ParentContextPath;parentContextHash=$Config.ParentContextHash;payloadHash=$authority.hash;resultPath=$intent.resultPath;role=$role;workItemId=[string]$item.id;purpose=$purpose;generation=$generation}
             $priorDispatch=& $dispatchModule {param($p,$id)Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id} $dispatchPath $identity.ExecutionId
             if(-not $priorDispatch){$prepared=& $dispatchModule {param($j,$w,$p,$g,$i) Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i} $dispatchPath ([string]$item.id) $purpose $generation $dispatchInput;if($prepared.state -cne 'Prepared'){throw 'DispatchReplayNoNewProcess'};[void](& $dispatchModule {param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent} $dispatchPath $identity.ExecutionId)}
-            $target=[ordered]@{taskId=$taskId;dispatchId=([guid]$identity.ExecutionId).ToString('D');payloadHash=$authority.hash;resultPath=$intent.resultPath;role=$role;dispatchJournalPath=$dispatchPath;startIntentPath=$authority.path;startIntentHash=$authority.hash;parentContextPath=$Config.ParentContextPath;parentContextHash=$Config.ParentContextHash}
+            $target=[ordered]@{taskId=$taskId;dispatchId=([guid]$identity.ExecutionId).ToString('D');payloadHash=$authority.hash;resultPath=$intent.resultPath;role=$role;dispatchJournalPath=$dispatchPath;startIntentPath=$authority.path;startIntentHash=$authority.hash;parentJobPath=$Config.ParentJobPath;parentContextPath=$Config.ParentContextPath;parentContextHash=$Config.ParentContextHash}
             Import-Module (Join-Path $PSScriptRoot 'CoordinatorHost.Core.psm1')
             $hostRpc={param($m,$q,$ms)Invoke-CoordinatorRuntimeRpc $Runtime $m $q ([int][Math]::Min($ms,$Runtime.RpcTimeoutMilliseconds))}.GetNewClosure()
             $hostMarkers={@{mutation=$Runtime.MutationGeneration;gap=$Runtime.GapGeneration;rpc=$Runtime.LastRpcReceipt}}.GetNewClosure()
@@ -801,4 +823,4 @@ function Invoke-CoordinatorAutomationIdle {
     Invoke-CoordinatorDelegation $Config $snapshot $plan $inventory $dispatch $planning $Runtime $Session $SessionPath
 }
 
-Export-ModuleMember -Function Invoke-CoordinatorAutomationIdle
+Export-ModuleMember -Function Invoke-CoordinatorAutomationIdle,Update-CoordinatorAutomationParentContext
