@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:heljens:skills:1",
+  "title": "Skill registry metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "skills"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "skills": {"type": "array", "items": {"$ref": "#/$defs/skill"}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$"},
+    "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "parameter": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required"],
+      "properties": {
+        "name": {"$ref": "#/$defs/id"},
+        "type": {"enum": ["null", "boolean", "integer", "number", "string", "object", "array"]},
+        "required": {"type": "boolean"},
+        "description": {"$ref": "#/$defs/text"},
+        "default": {}
+      }
+    },
+    "skill": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "purpose", "scriptPath", "parameters", "result", "prerequisites"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "purpose": {"$ref": "#/$defs/text"},
+        "scriptPath": {"type": "string", "pattern": "^[a-zA-Z0-9_./-]+$", "minLength": 1},
+        "language": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$", "description": "Absent means powershell; open identifier, no language allowlist."},
+        "interpreter": {"type": "string", "pattern": "^[a-zA-Z0-9_./\\\\:-]+$", "description": "Single executable name or path, never a shell command string."},
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+        "result": {
+          "type": "object", "additionalProperties": false,
+          "required": ["description"],
+          "properties": {
+            "description": {"$ref": "#/$defs/text"},
+            "parameterRefs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}
+          }
+        },
+        "prerequisites": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}}
+      }
+    }
+  }
+}
