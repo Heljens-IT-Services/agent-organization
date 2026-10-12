@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>WorkItems · lokale Übersicht</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="WorkItems Übersicht">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span><strong>WorkItems</strong><small>Lokale Übersicht</small></span>
+      </a>
+      <div class="connection" aria-live="polite">
+        <span id="connection-dot" class="status-dot" aria-hidden="true"></span>
+        <span id="connection-label">Verbindung wird hergestellt</span>
+        <span class="separator">·</span><span id="data-age">Noch keine Daten</span>
+      </div>
+      <button id="refresh-button" class="button button-quiet" type="button">Jetzt aktualisieren</button>
+    </header>
+
+    <main id="overview" class="layout">
+      <nav class="view-switch" aria-label="Ansicht w&#228;hlen"><button type="button" data-view="attention" aria-pressed="false">Aufmerksamkeit</button><button type="button" data-view="tree" aria-pressed="false">Baum</button><button type="button" data-view="details" aria-pressed="true">Details</button></nav>
+      <aside class="sidebar" aria-label="WorkItem-Navigation">
+        <div class="section-heading"><div><p class="eyebrow">Navigation</p><h1>Arbeitsübersicht</h1></div></div>
+        <label class="search-box"><span class="sr-only">WorkItems filtern</span><span aria-hidden="true">⌕</span><input id="tree-search" type="search" placeholder="WorkItems filtern…" autocomplete="off"></label>
+        <label class="filter-control">Status<select id="status-filter"><option value="">Alle Statuswerte</option><option value="planned">Geplant</option><option value="in_progress">In Arbeit</option><option value="blocked">Blockiert</option><option value="implemented">Umgesetzt</option><option value="rework">Nacharbeit</option><option value="accepted">Abgenommen</option><option value="cancelled">Abgebrochen</option></select></label>
+        <label class="filter-control">Zuständiger Mensch<select id="human-filter"><option value="">Zuständigkeit unbekannt – keine Filterung</option><option value="__unavailable__" disabled>Keine Zuständigkeitsdaten verfügbar</option></select></label>
+        <div class="tree-header"><span>Ziele &amp; WorkItems</span><span id="item-count" class="count">—</span></div>
+        <nav id="workitem-tree" class="tree" role="tree" aria-label="WorkItem-Baum"></nav>
+        <div id="tree-empty" class="empty-state compact" hidden>Keine WorkItems entsprechen dem Filter.</div>
+        <div class="sidebar-foot"><span class="legend-dot dot-green"></span>Aktueller Stand <span class="legend-dot dot-amber"></span>Aufmerksamkeit</div>
+      </aside>
+
+      <div class="content-column">
+        <div class="detail-viewport"><div id="detail-panel" class="detail-panel panel" aria-labelledby="detail-title" aria-live="polite">
+          <div class="empty-state detail-empty"><span class="empty-icon" aria-hidden="true">◫</span><h2 id="detail-title">WorkItem auswählen</h2><p>Wähle links ein Ziel oder WorkItem, um Details, Verlauf und Nachweise anzusehen.</p></div>
+        </div>
+        </div>
+        <section class="attention-panel panel" aria-labelledby="attention-title">
+          <div class="panel-heading">
+            <div class="heading-icon attention-icon" aria-hidden="true">!</div>
+            <div><p class="eyebrow">Menschliche Aufmerksamkeit</p><h2 id="attention-title">Meine Aufmerksamkeit</h2></div>
+            <span id="attention-count" class="count count-attention">—</span>
+          </div>
+          <div class="attention-filter">
+            <span class="filter-label">Zuständigkeitsfilter nicht verfügbar</span>
+            <span class="filter-note">Der WorkItem-Vertrag weist keine verantwortliche Person für menschliche Anforderungen aus.</span>
+          </div>
+          <div id="lock-status" class="lock-status" role="status">Lockdiagnose wird geladen…</div>
+          <div id="attention-list" class="attention-list"><p class="placeholder">Warte auf den ersten Snapshot…</p></div>
+        </section>
+        <section class="panel write-panel" aria-labelledby="create-title">
+          <div class="write-heading"><div><p class="eyebrow">PowerShell-Dateibrücke</p><h2 id="create-title">WorkItem anlegen</h2></div><button id="create-toggle" class="button button-quiet" type="button" hidden>Neues WorkItem</button></div>
+          <p id="write-capability-note" class="placeholder">Schreibfunktionen werden geladen.</p>
+          <div id="create-form" hidden></div>
+        </section>
+      </div>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <footer class="page-foot"><span>Lokale WorkItem-Projektion</span><span>Menschliche Antworten bleiben gesperrt.</span></footer>
+  </body>
+</html>
