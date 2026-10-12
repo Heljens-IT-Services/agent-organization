@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param([string]$ResultPath)
 $ErrorActionPreference='Stop'
-$repo=Split-Path -Parent $PSScriptRoot
-$module=Join-Path $PSScriptRoot 'workitems/WorkItemStore.psm1'
-$worker=Join-Path $PSScriptRoot 'tests/workitems/RecoveryWorker.ps1'
+$repo=(Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
+$module=Join-Path $PSScriptRoot '../../workitems/WorkItemStore.psm1'
+$worker=Join-Path $PSScriptRoot 'RecoveryWorker.ps1'
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('workitem-recovery-qa-'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($temp)
 $utf8=New-Object Text.UTF8Encoding($false,$true)
@@ -66,7 +66,7 @@ function Run($config,$name) {
 function Get($p,$name) { Run @{mode='get';store=$p;timeout=0} $name }
 function Validate($p) {
     $null=$utf8.GetString([IO.File]::ReadAllBytes($p)) | ConvertFrom-Json
-    $v=& (Join-Path $PSScriptRoot 'Test-WorkItems.ps1') -Path $p -RepositoryRoot $repo
+    $v=& (Join-Path $PSScriptRoot '../../workitems/Test-WorkItems.ps1') -Path $p -RepositoryRoot $repo
     Assert $v.valid 'Target contract invalid'
     return @{strictUtf8=$true;contractValid=$true;hash=(Hash $p);revision=('sha256:'+(Hash $p).ToLowerInvariant())}
 }
@@ -242,13 +242,13 @@ try {
         [void][IO.Directory]::CreateDirectory($directory)
         $p=Join-Path $directory 'workitems.json'
         Assert (([IO.DriveInfo]::new([IO.Path]::GetPathRoot($p))).DriveFormat -ceq 'NTFS') 'Guide requires local NTFS'
-        $s=& (Join-Path $PSScriptRoot 'Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo
+        $s=& (Join-Path $PSScriptRoot '../../workitems/Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo
         Assert (-not $s.Exists -and $s.Revision -ceq 'absent' -and -not [IO.File]::Exists($p)) 'Guide read bootstrapped store'
         $item=(Read (Join-Path $repo 'examples/workitems/goal-with-children.json')).items[0]
-        $created=& (Join-Path $PSScriptRoot 'New-WorkItem.ps1') -Path $p -Item $item -ExpectedRevision $s.Revision -RepositoryRoot $repo
-        $fresh=& (Join-Path $PSScriptRoot 'Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo
+        $created=& (Join-Path $PSScriptRoot '../../workitems/New-WorkItem.ps1') -Path $p -Item $item -ExpectedRevision $s.Revision -RepositoryRoot $repo
+        $fresh=& (Join-Path $PSScriptRoot '../../workitems/Get-WorkItems.ps1') -Path $p -RepositoryRoot $repo
         $item=$fresh.Document.items[0]; $item.title='persistent-guide-change'; $item.updatedAt='2026-10-12T11:00:00Z'
-        $changed=& (Join-Path $PSScriptRoot 'Set-WorkItem.ps1') -Path $p -Id $item.id -Item $item -ExpectedRevision $fresh.Revision -RepositoryRoot $repo
+        $changed=& (Join-Path $PSScriptRoot '../../workitems/Set-WorkItem.ps1') -Path $p -Id $item.id -Item $item -ExpectedRevision $fresh.Revision -RepositoryRoot $repo
         $restart=Get $p 'guide-new-process'
         Assert ($restart.success -and $restart.revision -ceq $changed.Revision -and $restart.document.items[0].title -ceq 'persistent-guide-change') 'Persistent guide restart lost change'
         $meta=ConvertFrom-Json (ConvertTo-Json $dead); $meta.storePath=$p; $meta.processStartedAtUtc='not-a-date'; Save $meta ($p+'.lock')

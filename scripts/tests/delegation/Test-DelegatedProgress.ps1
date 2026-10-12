@@ -3,7 +3,7 @@ param([string]$EvidenceStream, [string]$DisplayEvidencePath)
 $ErrorActionPreference = 'Stop'
 # Pure functions only. No starter invocation, model turn or visible window.
 $tokens = $null; $errors = $null
-$ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Start-DelegatedCodexTask.ps1'), [ref]$tokens, [ref]$errors)
+$ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '../../delegation/Start-DelegatedCodexTask.ps1'), [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw 'Starter parser failed' }
 $names = @('Format-DelegatedStartLayout','New-ProgressState','Protect-ProgressText','Get-ProgressName','Get-ProgressCommand','Get-ProgressPath','ConvertTo-ProgressPayload','Get-ProgressContent','Get-PublicProgress','Format-ProgressLines','Write-ProgressDisplay','Write-Event','Write-Json')
 foreach ($node in $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $false)) {
@@ -23,10 +23,10 @@ $web = Event 'webSearch' @{query='Codex app-server events';action=@{type='open_p
 $toolText = Render $web
 Assert ($toolText -match 'Werkzeug Start: webSearch' -and $toolText -match 'https://learn.chatgpt.com/docs/app-server' -and $toolText -notmatch 'unbekannte Eventform|Status unbekannt') 'Failure 1: concrete tool/action without invented status'
 Assert ((Render (Event 'internalFutureItem' @{payload='PRIVATE_INTERNAL'} 'item/started')) -eq '') 'Unmapped internal event suppressed'
-$command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Content scripts/Start-DelegatedCodexTask.ps1; git status --short"'
+$command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Content scripts/delegation/Start-DelegatedCodexTask.ps1; git status --short"'
 $cmdText = Render (Event 'commandExecution' @{command=$command;cwd='C:\repo';status='inProgress'} 'item/started')
-Assert ($cmdText.Contains('PowerShell-Inline:') -and $cmdText.Contains('Get-Content scripts/Start-DelegatedCodexTask.ps1; git status --short') -and $cmdText.Contains($command) -and $cmdText -notmatch 'Argumente ausgeblendet') 'Failure 2: full wrapper and meaningful inline command'
-$prose = 'Ich prüfe `scripts/Start-DelegatedCodexTask.ps1`, weil die Ausgabe fehlt. Danach teste ich die Fixtures; Quelle: https://learn.chatgpt.com/docs/app-server.'
+Assert ($cmdText.Contains('PowerShell-Inline:') -and $cmdText.Contains('Get-Content scripts/delegation/Start-DelegatedCodexTask.ps1; git status --short') -and $cmdText.Contains($command) -and $cmdText -notmatch 'Argumente ausgeblendet') 'Failure 2: full wrapper and meaningful inline command'
+$prose = 'Ich prüfe `scripts/delegation/Start-DelegatedCodexTask.ps1`, weil die Ausgabe fehlt. Danach teste ich die Fixtures; Quelle: https://learn.chatgpt.com/docs/app-server.'
 Assert ((Render (Event 'agentMessage' @{phase='commentary';text=$prose})) -ceq ('Fortschritt: ' + $prose)) 'Failure 3: actual commentary, reason and next step preserved'
 
 # Captured v2 fields from the harmless AR55 probe on 2026-10-12.
@@ -44,7 +44,7 @@ Assert ($realText -match 'Exitcode 0' -and $realText.Contains("Ausgabe:`n" + $re
 $realComment = Event 'agentMessage' @{phase='commentary';text="Ich prüfe das aktuelle Arbeitsverzeichnis mit ``Get-Location``.`n";memoryCitation=$null;delivery=$null;questions=$null}
 Assert ((Render $realComment).Contains('`Get-Location`')) 'Captured commentary with Markdown code'
 # Captured path/kind/status from optimierer.json.events.jsonl; synthetic diff.
-$file = Event 'fileChange' @{status='completed';changes=@(@{path='C:\Users\Tom-OliverMarek\source\repos\agent-organization\scripts\Start-DelegatedCodexTask.ps1';kind=@{type='update';move_path=$null};diff="-old`n+new"})}
+$file = Event 'fileChange' @{status='completed';changes=@(@{path='C:\Users\Tom-OliverMarek\source\repos\agent-organization\scripts\delegation\Start-DelegatedCodexTask.ps1';kind=@{type='update';move_path=$null};diff="-old`n+new"})}
 $fileText = Render $file
 Assert ($fileText -match 'Start-DelegatedCodexTask.ps1' -and $fileText.Contains("Diff:`n-old`n+new")) 'Captured file shape and synthetic readable diff'
 

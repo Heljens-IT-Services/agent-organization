@@ -44,6 +44,6 @@ Indizes. [Entscheidung 0001](docs/decisions/0001-system-scope.md) legt Struktur 
 Folgeumfang fest. Prüfung unter Windows PowerShell 5.1:
 
 ```powershell
-.\scripts\Test-Contracts.ps1
-.\scripts\Test-Organization.ps1
+.\scripts\tests\contracts\Test-Contracts.ps1
+.\scripts\contracts\Test-Organization.ps1
 ```

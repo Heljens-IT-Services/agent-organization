@@ -558,7 +558,7 @@ try {
             task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; token_usage = (Get-FinalLedgerUsage $evidence)
         })
-        $evidence.token_summary = & (Join-Path $PSScriptRoot 'Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
+        $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
     } catch {
         $evidence.success = $false
         $ledgerError = 'Tokenabrechnung konnte nicht gesichert oder ausgewertet werden: ' + $_.Exception.Message

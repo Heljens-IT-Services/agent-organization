@@ -27,7 +27,7 @@ Maximal drei Agentenebenen, beliebig tiefe WorkItems. Teamleiter spezifizieren
 Teilziele mit erforderlichen Fachleuten; fachliche Architektur braucht deren
 Beitrag. Umsetzung und Kinderabschlüsse ersetzen keine eigene Elternabnahme.
 
-Organisationsaufträge starten über `scripts/Start-DelegatedCodexTask.ps1` im
+Organisationsaufträge starten über `scripts/delegation/Start-DelegatedCodexTask.ps1` im
 bestätigten sichtbaren Terminal. Fehlt Sichtbarkeit, wird das Hindernis gemeldet.
 Die Koordinatorkonsole heißt `Koordinator` und wird niemals automatisch oder
 durch Agenten geschlossen. Andere Rollen schließen nur ihr eigenes Aufgabenfenster.

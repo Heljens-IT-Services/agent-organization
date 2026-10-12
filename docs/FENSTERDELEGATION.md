@@ -1,7 +1,7 @@
 # Delegierte Aufgabe im eigenen PowerShell-Fenster
 
 Das vereinbarte Ziel ist ein eigenes CMD-/PowerShell-Fenster mit Codex-Auftrag
-und Verlauf. `scripts/Start-DelegatedCodexTask.ps1` öffnet einen eigenen sichtbaren
+und Verlauf. `scripts/delegation/Start-DelegatedCodexTask.ps1` öffnet einen eigenen sichtbaren
 Runner, zeigt Rolle, Auftrag und ausschließlich übergebenen Kontext und wartet
 auf den Controller. Dieser bestätigt ein neues HWND, zugehörige Runner-PID,
 eindeutigen Titel und Sichtbarkeit; erst nach dem ACK und zehn Sekunden zum
@@ -20,7 +20,7 @@ Die Rollen-ID wird ausdrücklich in `developerInstructions` übergeben, damit
 die Repository-Hauptrollenregel zugewiesene operative Sitzungen nicht umdeutet.
 
 ```powershell
-.\scripts\Start-DelegatedCodexTask.ps1 -Role softwareentwicklung_qualitaetssicherung `
+.\scripts\delegation\Start-DelegatedCodexTask.ps1 -Role softwareentwicklung_qualitaetssicherung `
   -Task 'Addiere values und antworte mit sum und marker als JSON.' `
   -ContextFile C:\Temp\auftrag\fixture.json -WorkingDirectory C:\Temp\auftrag `
   -ResultPath C:\Temp\auftrag\result.json -TimeoutSeconds 120
@@ -112,10 +112,10 @@ bestätigten finalen Drain (`usage_finalized=false`) bleibt die Ledgernutzung
 `null`, damit ein abgebrochener Auftrag keine vollständige Summe vortäuscht.
 
 ```powershell
-$usage = .\scripts\Get-TaskTokenUsage.ps1 -TaskId '<task-guid>' `
+$usage = .\scripts\accounting\Get-TaskTokenUsage.ps1 -TaskId '<task-guid>' `
   -AccountingDirectory C:\Temp\auftrag\token-accounting
 $usage | ConvertTo-Json -Depth 10
-.\scripts\Test-TaskTokenUsage.ps1
+.\scripts\tests\accounting\Test-TaskTokenUsage.ps1
 ```
 
 `Get-TaskTokenUsage.ps1` gibt `own`, `inclusive`, `known_partial`, `missing_count`,
@@ -142,7 +142,7 @@ Aktuelle native Hauptchats erhalten damit keinen automatischen UI-Zähler.
 Abgeschlossene, eindeutig ausgewählte Turns lassen sich ausdrücklich importieren:
 
 ```powershell
-.\scripts\Import-RolloutTaskUsage.ps1 -RolloutPath '<genaue-rollout-datei>' `
+.\scripts\accounting\Import-RolloutTaskUsage.ps1 -RolloutPath '<genaue-rollout-datei>' `
   -ThreadId '<native-thread-guid>' -TurnId '<abgeschlossene-turn-guid>' `
   -Role koordinator -AccountingDirectory C:\Temp\auftrag\token-accounting
 ```
@@ -286,7 +286,7 @@ Quellen und Belege (erfasst am 12. Oktober 2026):
 Fokussierte Prüfung ohne Modellstart oder neues Fenster:
 
 ```powershell
-.\scripts\Test-DelegatedProgress.ps1 -EvidenceStream `
+.\scripts\tests\delegation\Test-DelegatedProgress.ps1 -EvidenceStream `
   "$env:TEMP\agent-org-ar55-final-20261012\optimierer.json.events.jsonl" `
   -DisplayEvidencePath "$env:TEMP\ar-public-progress-display-20261012.jsonl"
 ```

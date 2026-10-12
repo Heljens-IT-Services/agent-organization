@@ -13,8 +13,8 @@ Existenz, TOML-`name`, eindeutige IDs, Teamzuordnung und Koordinatorverweis.
 Ein fehlendes Ziel oder ein nicht verzeichnetes Team wird gemeldet.
 
 ```powershell
-.\scripts\Test-Organization.ps1
-.\scripts\Test-Organization.ps1 -RepositoryRoot C:\anderer\checkout
+.\scripts\contracts\Test-Organization.ps1
+.\scripts\contracts\Test-Organization.ps1 -RepositoryRoot C:\anderer\checkout
 ```
 
 Die Prüfung verändert und installiert keine Dateien. Sie prüft keine Dienstzugänge

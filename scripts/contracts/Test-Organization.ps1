@@ -1,9 +1,10 @@
 [CmdletBinding()]
-param([string]$RepositoryRoot = (Split-Path -Parent $PSScriptRoot))
+param([string]$RepositoryRoot)
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'contracts\ContractValidation.ps1')
+if (-not $PSBoundParameters.ContainsKey('RepositoryRoot')) { $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
+. (Join-Path $PSScriptRoot 'ContractValidation.ps1')
 $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
-$schemas = Join-Path (Split-Path -Parent $PSScriptRoot) 'schemas'
+$schemas = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'schemas'
 $central = Read-ContractJson (Join-Path $RepositoryRoot 'koordinator\teams.json')
 Assert-ContractDocument $central (Join-Path $schemas 'teams.schema.json')
 $null = Assert-ContractRelativeFile $RepositoryRoot 'koordinator/koordinator.toml'

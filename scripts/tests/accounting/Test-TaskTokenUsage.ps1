@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('agent-org-usage-test-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixtureRoot | Out-Null
-$helper = Join-Path $PSScriptRoot 'Get-TaskTokenUsage.ps1'
+$helper = Join-Path $PSScriptRoot '../../accounting/Get-TaskTokenUsage.ps1'
 $passed = 0
 function Assert($Condition, [string]$Label) { if (-not $Condition) { throw "FAIL: $Label" }; $script:passed++; Write-Host "PASS: $Label" }
 function Usage([long]$Total) {
@@ -85,10 +85,10 @@ try {
 
     # Produktionsfunktionen isoliert aus AST laden: kein Runner, kein HWND, kein Modell.
     $parseTokens = $null; $parseErrors = $null
-    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Start-DelegatedCodexTask.ps1'), [ref]$parseTokens, [ref]$parseErrors)
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '../../delegation/Start-DelegatedCodexTask.ps1'), [ref]$parseTokens, [ref]$parseErrors)
     Assert ($parseErrors.Count -eq 0) 'Starter parst unter Windows PowerShell'
     foreach ($name in @('Update-NativeUsage', 'Write-Event', 'Read-Rpc', 'Wait-Rpc', 'Send-Rpc', 'Test-ConsoleBinding', 'Get-FinalLedgerUsage',
-        'New-ProgressState', 'Protect-ProgressText', 'Get-ProgressName', 'Get-ProgressCommand', 'Get-ProgressPath', 'Get-PublicProgress', 'Write-ProgressDisplay')) {
+        'New-ProgressState', 'Protect-ProgressText', 'Get-ProgressName', 'Get-ProgressCommand', 'Get-ProgressPath', 'Get-PublicProgress', 'Format-ProgressLines', 'Write-ProgressDisplay')) {
         $definition = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
         Invoke-Expression $definition.Extent.Text
     }
