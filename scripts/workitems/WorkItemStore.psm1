@@ -188,6 +188,7 @@ function Get-WorkItemStoreResult {
         $artifacts = @(Get-WorkItemStoreLockArtifacts $path)
         if (-not [IO.File]::Exists($path) -and $artifacts.Count -gt 0) { New-WorkItemStoreError 'StoreRecoveryRequired' "Store '$path' is missing but publication artifacts are present; preserve them and resolve the intended revision manually: $($artifacts.FullName -join ', ')" }
         $snapshot = Get-WorkItemStoreSnapshot $path $RepositoryRoot
+        Resolve-WorkItemStoreOutbox $path $snapshot
         if ($snapshot.Exists) {
             $temporary = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + [Guid]::NewGuid().ToString('N') + '.read.tmp')
             try {
@@ -208,6 +209,17 @@ function ConvertTo-WorkItemStoreCandidate {
     } catch { New-WorkItemStoreError 'SerializationFailed' "WorkItem document serialization failed: $($_.Exception.Message)" }
 }
 
+function Write-WorkItemStoreOutbox($Path,$Outbox) {
+    $target=$Path+'.outbox.json';$temp=$target+'.'+[Guid]::NewGuid().ToString('N')+'.writing';$utf8=New-Object Text.UTF8Encoding($false,$true)
+    try { [IO.File]::WriteAllText($temp,(ConvertTo-Json -InputObject $Outbox -Depth 30 -Compress),$utf8);if([IO.File]::Exists($target)){[IO.File]::Replace($temp,$target,$null)}else{[IO.File]::Move($temp,$target)} } finally { if([IO.File]::Exists($temp)){[IO.File]::Delete($temp)} }
+}
+function Get-WorkItemStoreOutbox($Path) { $target=$Path+'.outbox.json';if(-not [IO.File]::Exists($target)){return [pscustomobject]@{schemaVersion='1.0';intents=@()}};try{return [IO.File]::ReadAllText($target,(New-Object Text.UTF8Encoding($false,$true)))|ConvertFrom-Json -ErrorAction Stop}catch{New-WorkItemStoreError 'OutboxRecoveryRequired' "Outbox is unreadable; preserve it: $target"} }
+function Resolve-WorkItemStoreOutbox($Path,$Snapshot) {
+    $outbox=Get-WorkItemStoreOutbox $Path;if($outbox.schemaVersion -cne '1.0'){New-WorkItemStoreError 'OutboxRecoveryRequired' 'Unsupported outbox schema.'}
+    foreach($intent in @($outbox.intents|Where-Object{$_.state -ceq 'pending'})) { if($Snapshot.Revision -ceq $intent.candidateRevision){$intent.state='published';$intent.publishedAtUtc=[DateTime]::UtcNow.ToString('o')} elseif($Snapshot.Revision -ceq $intent.previousRevision){$intent.state='aborted';$intent.resolvedAtUtc=[DateTime]::UtcNow.ToString('o')} else {New-WorkItemStoreError 'OutboxRecoveryRequired' "Current revision matches neither outbox boundary for '$($intent.workItemId)'."} }
+    Write-WorkItemStoreOutbox $Path $outbox
+}
+
 function Set-WorkItemStoreEntry {
     param([string]$Path, [string]$Id, $Item, [bool]$IsNew, [string]$ExpectedRevision, [string]$RepositoryRoot, [int]$TimeoutMilliseconds)
     try { $Item = ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $Item -Depth 100 -ErrorAction Stop) -ErrorAction Stop } catch { New-WorkItemStoreError 'InvalidCandidate' "WorkItem item is not serializable JSON data: $($_.Exception.Message)" }
@@ -218,6 +230,7 @@ function Set-WorkItemStoreEntry {
         $artifacts = @(Get-WorkItemStoreLockArtifacts $path)
         if (-not [IO.File]::Exists($path) -and $artifacts.Count -gt 0) { New-WorkItemStoreError 'StoreRecoveryRequired' "Store '$path' is missing but publication artifacts are present; preserve them and resolve the intended revision manually: $($artifacts.FullName -join ', ')" }
         $snapshot = Get-WorkItemStoreSnapshot $path $RepositoryRoot
+        Resolve-WorkItemStoreOutbox $path $snapshot
         if ($snapshot.Exists) {
             $previous = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + $lock.LockId + '.' + [Guid]::NewGuid().ToString('N') + '.previous.tmp')
             New-WorkItemStoreExclusiveFile $previous $snapshot.Bytes
@@ -255,6 +268,9 @@ function Set-WorkItemStoreEntry {
         try { $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
         if (-not $validation.valid -or -not $validation.transitionsChecked) { New-WorkItemStoreError 'ValidationFailed' 'Validator did not confirm a valid snapshot and checked transitions.' }
         $newRevision = 'sha256:' + [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash($candidateBytes))).Replace('-', '').ToLowerInvariant()
+        $outbox=Get-WorkItemStoreOutbox $path
+        $intent=[pscustomobject]@{intentId=([Guid]::NewGuid().ToString('N'));workItemId=$Id;previousRevision=$snapshot.Revision;candidateRevision=$newRevision;state='pending';createdAtUtc=[DateTime]::UtcNow.ToString('o');publishedAtUtc=$null}
+        $outbox.intents=@($outbox.intents)+@($intent);Write-WorkItemStoreOutbox $path $outbox
         if ($snapshot.Exists) {
             $backup = Join-Path ([IO.Path]::GetDirectoryName($path)) ('.' + [IO.Path]::GetFileName($path) + '.' + $lock.LockId + '.' + [Guid]::NewGuid().ToString('N') + '.replace-backup.tmp')
             try { [IO.File]::Replace($candidate, $path, $backup) } catch { $preservePublicationEvidence = $true; New-WorkItemStoreError 'PublishFailed' "Atomic replacement failed: $($_.Exception.Message); recovery artifacts were retained where present." }
@@ -263,6 +279,7 @@ function Set-WorkItemStoreEntry {
             try { [IO.File]::Move($candidate, $path) } catch { $preservePublicationEvidence = $true; New-WorkItemStoreError 'PublishFailed' "Atomic initial publication failed: $($_.Exception.Message); recovery artifacts were retained where present." }
         }
         $candidate = $null
+        $intent.state='published';$intent.publishedAtUtc=[DateTime]::UtcNow.ToString('o');Write-WorkItemStoreOutbox $path $outbox
         return [pscustomobject]@{ Document = $document; Revision = $newRevision; Changed = $true; Id = $Id }
     } finally {
         foreach ($temporary in @($previous, $(if (-not $preservePublicationEvidence) { $candidate }), $(if (-not $preservePublicationEvidence) { $backup }))) { if ($temporary -and [IO.File]::Exists($temporary)) { try { [IO.File]::Delete($temporary) } catch { Write-Error -ErrorId 'TemporaryCleanupFailed' -Message "Could not remove own temporary file '$temporary': $($_.Exception.Message)" -ErrorAction Continue } } }
