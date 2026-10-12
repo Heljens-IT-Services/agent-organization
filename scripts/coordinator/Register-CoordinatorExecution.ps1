@@ -13,7 +13,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath($DataDirectory);[void][IO.Directory]::CreateDirectory($root)
-$file=Join-Path $root 'executions.json';$mutex=New-Object Threading.Mutex($false,'Local\AgentOrganizationCoordinatorExecutions')
+$file=Join-Path $root 'executions.json';$mutex=New-Object Threading.Mutex($false,'Global\AgentOrganizationCoordinatorExecutions')
 if(-not $mutex.WaitOne([TimeSpan]::FromSeconds(30))){throw 'ExecutionRegistryLockUnavailable'}
 try {
     $entries=@();if(Test-Path -LiteralPath $file){try{$entries=@([IO.File]::ReadAllText($file,[Text.Encoding]::UTF8)|ConvertFrom-Json)}catch{throw 'ExecutionRegistryUnreadable; capacity remains closed'}}
