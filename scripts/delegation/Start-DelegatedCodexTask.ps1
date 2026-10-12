@@ -12,6 +12,10 @@ param(
     [Parameter(ParameterSetName = 'Start')][string]$ParentTaskId,
     [Parameter(ParameterSetName = 'Start')][string]$AccountingDirectory,
     [Parameter(ParameterSetName = 'Start')][string]$CoordinatorDataDirectory,
+    [Parameter(ParameterSetName = 'Start')][string]$StableTaskId,
+    [Parameter(ParameterSetName = 'Start')][string]$DispatchId,
+    [Parameter(ParameterSetName = 'Start')][switch]$DetachedAfterVisibleAck,
+    [Parameter(ParameterSetName = 'Start')][ValidateRange(1,100)][int]$AdmissionCapacity = 4,
     [Parameter(Mandatory = $true, ParameterSetName = 'Runner')][string]$JobFile
 )
 $ErrorActionPreference = 'Stop'
@@ -308,9 +312,10 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     # A coordinator console is user-owned: it is never automatically closed.
     if ($Role -ceq 'koordinator') { $KeepWindowOpen = $true }
     $resultFile = [System.IO.Path]::GetFullPath($ResultPath)
-    foreach ($suffix in @('', '.job.json', '.window.json', '.go.json', '.events.jsonl', '.public.txt')) {
-        if (Test-Path -LiteralPath ($resultFile + $suffix)) { throw "Vorhandenes Artefakt bleibt erhalten: $resultFile$suffix" }
-    }
+    if (-not $DispatchId -and $StableTaskId) { $DispatchId = $StableTaskId }
+    if (-not $DispatchId) { $DispatchId = [guid]::NewGuid().ToString('N') }
+    else { $DispatchId = ([guid]$DispatchId).ToString('N') }
+    if ($StableTaskId) { $StableTaskId = ([guid]$StableTaskId).ToString('N') }
     $workdir = (Resolve-Path -LiteralPath $WorkingDirectory).Path
     if (-not (Test-Path -LiteralPath $workdir -PathType Container)) { throw 'WorkingDirectory ist kein Verzeichnis.' }
     New-Item -ItemType Directory -Path (Split-Path -Parent $resultFile) -Force | Out-Null
@@ -347,8 +352,23 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
     if (-not $AccountingDirectory) { $AccountingDirectory = Join-Path (Split-Path -Parent $resultFile) 'token-accounting' }
     $AccountingDirectory = [System.IO.Path]::GetFullPath($AccountingDirectory)
     New-Item -ItemType Directory -Path $AccountingDirectory -Force | Out-Null
+    $payloadText = ($Role + "`n" + $Task + "`n" + $context + "`n" + $workdir + "`n" + $resultFile + "`n" + $ParentTaskId + "`n" + $TaskTitle + "`n" + $RoleDisplayName + "`n" + $TimeoutSeconds + "`n" + [string][bool]$KeepWindowOpen)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $payloadHash = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payloadText)))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+    $existingJob = $resultFile + '.job.json'
+    if (Test-Path -LiteralPath $existingJob) {
+        $prior = [IO.File]::ReadAllText($existingJob, $utf8) | ConvertFrom-Json
+        if ($prior.task_id -ne $(if ($StableTaskId) { $StableTaskId } else { $prior.task_id }) -or $prior.dispatch_id -ne $DispatchId -or $prior.payload_hash -ne $payloadHash) { throw 'IdempotencyConflict: same result path has a different task or payload' }
+        if (Test-Path -LiteralPath $resultFile) { Write-Output ('Bereits terminales Resultat vorhanden: TaskId ' + $prior.task_id + '; DispatchId ' + $DispatchId); return }
+        throw 'Startintention vorhanden, Ausgang unklar; keine erneute Ausfuehrung.'
+    }
+    foreach ($suffix in @('', '.window.json', '.go.json', '.events.jsonl', '.public.txt')) {
+        if (Test-Path -LiteralPath ($resultFile + $suffix)) { throw "Vorhandenes Artefakt oder unklare Startabsicht bleibt erhalten: $resultFile$suffix" }
+    }
+    if($env:AGENT_ORG_ADMISSION_CAPACITY -and -not $PSBoundParameters.ContainsKey('AdmissionCapacity')){$AdmissionCapacity=[int]$env:AGENT_ORG_ADMISSION_CAPACITY}
+    $executionDirectory = if ($CoordinatorDataDirectory) { [IO.Path]::GetFullPath($CoordinatorDataDirectory) } elseif ($env:AGENT_ORG_COORDINATOR_DATA_DIRECTORY) { [IO.Path]::GetFullPath($env:AGENT_ORG_COORDINATOR_DATA_DIRECTORY) } else { Join-Path $env:LOCALAPPDATA 'AgentOrganization\Coordinator' }
     $spec = @{
-        task_id = [guid]::NewGuid().ToString('N'); role = $Role; task = $Task; context = $context
+        task_id = $(if ($StableTaskId) { $StableTaskId } else { [guid]::NewGuid().ToString('N') }); dispatch_id = $DispatchId; payload_hash = $payloadHash; role = $Role; task = $Task; context = $context
         role_display_name = $RoleDisplayName; task_title = $TaskTitle; window_title = $(if ($Role -ceq 'koordinator') { 'Koordinator' } else { $RoleDisplayName + ' - ' + $TaskTitle })
         context_file = $(if ($ContextFile) { (Resolve-Path -LiteralPath $ContextFile).Path } else { $null })
         parent_task_id = $(if ($ParentTaskId) { $ParentTaskId } else { $null }); accounting_directory = $AccountingDirectory
@@ -358,6 +378,9 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
         model = (Read-RoleString $roleText 'model'); sandbox = (Read-RoleString $roleText 'sandbox_mode')
         approval_policy = (Read-RoleString $roleText 'approval_policy')
     }
+    $registry = Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1'
+    $reservation = & $registry -Action Reserve -DataDirectory $executionDirectory -TaskId $spec.task_id -DispatchId $DispatchId -PayloadHash $payloadHash -Role $Role -ResultPath $resultFile -Capacity $AdmissionCapacity
+    if ($reservation.Reused) { Write-Output ('Vorhandene Execution bleibt belegt; keine erneute Ausfuehrung: TaskId ' + $spec.task_id + '; DispatchId ' + $DispatchId); return }
     $jobPath = $resultFile + '.job.json'
     Write-Json $jobPath $spec
     $protected = @(Get-Process -Name ChatGPT,powershell,conhost,WindowsTerminal -ErrorAction SilentlyContinue | ForEach-Object { [AgentTerminalWindow]::ForPid([uint32]$_.Id) } | Select-Object -Unique)
@@ -395,10 +418,15 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {
             Write-Output ('Fenster bestätigt: PID ' + $window.runner_pid + ', HWND ' + $handle.ToInt64() + ', ' + $window.title)
         }
     }
+    if ($DetachedAfterVisibleAck -and $confirmed) {
+        Write-Output ('Start bestaetigt und reserviert: TaskId ' + $spec.task_id + '; DispatchId ' + $DispatchId)
+        return
+    }
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds + 25)
     while (-not (Test-Path -LiteralPath $resultFile) -and -not $runner.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 200 }
     if (-not (Test-Path -LiteralPath $resultFile)) { throw 'Runner ohne gesichertes Resultat; kein Erfolg und kein pauschales Beenden anderer Prozesse.' }
     $result = [System.IO.File]::ReadAllText($resultFile, $utf8) | ConvertFrom-Json
+    [void](& $registry -Action Release -DataDirectory $executionDirectory -TaskId $spec.task_id -DispatchId $DispatchId -ResultPath $resultFile)
     if (-not $KeepWindowOpen) { [void]$runner.WaitForExit(5000) }
     if ($Role -cne 'koordinator' -and -not $KeepWindowOpen -and $confirmed -and $runner.HasExited -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -eq $window.title -and [AgentTerminalWindow]::GetProp($handle, ('AgentOrganizationTask.' + $spec.task_id)) -eq [IntPtr][int]$window.runner_pid) {
         [void][AgentTerminalWindow]::PostMessage($handle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
