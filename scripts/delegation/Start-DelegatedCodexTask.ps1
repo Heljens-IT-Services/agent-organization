@@ -43,7 +43,23 @@ public static class AgentTerminalWindow {
 function Write-Json([string]$Path, $Value) {
     $temporary = $Path + '.' + [guid]::NewGuid().ToString('N') + '.writing'
     [System.IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Depth 30), $utf8)
-    if ([IO.File]::Exists($Path)) { [IO.File]::Replace($temporary, $Path, $null) } else { [IO.File]::Move($temporary, $Path) }
+    if ([IO.File]::Exists($Path)) {
+        try {
+            [IO.File]::Replace($temporary, $Path, [System.Management.Automation.Language.NullString]::Value)
+        }
+        catch {
+            $replaceError = $_
+            $replaceInvocation = $replaceError.InvocationInfo
+            Write-Host ('File.Replace Fehlerposition: Skript={0}; Zeile={1}; Spalte={2}' -f $replaceInvocation.ScriptName, $replaceInvocation.ScriptLineNumber, $replaceInvocation.OffsetInLine)
+            if ($replaceError.ScriptStackTrace) {
+                Write-Host 'File.Replace ScriptStackTrace:'
+                Write-Host $replaceError.ScriptStackTrace
+            }
+            throw
+        }
+    } else {
+        [IO.File]::Move($temporary, $Path)
+    }
 }
 function Read-RoleString([string]$Text, [string]$Key) {
     $match = [regex]::Match($Text, '(?m)^' + [regex]::Escape($Key) + '\s*=\s*"([^"\r\n]*)"\s*$')
