@@ -46,7 +46,7 @@ Die Kriterienlücke zu #61 bleibt offen und verhindert die Gesamtabnahme #57. Di
 
 | Ursprüngliches Elternkriterium | Selektiver Befund | Status |
 |---|---|---|
-| Schema mit drei Pflichtfeldern und Typen; Beispiele für Erfolg und Fehler | Historische angenommene #60-Vertragslieferung bleibt der Beleg. Keine erneute Schemaausführung. Die neuen erfolgreichen Adapterantworten ergänzen den Erfolgsbeleg; echte Adapterfehlerantworten fehlen weiterhin. | **Teilbelegt; Vertragsnachweis historisch erhalten.** |
+| Schema mit drei Pflichtfeldern und Typen; Beispiele für Erfolg und Fehler | Historische angenommene #60-Vertragslieferung bleibt der Beleg. Keine erneute Schemaausführung. Die neuen erfolgreichen Adapterantworten ergänzen den Erfolgsbeleg; echte Adapterfehlerantworten fehlen weiterhin. | **Schema-/Vertragskriterium belegt durch angenommene #60-Lieferung; historischer Beleg unverändert, keine heutige Validierung.** |
 | Registrierte Skills haben existierende Skripte und prüfbare Metadaten | Vorhandene Quellen-/Inventurbelege bleiben gültig. PowerShell-Erfolgsnutzung und Pythonquellenbindung ergänzen Laufzeitbelege für konkrete Erfolgsfälle. | **Teilbelegt.** Fehlerfälle werden dadurch nicht belegt. |
 | Fehlende Sprache bedeutet PowerShell; andere Sprache zulässig | Registrydeklaration und historische Vertragsbelege bleiben erhalten; konkrete PowerShell- und Python-Erfolgsaufrufe sind dokumentiert. Keine ausgeführte Runner-/Registry-Defaultauflösung separat nachgewiesen. | **Teilbelegt.** |
 | Reine Textanweisungen ohne Code werden als Skill abgewiesen | Historische #60-Vertragsannahme bleibt erhalten; keine erneute negative Ausführung. | **Historisch belegt, nicht erneut ausgeführt.** |
