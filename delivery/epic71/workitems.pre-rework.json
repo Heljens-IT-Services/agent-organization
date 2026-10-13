@@ -1,0 +1,1002 @@
+{
+    "items":  [
+                  {
+                      "id":  "epic71-package",
+                      "parentId":  null,
+                      "title":  "Epic71 Gesamtpaket koordinieren",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T05:54:05.7787323Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-inventory",
+                      "parentId":  "epic71-package",
+                      "title":  "Bestand und echte Issuestruktur",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_bestandsanalyse",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T05:54:05.7787323Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-architecture",
+                      "parentId":  "epic71-package",
+                      "title":  "Fachliche Architektur und Wiederverwendung",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_rollenkonfiguration",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T05:54:05.7787323Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-implementation",
+                      "parentId":  "epic71-package",
+                      "title":  "Autorisierte Erstentwicklung isoliert implementieren",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-independent-review",
+                      "parentId":  "epic71-package",
+                      "title":  "Unabhängige Inhaltsprüfung",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_qualitaetspruefung",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T05:54:05.7787323Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-71",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Gesamtpaket PM je Solution",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #71; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-72",
+                      "parentId":  "epic71-issue-71",
+                      "title":  "PM und PO unter Teamleitung",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #72; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-76",
+                      "parentId":  "epic71-issue-72",
+                      "title":  "Rollenmaterial aus angenommenem Vorschlag",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #76; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-73",
+                      "parentId":  "epic71-issue-71",
+                      "title":  "Persistente Solution Session",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #73; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-77",
+                      "parentId":  "epic71-issue-73",
+                      "title":  "Serialisierte Fortsetzung und Recovery",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #77; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-74",
+                      "parentId":  "epic71-issue-71",
+                      "title":  "Produktindex und Gedächtnis",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #74; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-78",
+                      "parentId":  "epic71-issue-74",
+                      "title":  "Belegter kanonischer Produktbestand",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #78; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Konkrete Solutionzuordnung, Owner und Groundquellen nicht übergeben.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-79",
+                      "parentId":  "epic71-issue-74",
+                      "title":  "Entscheidungsform und Fortschreibung",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #79; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "implemented",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-75",
+                      "parentId":  "epic71-issue-71",
+                      "title":  "Ereignisgetriebener Produktzyklus",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #75; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-issue-80",
+                      "parentId":  "epic71-issue-75",
+                      "title":  "Reviewgebundene PO Übergabe und Outcome",
+                      "description":  "Lokale Lieferzuordnung zu GitHub #80; keine Issueänderung oder eigene Abnahme.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Übergebener Bestandsbeitrag delivery/epic71/inventory.md und Kriterienmatrix delivery/epic71/criteria.json; Quellenstand 2026-10-13."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Konkrete Quelländerung und Grenzen in der Kriterienmatrix dieses Issues benannt"
+                                                 },
+                                                 {
+                                                     "id":  "acceptance",
+                                                     "description":  "Unabhängige Prüfung und eigene Elternabnahme separat; offene fachliche Kriterien nicht als Funktion ausgeben"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  {
+                                     "summary":  "Isolierte Quelllieferung Epic71 zur unabhängigen Prüfung; konkrete Owner-/Runtime-/Index-/Inventarlücken bleiben offen.",
+                                     "evidence":  [
+                                                      "delivery/epic71/implementation-report.md",
+                                                      "docs/contracts/PRODUCTMANAGEMENT.md",
+                                                      "delivery/epic71/criteria.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-open-solution-owner",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Konkrete HELJOS/Ground Zuordnung und Ownerquellen",
+                      "description":  "Teamleitung bittet Koordinator um verbindliche solutionId, PM-Identität, menschlichen Owner sowie autorisierten Workspace/Connector und vorhandene Dokumentquellen für HELJOS und Heljens Ground.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Teamleitung bittet Koordinator um verbindliche solutionId, PM-Identität, menschlichen Owner sowie autorisierten Workspace/Connector und vorhandene Dokumentquellen für HELJOS und Heljens Ground."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "resolution",
+                                                     "description":  "Konkreten Originalbeleg liefern und offenen Punkt eigenständig reviewen; keine künstliche Bestätigung"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Teamleitung bittet Koordinator um verbindliche solutionId, PM-Identität, menschlichen Owner sowie autorisierten Workspace/Connector und vorhandene Dokumentquellen für HELJOS und Heljens Ground.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-open-provider-owner",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Unterstützte Runtime und Recoveryowner",
+                      "description":  "Teamleitung bittet Koordinator um Runtime-/Providerowner mit tatsächlichem unterstütztem app-server API/Versionsbeleg und History-/Registryzugriff; dokumentierter Threadneubau nach geklärter Voraktivierung bleibt offen.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Teamleitung bittet Koordinator um Runtime-/Providerowner mit tatsächlichem unterstütztem app-server API/Versionsbeleg und History-/Registryzugriff; dokumentierter Threadneubau nach geklärter Voraktivierung bleibt offen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "resolution",
+                                                     "description":  "Konkreten Originalbeleg liefern und offenen Punkt eigenständig reviewen; keine künstliche Bestätigung"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Teamleitung bittet Koordinator um Runtime-/Providerowner mit tatsächlichem unterstütztem app-server API/Versionsbeleg und History-/Registryzugriff; dokumentierter Threadneubau nach geklärter Voraktivierung bleibt offen.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-open-native-inventory",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Rekursive native Kindererhebung vervollständigen",
+                      "description":  "Bestandsbeitrag erhob native sub_issues nur für #71; #72-#80 und echte weitere Kinder samt Bodies/Kommentaren/Aufgabenabschnitten durch zuständigen Bestandspfad vervollständigen. Keine Doppelrecherche durch Optimierer.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Bestandsbeitrag erhob native sub_issues nur für #71; #72-#80 und echte weitere Kinder samt Bodies/Kommentaren/Aufgabenabschnitten durch zuständigen Bestandspfad vervollständigen. Keine Doppelrecherche durch Optimierer."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "resolution",
+                                                     "description":  "Konkreten Originalbeleg liefern und offenen Punkt eigenständig reviewen; keine künstliche Bestätigung"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Bestandsbeitrag erhob native sub_issues nur für #71; #72-#80 und echte weitere Kinder samt Bodies/Kommentaren/Aufgabenabschnitten durch zuständigen Bestandspfad vervollständigen. Keine Doppelrecherche durch Optimierer.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-open-coordinator-index",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Indexintegration im zulässigen Rollenauftrag klären",
+                      "description":  "Konkreter Eintrag liegt delivery/epic71/coordinator-team-entry.json vor. Optimierer darf laut Rollenregel keinen Koordinatorindex laden. Teamleitung klärt den zulässigen Auftragspfad zur Integration; keine erneute alte Vorschlagsfreigabe erforderlich.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Konkreter Eintrag liegt delivery/epic71/coordinator-team-entry.json vor. Optimierer darf laut Rollenregel keinen Koordinatorindex laden. Teamleitung klärt den zulässigen Auftragspfad zur Integration; keine erneute alte Vorschlagsfreigabe erforderlich."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "resolution",
+                                                     "description":  "Konkreten Originalbeleg liefern und offenen Punkt eigenständig reviewen; keine künstliche Bestätigung"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Konkreter Eintrag liegt delivery/epic71/coordinator-team-entry.json vor. Optimierer darf laut Rollenregel keinen Koordinatorindex laden. Teamleitung klärt den zulässigen Auftragspfad zur Integration; keine erneute alte Vorschlagsfreigabe erforderlich.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-open-external-acceptance",
+                      "parentId":  "epic71-implementation",
+                      "title":  "Externe Abnahmen und Funktionskriterien bleiben offen",
+                      "description":  "Externe #13/#19/#23/#16/#17/#18/#22/#34 behalten ihren dokumentierten Status und Abnahmegrenzen. Kein Funktionsbeleg durch diese Quelllieferung. Unabhängige Prüfung und eigene Elternabnahme des Gesamtpakets fehlen.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Externe #13/#19/#23/#16/#17/#18/#22/#34 behalten ihren dokumentierten Status und Abnahmegrenzen. Kein Funktionsbeleg durch diese Quelllieferung. Unabhängige Prüfung und eigene Elternabnahme des Gesamtpakets fehlen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "resolution",
+                                                     "description":  "Konkreten Originalbeleg liefern und offenen Punkt eigenständig reviewen; keine künstliche Bestätigung"
+                                                 }
+                                             ],
+                      "status":  "blocked",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  "Externe #13/#19/#23/#16/#17/#18/#22/#34 behalten ihren dokumentierten Status und Abnahmegrenzen. Kein Funktionsbeleg durch diese Quelllieferung. Unabhängige Prüfung und eigene Elternabnahme des Gesamtpakets fehlen.",
+                      "createdAt":  "2026-10-13T06:14:42.0953487Z",
+                      "updatedAt":  "2026-10-13T06:14:42.0953487Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  }
+              ],
+    "schemaVersion":  "1.0"
+}

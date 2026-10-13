@@ -1,0 +1,20 @@
+{
+  "schemaVersion":"1.0",
+  "solutions":[],
+  "inventory":[
+    {
+      "name":"HELJOS",
+      "observedWorkspace":"C:/Users/Tom-OliverMarek/source/repos/heljos",
+      "observedSources":["docs/konzept","docs/architecture/adr"],
+      "source":"delivery/epic71/inventory.md, 2026-10-13: Wiederverwendbarer PM-Vorschlag und tatsächlicher Produktbestand",
+      "status":"owner_and_solution_assignment_unresolved"
+    },
+    {
+      "name":"Heljens Ground",
+      "observedWorkspace":null,
+      "observedSources":[],
+      "source":"delivery/epic71/inventory.md, 2026-10-13: kein Ground-Checkout im begrenzten lokalen Bestand beobachtet",
+      "status":"workspace_sources_owner_and_solution_assignment_unresolved"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+﻿{
+    "task":  "Epic #71 read-only Bestandsbeitrag",
+    "role":  "agent_ressources_bestandsanalyse",
+    "createdAt":  "2026-10-13",
+    "resultPath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\bestandsanalyse-epic71.md",
+    "ownershipTree":  [
+                          "71\u003e72\u003e76",
+                          "71\u003e73\u003e77",
+                          "71\u003e74\u003e78",
+                          "71\u003e74\u003e79",
+                          "71\u003e75\u003e80"
+                      ],
+    "nativeSubIssues71":  [
+
+                          ],
+    "issueBodiesRead":  [
+                            71,
+                            72,
+                            73,
+                            74,
+                            75,
+                            76,
+                            77,
+                            78,
+                            79,
+                            80,
+                            13,
+                            19,
+                            23,
+                            16,
+                            17,
+                            18,
+                            22,
+                            34
+                        ],
+    "commentsRead":  "All available top-level issue comments via paginated GitHub connector",
+    "externalIssuesClosedByThisTask":  [
+
+                                       ],
+    "changesMade":  false,
+    "testsOrValidatorsRun":  false,
+    "runtimeEvidence":  false,
+    "openFindings":  [
+                         "No Heljens Ground checkout or canonical docs observed in reachable inventory; owner/path/access unresolved",
+                         "HELJOS checkout exists; no PM/Solution canonical index established in inspected docs",
+                         "Issue #71 native sub_issues returned empty; recursive native subissues for descendants not exposed by this query",
+                         "Issue #16/#17/#18/#22/#34 dependencies retain incomplete runtime/function acceptance as documented in comments"
+                     ],
+    "measuredOwnTokens":  null,
+    "childTasks":  [
+
+                   ]
+}

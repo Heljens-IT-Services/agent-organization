@@ -476,6 +476,15 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho
         $dispatch = & $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath ([string]$bound[0].executionId)
         if (-not $dispatch -or @($dispatch.eventIds | Where-Object { $_ -ceq [string]$Event.id }).Count -eq 0 -or [string](Get-AutomationValue $dispatch.input 'eventId') -cne [string]$Event.id) { throw 'EventDispatchBindingConflict' }
     } else {
+        $productContext=$null
+        $productReference=Get-AutomationValue $Config 'ProductManagement'
+        if ($productReference) {
+            Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')
+            $productBinding=Get-ProductBinding $productReference ([string](Get-AutomationValue $Event.payload 'workItemId')) @($Snapshot.Document.items)
+            if ($productBinding) {
+                $productContext=Get-ProductContext $productBinding $Config.DataDirectory @((Get-AutomationValue $Event.payload 'documentIds' @())) @((Get-AutomationValue $Event.payload 'decisionIds' @()))
+            }
+        }
         $turnInput = [ordered]@{
             eventId = [string]$Event.id; kind = [string]$Event.kind; sourceId = [string]$Event.sourceId; payload = $Event.payload
             storeRevision = [string]$Snapshot.Revision; workItems = @($Snapshot.Document.items); logicalSessionId = $LogicalSessionId
@@ -486,6 +495,7 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho
                 rules = @('no_change requires commands=[] and an event-specific reason', 'apply requires at least one command', 'Only these command kinds are allowed', 'blocked transitions require propose_resume as first command; bind eventId and storeRevision exactly, requestedAt=null without humanInteraction; responseHash is SHA256 UTF8 compact JSON response including null; priorGeneration=0 and priorExecutionId=null only before any execution; otherwise use the exact returned prior execution and generation; keep_blocked consumes this trigger without starting work; wake IDs are not authority', 'Do not execute store or filesystem writes; report intended effects as commands only')
             }
         }
+        if ($productContext) { $turnInput.productContext=$productContext }
         $dispatch = & $DispatchModule { param($p, $id, $pur, $gen, $input, $events) Start-CoordinatorDispatch -JournalPath $p -WorkItemId $id -Purpose $pur -Generation $gen -Input $input -EventIds $events } $dispatchPath $workId $purpose 1 $turnInput @([string]$Event.id)
     }
     $serialized = ConvertTo-Json -InputObject $dispatch.input -Depth 50 -Compress

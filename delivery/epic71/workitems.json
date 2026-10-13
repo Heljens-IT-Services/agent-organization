@@ -1,0 +1,372 @@
+{
+    "items":  [
+                  {
+                      "id":  "epic71-package",
+                      "parentId":  null,
+                      "title":  "Epic71 Gesamtpaket koordinieren",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T05:54:05.7787323Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-inventory",
+                      "parentId":  "epic71-package",
+                      "title":  "Bestand und echte Issuestruktur",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_bestandsanalyse",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "tree",
+                                                     "description":  "Alle zehn Bodies Kommentare und native Kinder gelesen, echte Aufgabenstruktur von Abhängigkeiten getrennt"
+                                                 },
+                                                 {
+                                                     "id":  "reuse",
+                                                     "description":  "Angenommener PM-Vorschlag tatsächlicher Bestand Integrationspunkte und Grenzen belegt"
+                                                 }
+                                             ],
+                      "status":  "accepted",
+                      "result":  {
+                                     "summary":  "Bestandsbeitrag und native Nacharbeit angenommen; vollständige native Abdeckung ohne zusätzliche Kinder.",
+                                     "evidence":  [
+                                                      "bestandsanalyse-epic71.md",
+                                                      "native-inventory.md",
+                                                      "native-final-result.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+                                            {
+                                                "results":  [
+                                                                {
+                                                                    "evidence":  "Bestandsbeitrag liest71-80 Bodies/Kommentare; native-inventory belegt alle zehn nativen Endpunkte Exit0 [] und Bodybaum. Fehlgeschlagene unvollständige Nacharbeit nicht als Abdeckung gezählt.",
+                                                                    "criterionId":  "tree",
+                                                                    "passed":  true
+                                                                },
+                                                                {
+                                                                    "evidence":  "Konkrete fünf PM-Draftartefakte, HELJOS-Pfad, fehlender Groundzugriff und bestehende Store/Starter/Reader-Verträge; kein Runtimebeweis.",
+                                                                    "criterionId":  "reuse",
+                                                                    "passed":  true
+                                                                }
+                                                            ],
+                                                "checkedAt":  "2026-10-13T06:30:00.3752217Z",
+                                                "implementedAt":  "2026-10-13T06:30:00.3752217Z",
+                                                "reviewer":  {
+                                                                 "id":  "teamleiter_agent_ressources",
+                                                                 "type":  "agent"
+                                                             },
+                                                "passed":  true
+                                            }
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T06:30:00.3752217Z",
+                      "implementedAt":  "2026-10-13T06:30:00.3752217Z",
+                      "acceptedAt":  "2026-10-13T06:30:00.3752217Z"
+                  },
+                  {
+                      "id":  "epic71-architecture",
+                      "parentId":  "epic71-package",
+                      "title":  "Fachliche Architektur und Wiederverwendung",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_rollenkonfiguration",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "architecture",
+                                                     "description":  "Zuständiger Fachbeitrag zu Hierarchie Identität Sessions Gedächtnis Ereignispfad und Wiederverwendung mit Grenzen"
+                                                 }
+                                             ],
+                      "status":  "accepted",
+                      "result":  {
+                                     "summary":  "Fachliche Architektur übernommen, regulärer Nachauftrag bestätigt Quelle und Grenzen.",
+                                     "evidence":  [
+                                                      "architektur.json:report_markdown",
+                                                      "architecture-final-result.json"
+                                                  ]
+                                 },
+                      "verifications":  [
+                                            {
+                                                "results":  [
+                                                                {
+                                                                    "evidence":  "Vorhandene PM/PO Geschwister Defaults Solutionidentität und bestehende Host/Starter/Reader Wiederverwendung; offene Owner/Providerautorität ausdrücklich. Originalstarter fehlgeschlagen, Bestätigung über regulären Nachauftrag abgeschlossen; keine unabhängige Gesamtprüfung behauptet.",
+                                                                    "criterionId":  "architecture",
+                                                                    "passed":  true
+                                                                }
+                                                            ],
+                                                "checkedAt":  "2026-10-13T06:30:00.3752217Z",
+                                                "implementedAt":  "2026-10-13T06:30:00.3752217Z",
+                                                "reviewer":  {
+                                                                 "id":  "teamleiter_agent_ressources",
+                                                                 "type":  "agent"
+                                                             },
+                                                "passed":  true
+                                            }
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T06:30:00.3752217Z",
+                      "implementedAt":  "2026-10-13T06:30:00.3752217Z",
+                      "acceptedAt":  "2026-10-13T06:30:00.3752217Z"
+                  },
+                  {
+                      "id":  "epic71-implementation",
+                      "parentId":  "epic71-source-delivery",
+                      "title":  "Autorisierte Erstentwicklung isoliert implementieren",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_optimierer",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "rework",
+                      "result":  {
+                                     "summary":  "Unabhängige Inhaltsprüfung verlangt vier Quellenkorrekturen QA71-01 bisQA71-04.",
+                                     "evidence":  [
+                                                      "qa-review.json",
+                                                      "qa-review.md"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T06:34:28.7688159Z",
+                      "implementedAt":  "2026-10-13T06:34:28.7688159Z",
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-independent-review",
+                      "parentId":  "epic71-source-delivery",
+                      "title":  "Unabhängige Inhaltsprüfung",
+                      "description":  "Koordinatorauftrag aus aktuellem Benutzerauftrag. Auftragspfad Koordinator -\u003e Teamleiter Agent Ressources -\u003e eigene Fachagenten. Erstentwicklung ausdrücklich autorisiert. Dokumentierter abgegrenzter Auftrag, keine erfundene Host-Admission oder Runtime-WorkItem-Aktivierung.",
+                      "owner":  {
+                                    "id":  "agent_ressources_qualitaetspruefung",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Dauerhaftes Produktmanagement je Solution gemäß Epic71",
+                                   "metric":  "Inhalt Diff Referenzen je Kriterium",
+                                   "target":  "Unabhängige Prüfung und getrennte dokumentierte Elternabnahme"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+
+                                       ],
+                      "specification":  {
+                                            "inline":  "Vollständiger aktueller Koordinatorauftrag Epic71 mit Issues72-80 und rekursiven echten weiteren Kindern. Keine Tests Parserproben Pilotkampagne; keine globale Installation oder Produktrepoänderung. Wiederverwendung bestehender PM-Vorschläge WorkItems Host Starter Reader. Fachbeiträge bestand.json und architektur.json vor Implementation berücksichtigen. Human42/43/20 LockPR109 und fremde Änderungen erhalten. Kein Merge. Externe13/19/23/16/17/18/22/34 nicht pauschal abschließen."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "hierarchy",
+                                                     "description":  "Teamleitung PM PO max drei Agentenebenen; Modelle/defaults aus Bestand"
+                                                 },
+                                                 {
+                                                     "id":  "identity",
+                                                     "description":  "Konfigurierbare stabile solutionId PM-Identität und kanonischer belegter Solutionindex"
+                                                 },
+                                                 {
+                                                     "id":  "sessions",
+                                                     "description":  "Persistente serialisierte Aktivierung unterstützte Fortsetzung dokumentbasiertes Recovery"
+                                                 },
+                                                 {
+                                                     "id":  "memory",
+                                                     "description":  "Selektives Produktgedächtnis und Entscheidungsfortschreibung"
+                                                 },
+                                                 {
+                                                     "id":  "events",
+                                                     "description":  "Ereignis Review PM PO Fachteam via Koordinator ohne Leerlaufaufrufe"
+                                                 },
+                                                 {
+                                                     "id":  "delivery",
+                                                     "description":  "Gesamte echte Issueunterstruktur aktuell gelesen; unabhängige Prüfung und eigene Elternabnahme; offene Abhängigkeiten ehrlich; isolierte Lieferung PR ohne Merge"
+                                                 }
+                                             ],
+                      "status":  "rework",
+                      "result":  {
+                                     "summary":  "Unabhängige Inhaltsprüfung verlangt vier Quellenkorrekturen QA71-01 bisQA71-04.",
+                                     "evidence":  [
+                                                      "qa-review.json",
+                                                      "qa-review.md"
+                                                  ]
+                                 },
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T05:54:05.7787323Z",
+                      "updatedAt":  "2026-10-13T06:34:28.7688159Z",
+                      "implementedAt":  "2026-10-13T06:34:28.7688159Z",
+                      "acceptedAt":  null
+                  },
+                  {
+                      "id":  "epic71-source-delivery",
+                      "parentId":  "epic71-package",
+                      "title":  "Unabhängig mögliche Quelllieferung abnehmen",
+                      "description":  "Getrennte eigene Elternabnahme der Quelllieferung des gesamten Epicpakets. GesamtEpic und produktive Solution-/Providerfunktion bleiben davon getrennt offen. Keine Reduktion des Auftragsscopes.",
+                      "owner":  {
+                                    "id":  "teamleiter_agent_ressources",
+                                    "type":  "agent"
+                                },
+                      "goal":  {
+                                   "description":  "Alle unabhängig möglichen Epic-Infrastrukturänderungen fachlich geprüft liefern",
+                                   "metric":  "Kriterienbezogene unabhängige Inhaltsprüfung und eigene Quellenabnahme",
+                                   "target":  "Keine offenen P1/P2 in gelieferten Quellen; konkrete offene GesamtEpikkriterien"
+                               },
+                      "priority":  "high",
+                      "dependencies":  [
+                                           "epic71-inventory",
+                                           "epic71-architecture"
+                                       ],
+                      "specification":  {
+                                            "inline":  "Gesamter ursprünglicher Epic71-Auftrag gilt. Quelle anhand Inhalt Diff Referenzen unabhängig prüfen; Korrekturen Optimierer; eigene Kriterienabnahme vor CommitPushPR. Keine Laufzeitfunktion/Produktzuordnung fingieren. Offene Restkriterien eigenständig festhalten."
+                                        },
+                      "acceptanceCriteria":  [
+                                                 {
+                                                     "id":  "source",
+                                                     "description":  "Implementierte Rollen Identitätsdaten Session-/Gedächtnis-/Ereignisanbindung konsistent unabhängig bewertet"
+                                                 },
+                                                 {
+                                                     "id":  "evidence",
+                                                     "description":  "Aktuelle Issuehierarchie Kriterien offene Dependencies und Grenzen nachvollziehbar; keine Tests oder Fakebelege"
+                                                 },
+                                                 {
+                                                     "id":  "ownership",
+                                                     "description":  "Isolierter autorisierter AR-Änderungspfad keine Fremdänderungen globale Installation Produktrepoänderung oder Merge"
+                                                 }
+                                             ],
+                      "status":  "in_progress",
+                      "result":  null,
+                      "verifications":  [
+
+                                        ],
+                      "humanInteraction":  null,
+                      "blockReason":  null,
+                      "createdAt":  "2026-10-13T06:30:00.3752217Z",
+                      "updatedAt":  "2026-10-13T06:30:00.3752217Z",
+                      "implementedAt":  null,
+                      "acceptedAt":  null
+                  }
+              ],
+    "schemaVersion":  "1.0"
+}

@@ -1,0 +1,291 @@
+{
+  "workItemId": "epic71-implementation",
+  "evidenceKind": "content_diff_references_only",
+  "runtimeEvidence": false,
+  "independentReview": null,
+  "parentAcceptance": null,
+  "tokenUsage": null,
+  "issues": [
+    {
+      "issue": 71,
+      "criteria": [
+        "Solution identity without duplicated roles",
+        "serialized activation, supported continuation or documented recovery",
+        "canonical source memory",
+        "reviewed feature handoff and outcome"
+      ],
+      "sourceEvidence": [
+        "productmanagement/solutions.json",
+        "scripts/productmanagement/ProductManagement.psm1",
+        "docs/contracts/PRODUCTMANAGEMENT.md",
+        "delivery/epic71/native-inventory.md",
+        "delivery/epic71/native-inventory.json"
+      ],
+      "open": [
+        "actual HELJOS/Ground identity and owner access",
+        "provider support and recovery owner",
+        "independent review and parent acceptance"
+      ]
+    },
+    {
+      "issue": 72,
+      "criteria": [
+        "PM strategy and PO backlog as sibling specialist profiles under team leader",
+        "human-authorized organization change"
+      ],
+      "sourceEvidence": [
+        "teams/produktmanagement/teamleiter.toml",
+        "teams/produktmanagement/agenten/produktmanagement_pm_strategie.toml",
+        "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml",
+        "delivery/epic71/coordinator-team-entry.json"
+      ],
+      "open": [
+        "coordinator index integration constrained by optimizer index-reading rule",
+        "no installation or productive role activation",
+        "semantic product team index review prohibited by installed role; coordinator must arrange authorized contribution"
+      ]
+    },
+    {
+      "issue": 76,
+      "criteria": [
+        "reuse accepted role proposal and defaults",
+        "traceable authorized result and role boundaries"
+      ],
+      "sourceEvidence": [
+        "teams/produktmanagement/agenten.json",
+        "teams/produktmanagement/teamleiter.toml",
+        "delivery/epic71/architecture.md"
+      ],
+      "open": [
+        "coordinator index integration",
+        "independent review and parent acceptance",
+        "semantic product team index review prohibited by installed role; coordinator must arrange authorized contribution"
+      ]
+    },
+    {
+      "issue": 73,
+      "criteria": [
+        "solutionId to stable PM identity to actual thread",
+        "resume same thread",
+        "avoid parallel activation",
+        "persist restart and fallback evidence"
+      ],
+      "sourceEvidence": [
+        "scripts/delegation/Start-DelegatedCodexTask.ps1",
+        "scripts/productmanagement/ProductManagement.psm1",
+        "scripts/Start-CoordinatorHost.ps1"
+      ],
+      "open": [
+        "actual owner configuration",
+        "installed provider support and functional/restart evidence",
+        "owner-authorized thread rebuild"
+      ]
+    },
+    {
+      "issue": 77,
+      "criteria": [
+        "persistent profile, thread and resume state",
+        "serialize access",
+        "supported app-server continuation",
+        "document recovery"
+      ],
+      "sourceEvidence": [
+        "scripts/productmanagement/ProductManagement.psm1:Open-ProductSession",
+        "scripts/productmanagement/Get-ProductRecovery.ps1",
+        "scripts/coordinator/AdmissionInstalledContract.json"
+      ],
+      "open": [
+        "installed contract lacks confirmed external API completion support",
+        "no actual activation/restart/history proof",
+        "recovery plan available, productive rebuild owner action unresolved"
+      ]
+    },
+    {
+      "issue": 74,
+      "criteria": [
+        "existing documents first",
+        "canonical vision/strategy/roadmap/ideas/assumptions/decisions index",
+        "dated reasoned decisions reconstructible outside thread"
+      ],
+      "sourceEvidence": [
+        "productmanagement/solutions.json",
+        "schemas/productmanagement.schema.json",
+        "scripts/productmanagement/ProductManagement.psm1:Get-ProductContext"
+      ],
+      "open": [
+        "owner assignment and canonical original sources",
+        "actual product memory population and restart evidence"
+      ]
+    },
+    {
+      "issue": 78,
+      "criteria": [
+        "inventory actual repositories/workspaces",
+        "stable identities and canonical document references",
+        "no invented product paths or strategy"
+      ],
+      "sourceEvidence": [
+        "delivery/epic71/inventory.md",
+        "productmanagement/solutions.json",
+        "delivery/epic71/native-inventory.md",
+        "delivery/epic71/native-inventory.json"
+      ],
+      "open": [
+        "HELJOS ID and owner not assigned",
+        "Ground workspace and documents not observed",
+        "solutions intentionally empty pending owner evidence"
+      ]
+    },
+    {
+      "issue": 79,
+      "criteria": [
+        "date/context/reasons/alternatives/consequences/status",
+        "selective source context",
+        "explicit append-only decision history"
+      ],
+      "sourceEvidence": [
+        "scripts/productmanagement/Save-ProductDecision.ps1",
+        "scripts/productmanagement/ProductManagement.psm1:Save-ProductDecision",
+        "docs/contracts/PRODUCTMANAGEMENT.md"
+      ],
+      "open": [
+        "actual product decisions and accepted reviews not supplied",
+        "no runtime reconstruction evidence"
+      ]
+    },
+    {
+      "issue": 75,
+      "criteria": [
+        "event/review triggers",
+        "reasoned PM to PO to specialist team via coordinator",
+        "track feature outcome across activations",
+        "no idle model turns"
+      ],
+      "sourceEvidence": [
+        "scripts/coordinator/CoordinatorAutomation.psm1:Get-CoordinatorEventDispatch",
+        "scripts/productmanagement/New-ProductFeature.ps1",
+        "teams/produktmanagement/teamleiter.toml"
+      ],
+      "open": [
+        "real product signal and reviewed strategy",
+        "actual dispatch/return/outcome evidence",
+        "external event/delegation acceptance"
+      ]
+    },
+    {
+      "issue": 80,
+      "criteria": [
+        "event/review planning cycle",
+        "reasoned hypotheses",
+        "PO handoff through leader",
+        "specialist teams through coordinator",
+        "measure impact without unbounded calls or unreviewed promises"
+      ],
+      "sourceEvidence": [
+        "scripts/productmanagement/New-ProductFeature.ps1",
+        "scripts/productmanagement/Save-ProductDecision.ps1",
+        "scripts/coordinator/CoordinatorAutomation.psm1",
+        "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml"
+      ],
+      "open": [
+        "feature and impact not fabricated",
+        "real due review and outcome evidence",
+        "independent review and parent acceptance"
+      ]
+    }
+  ],
+  "externalDependencies": [
+    {
+      "issue": 13,
+      "inventoryStatus": "closed",
+      "limit": "historical acceptance is not current function"
+    },
+    {
+      "issue": 19,
+      "inventoryStatus": "open",
+      "limit": "dynamic team/context selection remains external"
+    },
+    {
+      "issue": 23,
+      "inventoryStatus": "open",
+      "limit": "organization approval contract remains external; this first development explicitly authorized"
+    },
+    {
+      "issue": 16,
+      "inventoryStatus": "open",
+      "limit": "host restart and chat handover acceptance absent"
+    },
+    {
+      "issue": 17,
+      "inventoryStatus": "open",
+      "limit": "event story acceptance and runtime evidence absent"
+    },
+    {
+      "issue": 18,
+      "inventoryStatus": "open",
+      "limit": "delegation parent acceptance absent"
+    },
+    {
+      "issue": 22,
+      "inventoryStatus": "open",
+      "limit": "reader/starter source integration is not full function acceptance"
+    },
+    {
+      "issue": 34,
+      "inventoryStatus": "closed",
+      "limit": "inventory comment explicitly records incomplete overall acceptance"
+    }
+  ],
+  "nativeInventory": {
+    "status": "completed_from_supplied_evidence",
+    "issues": [
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80
+    ],
+    "exitCodeEach": 0,
+    "nativeChildrenEach": [],
+    "evidence": [
+      "delivery/epic71/native-inventory.md",
+      "delivery/epic71/native-inventory.json",
+      "delivery/epic71/native-final-result.json"
+    ],
+    "limit": "Supplied evidence only; no new API calls or independent original-response verification."
+  },
+  "qaRework": [
+    {
+      "id": "QA71-01",
+      "status": "source_correction_for_independent_review",
+      "runtimeEvidence": false
+    },
+    {
+      "id": "QA71-02",
+      "status": "source_correction_for_independent_review",
+      "runtimeEvidence": false
+    },
+    {
+      "id": "QA71-03",
+      "status": "source_correction_for_independent_review",
+      "runtimeEvidence": false
+    },
+    {
+      "id": "QA71-04",
+      "status": "source_correction_for_independent_review",
+      "runtimeEvidence": false
+    }
+  ],
+  "coordinationPlan": {
+    "source": "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/workitems.json",
+    "copiedExactly": true,
+    "implementationParentId": "epic71-source-delivery",
+    "acceptanceEdited": false,
+    "historicalPlan": "delivery/epic71/workitems.pre-rework.json"
+  }
+}

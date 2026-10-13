@@ -871,14 +871,21 @@ $evidence = [ordered]@{
     start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash
     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
     roleId=$job.role; modelId=$null; reasoningEffort=$null; measurementUTC=$null; measurementObservedAtUTC=$null; metadataSources=@()
+    usage_source='app_server_fresh_thread_single_turn'
 }
 $notifications = New-Object System.Collections.Generic.List[object]
 $progressState = New-ProgressState
 $process = $null
+$productActivation = $null
+$productBinding = $null
+$productContext = $null
+$productReleaseConfirmed = $false
 function Update-NativeUsage($Notification) {
     if ($Notification.method -eq 'thread/tokenUsage/updated' -and
         $evidence.thread_id -and $evidence.turn_id -and
         $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {
+        # Resumed PM totals include earlier turns; no proven current-turn measurement.
+        if ($evidence.usage_source -cne 'app_server_fresh_thread_single_turn') { return }
         # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.
         $evidence.token_usage = $Notification.params.tokenUsage.total
         # Observation of the actual own native measurement, before publication.
@@ -1035,13 +1042,47 @@ try {
     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)
     $capability=Get-AdmissionInstalledContract $script:admissionProvider
     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}
-    Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
-    $thread = Wait-Rpc 2
+    $productReference=Get-AdmissionField $pinnedRootLaunch 'productManagement'
+    if ($productReference) {
+        Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')
+        $productItems=@()
+        if ($jobSsotMode) {
+            $productSnapshot=& (Join-Path $PSScriptRoot '../workitems/Get-WorkItems.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot
+            $productItems=@($productSnapshot.Document.items)
+        }
+        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems
+        if ($job.role -ceq 'produktmanagement_pm_strategie' -and -not $productBinding) { throw 'ProductSolutionAssignmentMissing' }
+        if ($job.role -ceq 'produktmanagement_pm_strategie') {
+            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @('planned','in_progress','rework') })
+            if ($ownedPM.Count -ne 1) { throw 'ProductPMWorkItemOwnerOrStateChanged' }
+        }
+        if ($productBinding) {
+            $selected=Get-AdmissionField $productBinding.solution 'activationDocumentIds' @()
+            $selectedDecisions=Get-AdmissionField $productBinding.solution 'activationDecisionIds' @()
+            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)
+        }
+    } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }
+    if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {
+        # Until a thread/start receipt proves freshness, PM usage remains unknown.
+        $evidence.usage_source = 'app_server_pm_thread_unknown_current_turn'
+        # This remains the existing visible, admitted specialist runner.
+        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}
+        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc
+        if ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/start') {
+            $evidence.usage_source = 'app_server_fresh_thread_single_turn'
+        } elseif ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/resume') {
+            $evidence.usage_source = 'app_server_resumed_pm_thread_unknown_current_turn'
+        }
+        $thread=$productActivation.reply
+    } else {
+        Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
+        $thread = Wait-Rpc 2
+    }
     $evidence.thread_id = $thread.thread.id
-    # Resolved thread/start response, never requested/current TOML settings.
-    # This runner starts exactly one turn on a fresh thread, without overrides.
+    # Resolved thread ACK (start or PM resume), never requested/current TOML settings.
+    # One new turn; a resumed PM thread can already contain earlier turns.
     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
+    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}
     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
     foreach($field in @('model','reasoningEffort')) {
@@ -1049,7 +1090,8 @@ try {
         if($null -ne $property -and $property.Value -is [string] -and $property.Value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') {
             $target=if($field -ceq 'model'){'modelId'}else{'reasoningEffort'}
             $evidence[$target]=$property.Value
-            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis='resolved fresh thread defaults; turn/start has no model or effort override'})
+            $ackBasis=if($evidence.usage_source -ceq 'app_server_fresh_thread_single_turn'){'resolved fresh thread defaults; turn/start has no model or effort override'}else{'resolved PM thread ACK; freshness/current-turn usage unproven; turn/start has no model or effort override'}
+            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis=$ackBasis})
         }
     }
     if ($job.registry_directory) {
@@ -1074,16 +1116,19 @@ try {
     $contextRootHint = ([string]$RepositoryRoot).Replace("'", "''")
     $contextCli = "& '$contextRootHint\scripts\context\Get-WorkContext.ps1' -RepositoryRoot '$contextRootHint'"
     $text += "`n`nWissens-/Workflowhinweis (PowerShell; Beispiele gezielt an den Auftrag anpassen):`nSelektive Indexsuche: " + $contextCli + " -Kind all -Terms @('Suchbegriff')`nNur ausgewaehlte passende Eintraege lesen: " + $contextCli + " -Kind knowledge -Path 'entries/pfad.md'`nOder Workflow lesen: " + $contextCli + " -Kind workflow -Path 'pfad.md'`nSuchbegriff durch auftragsbezogene Suchwoerter ersetzen; -Path exakt aus RelativePath des ausgewaehlten Treffers uebernehmen. Apostrophe in Suchwoertern und Pfaden innerhalb einfacher PowerShell-Anfuehrungszeichen verdoppeln. Treffer anhand Quelle, WorkItem, Gueltigkeitskontext und Anwendbarkeit eigenstaendig pruefen; die Auswahl bleibt beim Agenten. Einen passenden Workflow selektiv lesen und im Rahmen des Auftrags verwenden. Ohne Treffer oder passenden Workflow die Arbeit anhand des verbindlichen Auftrags und geltender Projektregeln fortsetzen; keine Wahl erzwingen. Readerdiagnosen sind keine bestaetigte Trefferfreiheit. Workflows erteilen keinerlei Freigaben, ersetzen keine fehlende Spezifikation und umgehen keine erforderliche Freigabe. Bestehende Zustaendigkeiten und Ansprechpartner bleiben unveraendert; fehlende Spezifikation an den bestehenden Ansprechpartner melden."
+    $text += "`n`nOptionaler Skillanschluss: SkillReferences eines ausgewaehlten Workflowtreffers sind nur zentrale Skill-IDs, keine automatischen Aufrufe. Nur benoetigte ID ueber scripts/skills/Find-Skill.ps1 -SkillId oder passenden Zweck selektiv aufloesen; direkter Skillzugriff braucht keinen Workflow. Kein vollstaendiger Registry-/Rollenkontext wird weitergegeben. Bei erlaubter Ausfuehrung den vorhandenen scripts/skills/Invoke-Skill.ps1 mit konkreten Fachparametern, WorkItemRef/ExecutionRef und freigegebenen Interpreter-/Pfadbindungen verwenden. Vollstaendige JSON-Antwort unveraendert erhalten: isSuccessful pruefen, bei Erfolg mit exception=null result verwenden; bei Fehler exception als strukturiertes Objekt samt Details berichten und result erhalten. Kein Freitext-Parsing oder erfundene Messwerte. docs/contracts/SKILLS.md und die Anweisung des gewaehlten Workflows gelten. Skillmetadaten/Workflow erteilen keine Zustimmung: konkrete Berechtigungen und Seiteneffekte (einschliesslich Logs/temporaerer Dateien) vorher gegen Auftrag pruefen, nicht genehmigte Aufrufe abweisen und an bestehenden Ansprechpartner melden. Aktuelle Ausfuehrungsverbote gelten auch fuer Discovery und Runner; keine Produktprobe daraus ableiten."
     if ($jobSsotMode) {
         $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id
         $env:AGENT_ORG_PARENT_JOB_FILE = $resultFile + '.job.json'
         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash
     }
     $turnStartRpcId=3
+    if ($productContext) { $text += "`n`nSolution context (selected owner documents and reviewed memory):`n" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }
     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
+    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }
     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){
         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
@@ -1110,6 +1155,7 @@ try {
         if ($null -eq $completion) { [void](Read-Rpc) }
     }
     $evidence.terminal_outcome = $completion.params.turn.status
+    if ($productActivation) { Complete-ProductSession $productActivation $completion }
     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
@@ -1119,7 +1165,7 @@ try {
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     Send-Rpc 'thread/read' @{ threadId = $evidence.thread_id; includeTurns = $false } 5
     [void](Wait-Rpc 5)
-    $evidence.usage_finalized = $true
+    $evidence.usage_finalized = ($evidence.usage_source -ceq 'app_server_fresh_thread_single_turn')
     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }
@@ -1145,7 +1191,7 @@ try {
             measurementUTC=$evidence.measurementUTC; importedAtUTC=[DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
             measurementObservedAtUTC=$evidence['measurementObservedAtUTC']; measurementTimeBasis='native_time_unknown_notification_observation_only'
             requestedProfile=[ordered]@{modelId=$job.model;reasoningEffort=$job.config.model_reasoning_effort;source=$JobFile;effective=$false}
-            metadataSources=$evidence.metadataSources; source='app_server_fresh_thread_single_turn'; counter_kind='turn_token_usage'
+            metadataSources=$evidence.metadataSources; source=$evidence.usage_source; counter_kind='turn_token_usage'
             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
         })
         $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
@@ -1176,11 +1222,15 @@ try {
         }
     }
     if ($job.registry_directory -and $job.registry_dispatch_id) {
-        try { Complete-BoundRegistryJob $job } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
+        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
     }
     if ($process) {
         try { $process.StandardInput.Close() } catch { }
-        [void]$process.WaitForExit(3000)
+        $processExitConfirmed=$process.WaitForExit(3000)
+        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence 'transfer_error') -and $productActivation.session.state -ceq 'TerminalPendingTransfer') {
+            try { Publish-ProductSession $productActivation $resultFile }
+            catch { Write-Host ('Product session remains recovery-closed: '+$_.Exception.Message) }
+        }
         $process.Dispose()
     }
     Write-Host ('Resultat gesichert: ' + $resultFile)
@@ -1191,6 +1241,7 @@ try {
         if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }
     }
     } finally {
+        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }
         if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }
         elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }
         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,('AgentOrganizationTask.'+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }

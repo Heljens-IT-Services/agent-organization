@@ -1,0 +1,10 @@
+{
+  "team_id": "produktmanagement",
+  "leader_id": "teamleiter_produktmanagement",
+  "coordinator_id": "koordinator",
+  "coordinator_role_file": "koordinator.toml",
+  "agents": [
+    {"agent_id":"produktmanagement_pm_strategie","name":"Produktstrategie","description":"Solution Vision, Strategie, Roadmap und messbare Featurehypothesen.","role_file":"produktmanagement_pm_strategie.toml"},
+    {"agent_id":"produktmanagement_po_backlog","name":"Produktbacklog","description":"Priorisierung, Abhängigkeiten und fachliche Akzeptanzkriterien aus freigegebener Strategie.","role_file":"produktmanagement_po_backlog.toml"}
+  ]
+}
