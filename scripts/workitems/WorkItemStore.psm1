@@ -4,6 +4,39 @@ Set-StrictMode -Version 2
 $script:WorkItemStoreLocks = @{}
 $script:WorkItemStoreLockContexts = New-Object 'System.Collections.Generic.HashSet[object]'
 
+# A module instance owns its registry; a shared CLR type is never a shared registry.
+$script:WorkItemLockDiagnostics = $null
+$script:WorkItemLockGate = New-Object object
+try {
+    if (-not ('AgentOrg.LockDiagnosticsV1.Registry' -as [type])) {
+        Add-Type -Path (Join-Path $PSScriptRoot 'WorkItemStoreLockDiagnostics.cs') -ReferencedAssemblies @('System.dll', 'System.Core.dll', 'System.Runtime.Serialization.dll', 'System.Xml.dll') -ErrorAction Stop
+    }
+    $script:WorkItemLockDiagnostics = New-Object AgentOrg.LockDiagnosticsV1.Registry
+    $script:WorkItemLockGate = $script:WorkItemLockDiagnostics.Gate
+} catch { $script:WorkItemLockDiagnostics = $null } # diagnostic failure never prevents store acquisition
+$ExecutionContext.SessionState.Module.OnRemove = {
+    if ($null -ne $script:WorkItemLockDiagnostics) { $script:WorkItemLockDiagnostics.Dispose() }
+}
+
+function Undo-WorkItemLockAcquisition {
+    param($Context, $Stream)
+    $entry = $null
+    try {
+        [Threading.Monitor]::Enter($script:WorkItemLockGate)
+        try {
+            if ($null -ne $Context -and [object]::ReferenceEquals($script:WorkItemStoreLocks[$Context.LockId], $Context)) {
+                $entry = $Context.DiagnosticEntry
+                if ($null -ne $entry) { $script:WorkItemLockDiagnostics.Retire($entry, $Context, $Context.DiagnosticToken) }
+                [void]$script:WorkItemStoreLocks.Remove($Context.LockId)
+                [void]$script:WorkItemStoreLockContexts.Remove($Context)
+            }
+            if ($null -ne $Stream) { $Stream.Dispose() }
+        } finally { [Threading.Monitor]::Exit($script:WorkItemLockGate) }
+    } finally {
+        if ($null -ne $entry) { [void]$script:WorkItemLockDiagnostics.Stop($entry) }
+    }
+}
+
 # Keep the interop type in the AppDomain across Import-Module -Force.
 if (-not ('WorkItemStoreNativeLock' -as [type])) {
     Add-Type -TypeDefinition @'
@@ -193,11 +226,11 @@ function Enter-WorkItemStoreLock {
     $attemptOrdinal = 0
     while ($true) {
         $attemptOrdinal++
-        $stream = $null
+        $stream = $null; $context = $null
         $metadata = $null; $bytes = $null; $metadataHash = $null; $producerSource = $null
         try {
             $options = [IO.FileOptions]::DeleteOnClose
-            $stream = New-Object IO.FileStream($lockPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None, 4096, $options)
+            $stream = New-Object IO.FileStream($lockPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read, 4096, $options)
             $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
             $process = [Diagnostics.Process]::GetCurrentProcess()
             $machineGuid = Get-WorkItemStoreMachineGuid
@@ -212,14 +245,37 @@ function Enter-WorkItemStoreLock {
             $stream.Write($bytes, 0, $bytes.Length)
             $stream.Flush($true)
             $producerSource = Get-WorkItemStoreObservationSource
-            $context = [pscustomobject]@{ LockId = $lockId; StorePath = $StorePath; LockPath = $lockPath; Stream = $stream; OwnerSid = $identity.User.Value; OwnerName = $identity.Name; ProcessId = $PID; ProcessStartedAtUtc = $process.StartTime.ToUniversalTime().ToString('o'); Host = [Environment]::MachineName; Released = $false; Metadata = $metadata; OriginalMetadataHash = $metadataHash; ProducerSource = $producerSource; AttemptOrdinal = $attemptOrdinal; AcquiredObservationHash = $null }
-            $script:WorkItemStoreLocks[$lockId] = $context
-            [void]$script:WorkItemStoreLockContexts.Add($context)
+            $context = [pscustomobject]@{ LockId = $lockId; StorePath = $StorePath; LockPath = $lockPath; Stream = $stream; OwnerSid = $identity.User.Value; OwnerName = $identity.Name; ProcessId = $PID; ProcessStartedAtUtc = $process.StartTime.ToUniversalTime().ToString('o'); Host = [Environment]::MachineName; Released = $false; Metadata = $metadata; OriginalMetadataHash = $metadataHash; ProducerSource = $producerSource; AttemptOrdinal = $attemptOrdinal; AcquiredObservationHash = $null; DiagnosticEntry = $null; DiagnosticToken = (New-Object object); DiagnosticStatus = 'unavailable' }
+            # Both registries publish this exact context under the same lifetime gate.
+            [Threading.Monitor]::Enter($script:WorkItemLockGate)
+            try {
+                $script:WorkItemStoreLocks[$lockId] = $context
+                [void]$script:WorkItemStoreLockContexts.Add($context)
+                if ($null -ne $script:WorkItemLockDiagnostics) {
+                    try {
+                        $startFileTime = $process.StartTime.ToUniversalTime().ToFileTimeUtc()
+                        $data = New-Object AgentOrg.LockDiagnosticsV1.Acquisition($context.StorePath, $context.LockPath, $context.LockId, $context.AttemptOrdinal, $context.OriginalMetadataHash, $context.OwnerSid, $context.OwnerName, $context.ProcessId, $startFileTime, $context.ProcessStartedAtUtc, $context.Host, $metadata.acquiredAtUtc)
+                        $context.DiagnosticEntry = $script:WorkItemLockDiagnostics.Register($context, $context.DiagnosticToken, $context.Stream, $data)
+                        $context.DiagnosticStatus = 'registered'
+                    } catch { $context.DiagnosticStatus = 'unavailable' }
+                }
+            } finally { [Threading.Monitor]::Exit($script:WorkItemLockGate) }
+            if ($null -ne $context.DiagnosticEntry) {
+                try {
+                    $script:WorkItemLockDiagnostics.Start($context.DiagnosticEntry, $context, $context.DiagnosticToken)
+                    $context.DiagnosticStatus = 'started'
+                } catch {
+                    [Threading.Monitor]::Enter($script:WorkItemLockGate)
+                    try { $script:WorkItemLockDiagnostics.Retire($context.DiagnosticEntry, $context, $context.DiagnosticToken) }
+                    finally { [Threading.Monitor]::Exit($script:WorkItemLockGate) }
+                    $context.DiagnosticStatus = $script:WorkItemLockDiagnostics.Stop($context.DiagnosticEntry)
+                }
+            }
             Publish-WorkItemStoreLifecycleEvent $context 'acquired' $attemptOrdinal $null $null
             return $context
         } catch [System.IO.IOException] {
             $disposeSucceeded = $false
-            if ($null -ne $stream) { $stream.Dispose(); $disposeSucceeded = $true }
+            if ($null -ne $stream) { Undo-WorkItemLockAcquisition $context $stream; $disposeSucceeded = $true }
             if ($disposeSucceeded -and $null -ne $metadata -and $null -ne $metadataHash) {
                 $aborted = [pscustomobject]@{ LockId=$lockId; StorePath=$StorePath; LockPath=$lockPath; Metadata=$metadata; OriginalMetadataHash=$metadataHash; ProducerSource=$producerSource; AttemptOrdinal=$attemptOrdinal }
                 Publish-WorkItemStoreLifecycleEvent $aborted 'acquisitionAborted' $attemptOrdinal $null 'IOException'
@@ -242,7 +298,7 @@ function Enter-WorkItemStoreLock {
             Start-Sleep -Milliseconds ([Math]::Min($remaining, 50))
         } catch {
             $disposeSucceeded = $false
-            if ($null -ne $stream) { $stream.Dispose(); $disposeSucceeded = $true }
+            if ($null -ne $stream) { Undo-WorkItemLockAcquisition $context $stream; $disposeSucceeded = $true }
             if ($disposeSucceeded -and $null -ne $metadata -and $null -ne $metadataHash) {
                 $aborted = [pscustomobject]@{ LockId=$lockId; StorePath=$StorePath; LockPath=$lockPath; Metadata=$metadata; OriginalMetadataHash=$metadataHash; ProducerSource=$producerSource; AttemptOrdinal=$attemptOrdinal }
                 Publish-WorkItemStoreLifecycleEvent $aborted 'acquisitionAborted' $attemptOrdinal $null 'Other'
@@ -254,23 +310,36 @@ function Enter-WorkItemStoreLock {
 
 function Exit-WorkItemStoreLock {
     param([Parameter(Mandatory = $true)]$Context)
-    if (-not $script:WorkItemStoreLockContexts.Contains($Context)) { New-WorkItemStoreError 'LockNotOwned' 'The lock context is not privately registered in this module.' }
-    if ($null -ne $Context -and $Context.PSObject.Properties['Released'] -and $Context.Released -eq $true) { return }
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $process = [Diagnostics.Process]::GetCurrentProcess()
-    $registered = $script:WorkItemStoreLocks[$Context.LockId]
-    if (-not [object]::ReferenceEquals($registered, $Context) -or $Context.OwnerSid -cne $identity.User.Value -or $Context.OwnerName -cne $identity.Name -or $Context.ProcessId -ne $PID -or $Context.Host -cne [Environment]::MachineName -or $Context.ProcessStartedAtUtc -cne $process.StartTime.ToUniversalTime().ToString('o') -or $Context.StorePath -cne [IO.Path]::GetFullPath($Context.StorePath)) {
-        New-WorkItemStoreError 'LockNotOwned' 'Lock ownership could not be verified against this process.'
-    }
-    $Context.Released = $true
+    $entry = $null; $authorized = $false; $disposeFailure = $null
     try {
-        $Context.Stream.Dispose()
+        [Threading.Monitor]::Enter($script:WorkItemLockGate)
+        try {
+            if (-not $script:WorkItemStoreLockContexts.Contains($Context)) { New-WorkItemStoreError 'LockNotOwned' 'The lock context is not privately registered in this module.' }
+            if ($null -ne $Context -and $Context.PSObject.Properties['Released'] -and $Context.Released -eq $true) { return }
+            $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+            $process = [Diagnostics.Process]::GetCurrentProcess()
+            $registered = $script:WorkItemStoreLocks[$Context.LockId]
+            if (-not [object]::ReferenceEquals($registered, $Context) -or $Context.OwnerSid -cne $identity.User.Value -or $Context.OwnerName -cne $identity.Name -or $Context.ProcessId -ne $PID -or $Context.Host -cne [Environment]::MachineName -or $Context.ProcessStartedAtUtc -cne $process.StartTime.ToUniversalTime().ToString('o') -or $Context.StorePath -cne [IO.Path]::GetFullPath($Context.StorePath)) {
+                New-WorkItemStoreError 'LockNotOwned' 'Lock ownership could not be verified against this process.'
+            }
+            $authorized = $true
+            $entry = $Context.DiagnosticEntry
+            if ($null -ne $entry) { $script:WorkItemLockDiagnostics.Retire($entry, $Context, $Context.DiagnosticToken) }
+            $Context.Released = $true
+            try {
+                $Context.Stream.Dispose()
+                [void]$script:WorkItemStoreLocks.Remove($Context.LockId)
+            } catch { $disposeFailure = $_ }
+        } finally { [Threading.Monitor]::Exit($script:WorkItemLockGate) }
+        # Lifecycle publication and pipe cleanup are outside the lifetime gate.
+        if ($null -ne $disposeFailure) {
+            Publish-WorkItemStoreLifecycleEvent $Context 'releaseUnconfirmed' $Context.AttemptOrdinal $Context.AcquiredObservationHash 'DisposeFailure'
+            throw $disposeFailure
+        }
         Publish-WorkItemStoreLifecycleEvent $Context 'released' $Context.AttemptOrdinal $Context.AcquiredObservationHash $null
-    } catch {
-        Publish-WorkItemStoreLifecycleEvent $Context 'releaseUnconfirmed' $Context.AttemptOrdinal $Context.AcquiredObservationHash 'DisposeFailure'
-        throw
+    } finally {
+        if ($authorized -and $null -ne $entry) { $Context.DiagnosticStatus = $script:WorkItemLockDiagnostics.Stop($entry) }
     }
-    [void]$script:WorkItemStoreLocks.Remove($Context.LockId)
 }
 
 function Get-WorkItemStoreSnapshot {

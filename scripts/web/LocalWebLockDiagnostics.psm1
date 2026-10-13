@@ -1,4 +1,5 @@
 Set-StrictMode -Version 2
+. (Join-Path $PSScriptRoot 'LocalWebOriginalLockObservation.ps1')
 
 function ConvertTo-LocalWebUtcTimestamp {
     param([string]$Value, [ref]$Result)
@@ -16,7 +17,7 @@ function ConvertTo-LocalWebUtcTimestamp {
     return $false
 }
 
-function Get-LocalWebLockDiagnostic {
+function Get-LocalWebLifecycleLockDiagnostic {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$StorePath)
 
@@ -250,4 +251,15 @@ function Get-LocalWebLockDiagnostic {
     }
 }
 
+function Get-LocalWebLockDiagnostic {
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][string]$StorePath)
+    # Existing lifecycle contract remains authoritative and byte-for-byte intact.
+    $diagnostic = Get-LocalWebLifecycleLockDiagnostic -StorePath $StorePath
+    $original = Get-LocalWebOriginalLockObservation -StorePath $StorePath
+    $diagnostic | Add-Member -NotePropertyName originalObservation -NotePropertyValue $original
+    $direct = Get-LocalWebDirectOriginalLockObservation -StorePath $StorePath
+    $diagnostic | Add-Member -NotePropertyName directOriginalObservation -NotePropertyValue $direct
+    return $diagnostic
+}
 Export-ModuleMember -Function Get-LocalWebLockDiagnostic

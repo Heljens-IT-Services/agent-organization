@@ -176,9 +176,53 @@ function renderLockStatus() {
   const metadataHash = lock.originalMetadataHash ? ` · Originalmetadaten SHA256 ${lock.originalMetadataHash}` : "";
   const reason = lock.reason ? ` · Befund ${lock.reason}` : "";
   const missingFinish = ["acquired", "ownerObserved"].includes(event) ? " · Kein Producer-Abschlussereignis geliefert" : "";
-  const uncertainty = incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : !active && !released ? " · Aktive Originalquelle fehlt: unter dem unveränderten FileShare.None nicht belegbar; die A2-FileShare-Ausnahme (None → Read|Delete) ist nicht freigegeben" : "";
-  el.lockStatus.textContent = `${eventLabel} (${eventTime}). ${ownershipText}. Lesung ${observedAt ? formatDate(observedAt) : "Zeit unbekannt"}; Fenster ${window}; Quelle ${source}${revision}; Bindung ${binding}${lockId}${generation}${attempt}${metadataHash}; Vollständigkeit ${completeness}; Prozessidentität ${identity}${reason}${missingFinish}${uncertainty}. Diagnose, kein Besitznachweis.`;
+  const uncertainty = incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : !active && !released ? " · Aktive Ownerbindung nicht belegt; Originaldiagnose ist getrennt" : "";
+  el.lockStatus.textContent = `${eventLabel} (${eventTime}). ${ownershipText}. Lesung ${observedAt ? formatDate(observedAt) : "Zeit unbekannt"}; Fenster ${window}; Quelle ${source}${revision}; Bindung ${binding}${lockId}${generation}${attempt}${metadataHash}; Vollständigkeit ${completeness}; Prozessidentität ${identity}${reason}${missingFinish}${uncertainty}. Diagnose, kein Besitznachweis.${originalLockObservationText(lock)}${directOriginalLockObservationText(lock)}`;
   updateLockDetail();
+}
+
+function originalLockObservationText(lock) {
+  const original = lock?.originalObservation;
+  if (!original || typeof original !== "object") return " · Originalbeobachtung nicht geliefert; Inhaber unbekannt";
+  const evidence = original.writerEvidence;
+  const qualification = evidence?.qualification === "readCompatibleSharingViolations"
+    ? "Read-kompatible Sharing-Verletzungen; Writerzuordnung unbekannt"
+    : "Writerkonflikt nicht belegt";
+  const before = evidence?.before?.atUtc;
+  const after = evidence?.after?.atUtc;
+  const stale = lock.completeness === "stale" ? " · veralteter Diagnosebeleg" : "";
+  const utc = value => typeof value === "string" && value ? value : "unbekannt";
+  const window = original.readWindow;
+  return ` · Originaldiagnose: ${qualification}; Inhaber unbekannt (vertrauenswürdige Producerbindung fehlt)${stale}; Open-Rücklauf vor dem Bytefenster ${utc(before)}, Open-Rücklauf nach dem Bytefenster ${utc(after)}; Kernelzeitpunkt nicht gemessen (nur punktuelle Open-Rückläufe); Diagnoseabschluss UTC ${utc(original.observedAt)}; Win32 ${evidence?.before?.win32Error ?? "unbekannt"}/${evidence?.after?.win32Error ?? "unbekannt"}; Identität ${original.originalIdentity?.volumeAndFileId ?? "unbekannt"}; Originalbytes SHA256 ${original.originalMetadataHash ?? "unbekannt"}; Diagnosegesamtfenster UTC ${utc(window?.startedAtUtc)} bis ${utc(window?.completedAtUtc)}; Pfadkontinuität zwischen Opens unbestätigt; Befund ${original.reason ?? "unbekannt"}`;
+}
+// A source-specific gate; lifecycle ownership and conservative probe gates remain separate.
+function hasDirectOriginalLockObservation(direct) {
+  const utc = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}(Z|\+00:00)$/.test(value) && Number.isFinite(Date.parse(value));
+  return Boolean(direct && direct.state === "observed" && direct.currentOwnership === "observedActive"
+    && direct.bindingStatus === "originalHandleObserved" && direct.sourceReference === "producerOriginalHandle/v1"
+    && direct.completeness === "boundOriginalHandle" && direct.senderBinding === "osPidAndStartConfirmed"
+    && direct.acquisitionBinding === "registeredOriginalStream" && direct.metadataBinding === "equalOriginalSha256"
+    && direct.objectBinding === "equalFileIdInfo" && utc(direct.queryStartedAtUtc) && utc(direct.queryCompletedAtUtc)
+    && utc(direct.receivedAtUtc) && utc(direct.diagnosticCompletedAtUtc)
+    && Date.parse(direct.queryStartedAtUtc) <= Date.parse(direct.queryCompletedAtUtc)
+    && Date.parse(direct.queryCompletedAtUtc) <= Date.parse(direct.receivedAtUtc)
+    && Date.parse(direct.receivedAtUtc) <= Date.parse(direct.diagnosticCompletedAtUtc)
+    && direct.owner && typeof direct.owner.ownerName === "string" && typeof direct.owner.ownerSid === "string"
+    && Number.isInteger(direct.owner.processId) && direct.owner.processId > 0
+    && utc(direct.owner.processStartedAtUtc) && typeof direct.owner.processStartFileTime === "string" && /^[1-9][0-9]{0,18}$/.test(direct.owner.processStartFileTime)
+    && typeof direct.lockId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(direct.lockId)
+    && Number.isInteger(direct.attemptOrdinal) && direct.attemptOrdinal > 0
+    && typeof direct.requestId === "string" && /^[0-9a-f-]{36}$/.test(direct.requestId)
+    && typeof direct.objectIdentity === "string" && /^[0-9a-f]{16}:[0-9a-f]{32}$/.test(direct.objectIdentity)
+    && typeof direct.originalMetadataHash === "string" && /^[0-9a-f]{64}$/.test(direct.originalMetadataHash));
+}
+function directOriginalLockObservationText(lock) {
+  const direct = lock?.directOriginalObservation;
+  if (!hasDirectOriginalLockObservation(direct)) return ` · Direkte Originalquelle: Inhaber unbekannt; Besitz unbestätigt · Befund ${direct?.reason ?? "kein vollständig gebundener Beleg"}`;
+  const owner = direct.owner;
+  const displayAtUtc = new Date().toISOString();
+  const stale = lock.completeness === "stale" ? " · veralteter Diagnosebeleg" : "";
+  return ` · Originalstreamhalter während direkter Abfrage UTC ${direct.queryStartedAtUtc} bis ${direct.queryCompletedAtUtc}: PID ${owner.processId}, Prozessstart ${owner.processStartedAtUtc}/FILETIME ${owner.processStartFileTime}, Erwerb ${direct.lockId}/${direct.attemptOrdinal}, Objekt FILE_ID_INFO ${direct.objectIdentity}; im Erwerbskontext nach Open erfasste Windowsidentity ${owner.ownerName}/${owner.ownerSid}; Originalbytes SHA256 ${direct.originalMetadataHash}; Anfrage ${direct.requestId}; Empfang UTC ${direct.receivedAtUtc}; Diagnoseabschluss UTC ${direct.diagnosticCompletedAtUtc}; Anzeige UTC ${displayAtUtc}${stale}. Besitz bei Anzeige unbestätigt; kein NTFS-/Humanowner. Kooperativer unverfälschter lokaler Producer vorausgesetzt; keine atomare Pfadkontinuität oder Zuordnung der alten Fehlprobe.`;
 }
 
 function hasBoundReadWindow(window) {
@@ -224,8 +268,8 @@ function lockDetailValue() {
   const eventName = lock.lifecycleEvent ?? lock.state;
   const eventAt = lock.eventAtUtc ?? (["ownerObserved", "acquired"].includes(eventName) ? owner?.acquiredAtUtc : null);
   const ownership = released ? `Beobachtete Generation freigegeben; aktueller Inhaber unbekannt · currentOwnership unconfirmed · historischer Owner (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${owner?.ownerName ?? owner?.name ?? "Merkmale unbekannt"}` : active ? `Aktive Originalownership beobachtet · ${owner?.ownerName ?? owner?.name ?? "Inhabermerkmale unbekannt"}` : `Aktueller Inhaber unbekannt; currentOwnership unconfirmed${owner ? ` · historische Ownermerkmale (${lock.sourceReference ?? "Quelle nicht geliefert"}): ${owner.ownerName ?? owner.name ?? "Merkmale unbekannt"}` : ""}`;
-  const shareLimit = !active && !released ? " · aktive Originalquelle fehlt; A2 FileShare None → Read|Delete bleibt unfreigegeben" : "";
-  return `${ownership}${shareLimit} · ${lockEventLabel(eventName)}${incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : ""} · Ereignis ${eventAt ? formatDate(eventAt) : "Zeit unbekannt"} · gelesen ${readAt ? formatDate(readAt) : "Zeit unbekannt"} · Quelle ${lock.sourceReference ?? "nicht geliefert"} · Quellenrevision ${lock.sourceRevision ?? "unbekannt"} · Bindung ${lock.bindingStatus ?? "unbekannt"} · Lock-ID ${lock.lockId ?? "unbekannt"} · Generation ${lock.generationId ?? "unbekannt"} · Versuch ${lock.attemptOrdinal ?? "unbekannt"} · Metadatenhash ${lock.originalMetadataHash ?? "unbekannt"} · Lesefenster ${formatLockReadWindow(lock.readWindow)} · Vollständigkeit ${lock.completeness ?? "unbekannt"} · Prozessidentität ${lock.processIdentityStatus ?? "unbekannt"}`;
+  const shareLimit = !active && !released ? " · aktive Ownerbindung fehlt; Originaldiagnose ist getrennt" : "";
+  return `${ownership}${shareLimit} · ${lockEventLabel(eventName)}${incomplete ? ` · Diagnosezustand unbekannt: ${lockUncertaintyReason(lock)}` : ""} · Ereignis ${eventAt ? formatDate(eventAt) : "Zeit unbekannt"} · gelesen ${readAt ? formatDate(readAt) : "Zeit unbekannt"} · Quelle ${lock.sourceReference ?? "nicht geliefert"} · Quellenrevision ${lock.sourceRevision ?? "unbekannt"} · Bindung ${lock.bindingStatus ?? "unbekannt"} · Lock-ID ${lock.lockId ?? "unbekannt"} · Generation ${lock.generationId ?? "unbekannt"} · Versuch ${lock.attemptOrdinal ?? "unbekannt"} · Metadatenhash ${lock.originalMetadataHash ?? "unbekannt"} · Lesefenster ${formatLockReadWindow(lock.readWindow)} · Vollständigkeit ${lock.completeness ?? "unbekannt"} · Prozessidentität ${lock.processIdentityStatus ?? "unbekannt"}${originalLockObservationText(lock)}${directOriginalLockObservationText(lock)}`;
 }
 
 function getItems() {
