@@ -60,6 +60,82 @@ nicht zum Umgehen der Blockade gelöscht werden. Andere Blockaden nutzen
 `blockReason`, das bei Wiederaufnahme entfernt wird. Antworttexte müssen fachlich
 ausgewertet werden und erteilen keine pauschale Dienst- oder Änderungsfreigabe.
 
+Neue Anforderungen ergänzen in derselben Struktur `requestId`, `required: true`,
+`humanId`, optional `proposal` (`reference`, `sha256`, verpflichtender lokaler `path`)
+und `resolution`. Antworten ergänzen die exakte Request-ID, `decision`
+(`provided`, `approved`, `rejected`, `insufficient`), `evidence` zum tatsächlichen
+menschlichen Originaleingang und bei einem Vorschlag dessen `proposalSha256`.
+`reference` ist eine fachliche Referenz, niemals eine implizite Dateiquelle.
+Neue gebundene Producerrequests und der Anfragesetter verlangen einen expliziten
+lesbaren `path` und gleichen dessen Bytes mit `sha256` ab; neue Requests speichern
+den aufgelösten absoluten Pfad. Web und Antwort-/Resumepfade verwenden nur diesen
+Pfad. Das Snapshotschema erlaubt separat `legacyHumanProposal` ohne `path` für
+Bestand/Historie; der Transitionguard verweigert neue oder erneuerte pathlose
+Bindungen. Solcher Bestand bleibt lesbar und wird über `PreviousRequestId` mit
+realer Proposaldatei ausdrücklich erneuert, nicht über einen Referencefallback.
+`satisfied` benötigt eine passende Antwort; bei Freigaben ausdrücklich `approved`
+für die identischen Vorschlagsbytes. `rejected`/`insufficient` bleiben blockiert;
+Statuswechsel und Agentergebnisse erfüllen keine menschliche Anforderung.
+
+`Set-WorkItemHumanRequest.ps1` bindet eine neue Anfrage an ein vorhandenes WorkItem
+mit CAS-Revision und bildet den Hash aus der tatsächlichen Vorschlagsdatei.
+Eine erneute Anfrage braucht `PreviousRequestId`, archiviert die unveränderte
+bisherige Interaction in `humanInteractionHistory` und beginnt mit leerer Antwort.
+Vorschlagsänderungen benötigen diesen neuen Request und eine neue Antwort;
+Scopeänderungen erhalten ein separates WorkItem. `Complete-DelegatedWorkItem.ps1`
+übernimmt `humanId`/`proposal` aus einem korrelierten blockierten Ergebnis, niemals
+eine Agentantwort als Humanantwort. Alte `kind`/`description`-Producer bleiben lesbar.
+
+`Set-WorkItemHumanResponse.ps1` ist der menschliche Eingang (auch über die bestehende
+lokale Web-Brücke). Er verlangt Originalbeleg, zuständigen Respondenten, offene
+Anfrage und die frisch gelesene globale Revision; neue Requests verlangen zusätzlich
+die exakte Request-ID. Gebundene Vorschlagsbytes werden vor Antwort und Fortsetzung
+abgeglichen. Ein erfolgreicher CAS persistiert Antwort und Auflösung, hält das
+WorkItem zunächst `blocked` und schreibt die bestehende recoverbare Store-Outbox.
+Der Antwortintent enthält `humanResponseEvent` einschließlich resultierender Revision;
+nur dieser Intent publiziert die neue gebundene Antwort, nicht spätere Statuswrites.
+Der Koordinatorimport erzeugt daraus ein idempotentes `human_response`-Ereignis,
+gebunden an WorkItem, Request, Antwort und Proposal. Eine eigene `propose_resume`
+Entscheidung prüft dies und abgenommene Dependencies; sie ersetzt keine Elternabnahme.
+Nur das betroffene WorkItem und seine expliziten Dependencies warten. Ein gemeinsamer
+Elternknoten allein sperrt unabhängige Geschwister bei Humanwaiting nicht.
+Diese Ausnahme gilt nur bei `blocked`, offener unbeantworteter Anfrage ohne
+Auflösung und `blockReason: null` oder negativer Humanentscheidung mit exakt
+passendem Humanblockmarker bis zur ausdrücklichen Erneuerung. So sperrt auch eine
+Ablehnung unabhängige Geschwister nicht. Historische satisfied Interactions
+heben keine Elternblockade auf. Ein zusätzlicher `blockReason` bleibt bei neuer
+Anfrage und Antwort erhalten. Beim Producer bezeichnet nur `reason: null` mit
+Humanrequest reines Humanwaiting; andere oder bereits gespeicherte Gründe bleiben
+Blockquellen. Der genaue vom Antwortsetter erzeugte Humanmarker darf bei expliziter
+Erneuerung ersetzt werden; ein Humanresponse-Resume darf andere Gründe nicht löschen.
+Deren Aufhebung braucht die vorhandene separate Koordinatorbewertung über einen
+anderen gebundenen Resumetrigger. Negative Entscheidungen bleiben zusätzlich in
+der Interaction erhalten und verhindern Resume unabhängig vom Blocktext.
+Reguläre menschliche Owner bleiben zulässig, werden aber nicht als Agenten gestartet.
+Ihr Ergebnis und die getrennte Kriterienprüfung laufen über den vorhandenen regulären
+WorkItem-Schreibweg (`Set-WorkItem.ps1`); eine Humanantwort setzt weder `implementedAt`
+noch `acceptedAt`. Eine abhängige Folgeaufgabe wird erst nach der erforderlichen
+WorkItem-Abnahme planbar, eine Fortsetzung desselben beantworteten Agenten-WorkItems
+über den gebundenen Resumeweg. Der Antwortkanal wählt keine freie Folgeaufgabe.
+
+Migration innerhalb Schema 1.0 ist additiv und ausgeführt erst bei ausdrücklichem
+Write: alte offene Informations-/Aktionsrequests erhalten bei realer Antwort den
+deterministischen Schlüssel aus WorkItem-ID und genauer Anfragezeit sowie den
+gelieferten Menschen/Beleg. Vorhandene Antworten werden unverändert erhalten und
+nie nachträglich zu `approved` hochgestuft. Alte Approvalrequests werden über den
+Anfragesetter mit konkreten Vorschlagsbytes und Human-ID erneuert; alte Antwort oder
+offene Anfrage bleibt Historie. Aktive historische Snapshots bleiben lesbar; der
+Legacy-Freitext allein eröffnet keinen neuen Freigabe-/Resumeweg. Terminale Einträge
+bleiben unverändert, neue Arbeit erhält neue WorkItems. Kein Bestand wird installiert
+oder automatisch migriert.
+
+Der vorhandene Delegations-Jobmarker sperrt agentische Antwortaufnahme, der normale
+Storeweg verweigert direkte Antwort-/Auflösungsänderungen. Respondent, Originalbeleg
+und lokale Session sind keine unabhängig authentifizierte menschliche Identität.
+Die tatsächliche Zuständigkeit und Originalquelle werden im menschlichen Eingang
+verantwortet. Gleiche lokale Dateirechte erlauben Umgehen des Anwendungspfads;
+hier wird keine zusätzliche Authentifizierungs-/Codeattestationsplattform behauptet.
+
 ## Produktive Validierung
 
 Es gilt die [aktuelle Prüfregel](../../AGENTS.md): keine Tests ausführen oder erstellen.

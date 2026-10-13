@@ -33,7 +33,9 @@ if ($previousJob.task_id -cne $job.parent_task_id -or [IO.Path]::GetFullPath($pr
 $children = @($snapshot.Document.items | Where-Object { $_.parentId -ceq $WorkItemId })
 $openChildren = @($children | Where-Object { $_.status -cnotin @('accepted','cancelled') })
 if ($openChildren.Count) { throw ('Parent review blocked by unfinished children: ' + (@($openChildren | ForEach-Object id) -join ', ')) }
-if ($null -ne $parent.humanInteraction -and $null -eq $parent.humanInteraction.response) { throw 'Unanswered humanInteraction blocks parent acceptance.' }
+. (Join-Path $PSScriptRoot 'HumanInteraction.ps1')
+if (-not (Test-HISatisfied $parent.humanInteraction)) { throw 'Unresolved humanInteraction blocks parent acceptance.' }
+Assert-HIProposalCurrent $parent.humanInteraction
 $criteria = @($parent.acceptanceCriteria)
 foreach ($required in @('implementedAt','checkedAt','reviewer','passed','results')) { if (-not $Verification.PSObject.Properties[$required]) { throw "Verification lacks required bound field $required." } }
 if ($Verification.passed -isnot [bool] -or $Verification.reviewer -isnot [pscustomobject] -or $Verification.reviewer.type -cne 'agent' -or $Verification.reviewer.id -cne $job.role) { throw 'Verification reviewer or passed value is not the caller identity and a strict boolean.' }

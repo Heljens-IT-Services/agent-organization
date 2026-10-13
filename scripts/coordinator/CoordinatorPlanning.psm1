@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot 'Lifecycle.Persistence.ps1')
+. (Join-Path $PSScriptRoot '..\workitems\HumanInteraction.ps1')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'CoordinatorAdmission.psm1') -Force
@@ -35,6 +36,7 @@ function Get-CoordinatorPlanningDecision {
     $ready=@(); $waiting=@()
     foreach($item in $items){
         if ($item.status -notin @('planned','rework','in_progress')) { continue }
+        if ((Get-PlanningValue (Get-PlanningValue $item 'owner') 'type') -ceq 'human') { $waiting += [pscustomobject]@{item=$item;reason='human-owner';wake=$null}; continue }
         if($item.status -ceq 'in_progress' -and $ResumeRequiredWorkItemIds -cnotcontains [string]$item.id){continue}
         if($ResumeRequiredWorkItemIds -ccontains [string]$item.id -and (-not $ResumeAssessments.Contains([string]$item.id) -or -not $ResumeAssessments[[string]$item.id])){$waiting+=[pscustomobject]@{item=$item;reason='resume-receipt';wake=$null};continue}
         $root=$item; $parent=$item; $valid=$true
@@ -42,10 +44,12 @@ function Get-CoordinatorPlanningDecision {
             $pid=[string](Get-PlanningValue $parent 'parentId')
             if(-not $byId.ContainsKey($pid)){ $valid=$false; break }
             $parent=$byId[$pid]; $root=$parent
-            if($parent.status -in @('blocked','cancelled','accepted','completed')){$valid=$false;break}
+            if($parent.status -in @('cancelled','accepted','completed') -or ($parent.status -ceq 'blocked' -and -not (Test-HIOnlyWaiting $parent))){$valid=$false;break}
         }
         if(-not $valid){continue}
-        $rootInteraction=Get-PlanningValue $root 'humanInteraction';$humanBlocked=($null -ne $rootInteraction -and $null -eq (Get-PlanningValue $rootInteraction 'response'))
+        # Human waiting belongs to the affected item; dependencies bind follow-up work.
+        # A shared parent alone must not stop independent siblings.
+        $rootInteraction=Get-PlanningValue $item 'humanInteraction';$humanBlocked= -not (Test-HISatisfied $rootInteraction)
         if($humanBlocked){$waiting += [pscustomobject]@{item=$item;reason='human-response';wake=$null};continue}
         $dueProp=$item.PSObject.Properties['dueAt']; $due=$null
         if($dueProp -and $dueProp.Value){$due=[DateTimeOffset]::Parse([string]$dueProp.Value).UtcDateTime;if($due -gt $NowUtc.ToUniversalTime()){$waiting += [pscustomobject]@{item=$item;reason='due';wake=$due};continue}}
@@ -73,7 +77,7 @@ function Get-CoordinatorPlanningDecision {
         $sidecar=Join-Path $StateDirectory 'planning-waiting.json'
         $reminderPath=Join-Path $StateDirectory 'planning-reminders.json';$reminders=@{}
         if(Test-Path -LiteralPath $reminderPath){try{$old=([IO.File]::ReadAllText($reminderPath,[Text.Encoding]::UTF8)|ConvertFrom-Json);foreach($p in $old.PSObject.Properties){$reminders[$p.Name]=$p.Value}}catch{throw 'PlanningReminderStateUnreadable; reminders fail closed'}}
-        $dueReminders=@();$eventDirectory=Join-Path $StateDirectory 'planning-wake-events';foreach($item in $items){$root=$item;while((Get-PlanningValue $root 'parentId') -and $byId.ContainsKey([string](Get-PlanningValue $root 'parentId'))){$root=$byId[[string](Get-PlanningValue $root 'parentId')]};$interaction=Get-PlanningValue $root 'humanInteraction';$due=Get-PlanningValue $item 'dueAt';if(($null -eq $interaction -or $null -ne (Get-PlanningValue $interaction 'response')) -and $due -and [DateTimeOffset]::Parse([string]$due).UtcDateTime -le $NowUtc.ToUniversalTime()){$generation=[string](Get-PlanningValue $item 'revision' '0');$key=[string]$item.id+':'+$generation+':'+[string]$due;$eventId='reminder-'+$key;$eventFile=Join-Path $eventDirectory ($eventId -replace '[^a-zA-Z0-9_.-]','_')+'.json';if(-not $reminders.ContainsKey($key) -and -not (Test-Path -LiteralPath $eventFile)){$reminders[$key]=$true;$dueReminders += [ordered]@{eventId=$eventId;workItemId=[string]$item.id;generation=$generation;dueAt=[string]$due}}}}
+        $dueReminders=@();$eventDirectory=Join-Path $StateDirectory 'planning-wake-events';foreach($item in $items){$root=$item;while((Get-PlanningValue $root 'parentId') -and $byId.ContainsKey([string](Get-PlanningValue $root 'parentId'))){$root=$byId[[string](Get-PlanningValue $root 'parentId')]};$interaction=Get-PlanningValue $item 'humanInteraction';$due=Get-PlanningValue $item 'dueAt';if((Test-HISatisfied $interaction) -and $due -and [DateTimeOffset]::Parse([string]$due).UtcDateTime -le $NowUtc.ToUniversalTime()){$generation=[string](Get-PlanningValue $item 'revision' '0');$key=[string]$item.id+':'+$generation+':'+[string]$due;$eventId='reminder-'+$key;$eventFile=Join-Path $eventDirectory ($eventId -replace '[^a-zA-Z0-9_.-]','_')+'.json';if(-not $reminders.ContainsKey($key) -and -not (Test-Path -LiteralPath $eventFile)){$reminders[$key]=$true;$dueReminders += [ordered]@{eventId=$eventId;workItemId=[string]$item.id;generation=$generation;dueAt=[string]$due}}}}
         if($dueReminders.Count){[void][IO.Directory]::CreateDirectory($eventDirectory);foreach($event in $dueReminders){$bytes=[Text.UTF8Encoding]::new($false).GetBytes((ConvertTo-Json -InputObject $event -Compress));$eventFile=Join-Path $eventDirectory ($event.eventId -replace '[^a-zA-Z0-9_.-]','_')+'.json';try{$stream=[IO.File]::Open($eventFile,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None);try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}}catch [IO.IOException]{} }}
         if($dueReminders.Count){$reminderJson=ConvertTo-Json -InputObject $reminders -Depth 5;$tmpReminder=$reminderPath+'.'+[guid]::NewGuid().ToString('N')+'.tmp';[IO.File]::WriteAllText($tmpReminder,$reminderJson,[Text.UTF8Encoding]::new($false));if(Test-Path -LiteralPath $reminderPath){[IO.File]::Replace($tmpReminder,$reminderPath,$null)}else{[IO.File]::Move($tmpReminder,$reminderPath)}}
         $state=[ordered]@{items=@($waiting | ForEach-Object {[ordered]@{workItemId=[string]$_.item.id;reason=$_.reason;wakeAt=$(if($null -ne $_.wake){$_.wake.ToString('o')}else{$null})}});selected=@($selected|ForEach-Object{[string]$_.id});availableSlots=$available;capacityUnknown=$unknown;wakeEvents=$dueReminders}
