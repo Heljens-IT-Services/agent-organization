@@ -1,4 +1,5 @@
 # Internal admission primitives. No native completion token is manufactured here.
+. (Join-Path $PSScriptRoot 'ManagedOperations.Persistence.ps1')
 $script:AdmissionUtf8=[Text.UTF8Encoding]::new($false,$true)
 $script:AdmissionAllSources=@('cli','vscode','exec','appServer','subAgent','subAgentReview','subAgentCompact','subAgentThreadSpawn','subAgentOther','unknown')
 function Get-AdmissionField($Value,[string]$Name,$Default=$null) {
@@ -33,6 +34,10 @@ function Get-AdmissionGuid([string]$Value){$g=[guid]::Empty;if([guid]::TryParse(
 function Test-AdmissionTerminalRelease($Entry) {
     try{
         if((Get-AdmissionField $Entry 'state') -cne 'terminal' -or -not (Get-AdmissionField $Entry 'terminalAt') -or -not (Get-AdmissionField $Entry 'resultPath')){return $false}
+        if((Get-AdmissionField (Get-AdmissionField $Entry 'admission') 'kind') -ceq 'managed-local-v1'){
+            $release=Get-AdmissionField $Entry 'releaseWake'
+            if(-not $release -or $release.payload.resultHash -cne (Get-AdmissionHash ([IO.File]::ReadAllBytes($Entry.resultPath)))){return $false}
+        }
         $r=Read-AdmissionJson $Entry.resultPath
         if((Get-AdmissionGuid $r.task_id) -cne (Get-AdmissionGuid $Entry.taskId) -or $r.terminal_outcome -notin @('completed','failed','interrupted')){return $false}
         $journal=[string](Get-AdmissionField $Entry 'dispatchJournalPath')
@@ -50,23 +55,26 @@ function Get-AdmissionCount([object[]]$Entries) {
         foreach($n in @('taskId','dispatchId','executionId')){$v=[string](Get-AdmissionField $e $n);if($v){$keys.Add($n+':'+(Get-AdmissionGuid $v))}}
         $thread=[string](Get-AdmissionField $e 'nativeThreadId');$binding=Get-AdmissionField $e 'providerBinding'
         if($thread){$origin=[string](Get-AdmissionField $binding 'origin');$generation=[string](Get-AdmissionField $binding 'generation');if(-not $origin -or -not $generation){$unknown=$true;$reasons.Add('UnqualifiedNativeThread')}else{$keys.Add('thread:'+$origin+'|'+$generation+'|'+$thread)}}
-        if(-not $keys.Count -or (Get-AdmissionField $e 'state') -notin @('reserved','active')){$unknown=$true;$reasons.Add('PersistedAdmittedWorkUnknown')}
+        if(-not $keys.Count -or ((Get-AdmissionField $e 'state') -notin @('reserved','active') -and -not ((Get-AdmissionField (Get-AdmissionField $e 'admission') 'kind') -ceq 'managed-local-v1' -and (Get-AdmissionField $e 'state') -ceq 'unknown'))){$unknown=$true;$reasons.Add('PersistedAdmittedWorkUnknown')}
         foreach($k in $keys){if($alias.ContainsKey($k)){$a=$i;$b=[int]$alias[$k];while($parent[$a] -ne $a){$a=$parent[$a]};while($parent[$b] -ne $b){$b=$parent[$b]};if($a -ne $b){$parent[$b]=$a}};$alias[$k]=$i}
     }
     $groups=@{};for($i=0;$i -lt $rows.Count;$i++){$p=$i;while($parent[$p] -ne $p){$p=$parent[$p]};if(-not $groups.ContainsKey($p)){$groups[$p]=[Collections.ArrayList]::new()};[void]$groups[$p].Add($rows[$i])}
     foreach($group in $groups.Values){foreach($n in @('taskId','dispatchId','executionId')){$ids=@($group|ForEach-Object{$v=[string](Get-AdmissionField $_ $n);if($v){Get-AdmissionGuid $v}}|Sort-Object -Unique);if($ids.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingAlias:'+ $n)}}}
-    $roleCounts=@{};$workItemIds=@{}
+    $roleCounts=@{};$teamCounts=@{};$workItemIds=@{}
     foreach($group in $groups.Values){
         $roles=@($group|ForEach-Object{Get-AdmissionField $_ 'role'}|Where-Object{$_}|Sort-Object -Unique)
         if($roles.Count -eq 0){$unknown=$true;$reasons.Add('ExecutionRoleUnknown')}
         if($roles.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingExecutionRoles')}
         if($roles.Count -eq 1){$role=[string]$roles[0];if(-not $roleCounts.ContainsKey($role)){$roleCounts[$role]=0};$roleCounts[$role]++}
+        $teams=@($group|ForEach-Object{Get-AdmissionField $_ 'teamKey'}|Where-Object{$_}|Sort-Object -Unique)
+        if($teams.Count -gt 1 -or ($roles.Count -eq 1 -and $roles[0] -cne 'koordinator' -and $teams.Count -ne 1)){$unknown=$true;$reasons.Add('ExecutionTeamUnknownOrConflict')}
+        if($teams.Count -eq 1){$team=[string]$teams[0];if(-not $teamCounts.ContainsKey($team)){$teamCounts[$team]=0};$teamCounts[$team]++}
         $groupWorkIds=@($group|ForEach-Object{Get-AdmissionField $_ 'workItemId'}|Where-Object{$_}|Sort-Object -Unique)
         if($groupWorkIds.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingExecutionWorkItems')}
         if($roles.Count -eq 1 -and [string]$roles[0] -like 'teamleiter_*' -and $groupWorkIds.Count -ne 1){$unknown=$true;$reasons.Add('TeamExecutionWorkItemUnknown')}
         foreach($id in $groupWorkIds){$workItemIds[[string]$id]=$true}
     }
-    [pscustomobject]@{Count=$groups.Count;Executions=$rows;RoleCounts=$roleCounts;WorkItemIds=@($workItemIds.Keys);CapacityKnown=(-not $unknown);CapacityUnknown=$unknown;Reasons=@($reasons.ToArray())}
+    [pscustomobject]@{Count=$groups.Count;Executions=$rows;RoleCounts=$roleCounts;TeamCounts=$teamCounts;WorkItemIds=@($workItemIds.Keys);CapacityKnown=(-not $unknown);CapacityUnknown=$unknown;Reasons=@($reasons.ToArray())}
 }
 function Add-AdmissionPin([Collections.IDictionary]$Pins,[string]$Path) {
     if(-not $Path -or -not [IO.Path]::IsPathRooted($Path)){throw 'AdmissionBindingPathMissing'}
@@ -81,13 +89,14 @@ function Get-AdmissionRoot([string]$JobPath) {
     }
     throw 'ActualAdmissionRootMissing'
 }
-function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]$Entries,$Target) {
+function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]$Entries,$Target,[switch]$ManagedLocal) {
     $pins=[ordered]@{};$unknown=[Collections.Generic.List[string]]::new();$providers=[ordered]@{}
     $root=Add-AdmissionPin $pins $RootJobPath
     if($root.role -cne 'koordinator' -or $root.parent_job_path -or $root.parent_task_id -or -not $root.task_id){throw 'ActualRootJobRequired'}
     $launchPath=[string]$root.coordinator_launch.inputPath;$launch=Add-AdmissionPin $pins $launchPath
     if($pins[[IO.Path]::GetFullPath($launchPath)] -cne $root.coordinator_launch.inputHash){throw 'AdmissionLaunchHashMismatch'}
     $session=Add-AdmissionPin $pins $SessionPath
+    if($ManagedLocal -and $session.State -cne 'Ready'){throw 'AdmissionUnknown: ManagedHostNotReady'}
     if($session.RootTaskId -cne $root.task_id -or $session.CoordinatorJobPath -cne [IO.Path]::GetFullPath($RootJobPath) -or $session.CoordinatorLaunchConfigHash -cne $root.coordinator_launch.inputHash -or -not $session.LogicalSessionId){throw 'AdmissionSessionBindingMismatch'}
     $policy=Get-AdmissionField $launch 'admissionPolicy';$limit=Get-AdmissionField $policy 'scanBudgetMilliseconds' 10000
     if((Get-AdmissionField $policy 'snapshotReuse' $false) -ne $false -or [int]$limit -le 0){throw 'AdmissionPolicyInvalid'}
@@ -97,6 +106,7 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
     foreach($n in @('workItemStorePath','eventJournalPath')){[void](Add-AdmissionPin $pins ([string](Get-AdmissionField $launch $n)))}
     if([IO.Path]::GetFullPath($root.coordinator_data_directory) -cne [IO.Path]::GetFullPath([string]$launch.registryDirectory) -or $session.StorePath -cne $launch.workItemStorePath -or $session.AccountingDirectory -cne $root.accounting_directory){throw 'AdmissionRootScopeMismatch'}
     $work=@((Get-AdmissionCount $Entries).Executions)
+    if(-not $ManagedLocal){
     try{
         foreach($item in @(Get-ChildItem -LiteralPath $root.accounting_directory -Filter 'execution-*.json' -File)){
             $reservation=Read-AdmissionJson $item.FullName
@@ -160,6 +170,7 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
             $activePath=$jp+'.active.json';if([IO.File]::Exists($activePath)){[void](Add-AdmissionPin $pins $activePath)}
         }catch{$unknown.Add($_.Exception.Message)}
     }
+    } # Legacy inventory is diagnostic, not the managed-host membership source.
     if($Target){
         try{
             if(-not $Target.taskId -or -not $Target.dispatchId -or -not $Target.payloadHash -or -not $Target.resultPath){throw 'AdmissionTargetIncomplete'}
@@ -200,6 +211,7 @@ function Invoke-AdmissionRegistryLocked {
     $file=Join-Path $Directory 'executions.json';$metaPath=Join-Path $Directory 'execution-inventory.json'
     $meta=if([IO.File]::Exists($metaPath)){Read-AdmissionJson $metaPath}else{$null}
     $revision=[long](Get-AdmissionField $meta 'mutationRevision' 0)
+    foreach($record in $Entries){$revision=[Math]::Max($revision,[long](Get-AdmissionField (Get-AdmissionField $record 'admission') 'revision' 0))}
     [void](Get-AdmissionRemainingMilliseconds $Budget)
     if($Action -eq 'Count'){return Get-AdmissionCount $Entries}
     if($Action -eq 'ConfirmInventory'){throw 'AdmissionUnknown: LegacyCompleteEpochCannotGrantOrRelease'}
@@ -222,9 +234,16 @@ function Invoke-AdmissionRegistryLocked {
         $matches=@($Entries|Where-Object{(Get-AdmissionGuid $_.taskId) -ceq (Get-AdmissionGuid $Target.taskId) -and $_.state -ne 'terminal'})
         if($matches.Count -ne 1){throw 'AdmissionProviderReservationRequired'}
         $prior=Get-AdmissionField $matches[0] 'providerBinding'
-        if($prior -and $prior.generation -cne $binding.generation){throw 'AdmissionUnknown: MissingExternalAccess:ExactProviderOwnershipTransfer'}
+        if($prior -and $prior.generation -cne $binding.generation){
+            if((Get-AdmissionField $matches[0].admission 'kind') -cne 'managed-local-v1'){throw 'AdmissionUnknown: ExactProviderOwnershipTransferRequired'}
+            try{$oldProcess=[Diagnostics.Process]::GetProcessById([int]$prior.processId)}catch [ArgumentException]{$oldProcess=$null}
+            if($oldProcess){try{if(-not $oldProcess.HasExited -and $oldProcess.StartTime.ToUniversalTime().ToString('o') -ceq $prior.processStartedUtc){throw 'AdmissionUnknown: PriorManagedProviderStillAlive'}}finally{$oldProcess.Dispose()}}
+            if(@(Get-AdmissionField $matches[0] 'managedOperations' @()|Where-Object{$_.state -cne 'Acknowledged'}).Count){throw 'AdmissionUnknown: PriorManagedOperationUnresolved'}
+        }
         $job=Read-AdmissionJson $binding.origin;$root=Get-AdmissionRoot $binding.origin;$session=Read-AdmissionJson $binding.sessionPath
         if((Get-AdmissionGuid $job.task_id) -cne (Get-AdmissionGuid $Target.taskId) -or $root.Path -cne $binding.rootJobPath -or $session.LogicalSessionId -cne $binding.logicalSessionId -or $session.RootTaskId -cne $root.Job.task_id){throw 'AdmissionProviderRootMismatch'}
+        $matches[0].admission.logicalSessionId=$session.LogicalSessionId
+        $matches[0]|Add-Member -NotePropertyName jobPath -NotePropertyValue $binding.origin -Force
         $matches[0]|Add-Member -NotePropertyName providerBinding -NotePropertyValue $binding -Force
         $matches[0].providerBinding|Add-Member -NotePropertyName receiptPath -NotePropertyValue $ProviderBinding.receiptPath -Force
         $matches[0].providerBinding|Add-Member -NotePropertyName receiptHash -NotePropertyValue $ProviderBinding.receiptHash -Force
@@ -232,15 +251,59 @@ function Invoke-AdmissionRegistryLocked {
         return $matches[0]
     }
     if($Action -eq 'EnrollRoot'){
-        # Enrollment persists an intent, never a model-start grant. Legacy membership cannot be certified by absence.
+        # Enrollment reserves the explicit host root; it certifies no foreign provider membership.
         $root=Read-AdmissionJson $RootJobPath;$launch=Read-AdmissionJson $root.coordinator_launch.inputPath
         if($root.role -cne 'koordinator' -or $root.parent_task_id -or $root.parent_job_path -or -not $root.task_id -or (Get-AdmissionHash ([IO.File]::ReadAllBytes($root.coordinator_launch.inputPath))) -cne $root.coordinator_launch.inputHash -or [IO.Path]::GetFullPath($Directory) -cne [IO.Path]::GetFullPath($launch.registryDirectory)){throw 'ActualRootEnrollmentBindingRequired'}
         $existing=@($Entries|Where-Object{(Get-AdmissionGuid $_.taskId) -ceq (Get-AdmissionGuid $root.task_id)})
-        if($existing.Count){if($existing.Count -ne 1 -or $existing[0].jobPath -cne [IO.Path]::GetFullPath($RootJobPath)){throw 'RootEnrollmentConflict'};return $existing[0]}
+        if($existing.Count){if($existing.Count -ne 1 -or $existing[0].jobPath -cne [IO.Path]::GetFullPath($RootJobPath)){throw 'RootEnrollmentConflict'};throw 'AdmissionUnknown: ExistingRootRequiresReceiptOnlyRecovery'}
         if((Get-AdmissionCount $Entries).Count){throw 'AdmissionUnknown: RootEnrollmentNeedsExistingMembershipReconciliation'}
-        # No fresh-install/legacy proof is present in this registry contract. Persist pending, do not bootstrap-spawn.
-        $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $root.task_id);executionId=(Get-AdmissionGuid $root.task_id);dispatchId=$root.dispatch_id;nativeThreadId=$null;role='koordinator';jobPath=[IO.Path]::GetFullPath($RootJobPath);resultPath=$root.result_file;payloadHash=$root.payload_hash;state='unknown';enrollment='pending';AdmissionAllowed=$false;Reused=$false;reason='MissingExternalAccess:LegacyEnrollmentAndNativeBirthFence'}
+        # Empty managed ledger permits this new root only; existing unknown work remains a barrier.
+        $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $root.task_id);executionId=(Get-AdmissionGuid $root.task_id);dispatchId=$root.dispatch_id;nativeThreadId=$null;role='koordinator';jobPath=[IO.Path]::GetFullPath($RootJobPath);resultPath=$root.result_file;payloadHash=$root.payload_hash;state='reserved';teamKey=$null;enrollment='managed-local';AdmissionAllowed=$true;Reused=$false;admission=@{kind='managed-local-v1';rootJobPath=[IO.Path]::GetFullPath($RootJobPath);logicalSessionId=$null;revision=($revision+1)};reason='ManagedHostScopeOnly'}
         [void](Write-AdmissionJson $file @($Entries+$entry));[void](Write-AdmissionJson $metaPath @{mutationRevision=($revision+1);inFlight=$null;invalidated=$entry.reason});return $entry
+    }
+    if($Action -eq 'ReserveManaged'){
+        $scope=Get-AdmissionScope $RootJobPath $SessionPath $Entries $Target -ManagedLocal
+        if($scope.Unknown.Count){throw ('AdmissionUnknown: '+($scope.Unknown -join ','))}
+        $root=Read-AdmissionJson $RootJobPath;$launch=Read-AdmissionJson $root.coordinator_launch.inputPath
+        foreach($e in $Entries){
+            if(Test-AdmissionTerminalRelease $e){continue}
+            if((Get-AdmissionField (Get-AdmissionField $e 'admission') 'kind') -cne 'managed-local-v1' -or $e.admission.rootJobPath -cne $scope.RootJobPath -or ($e.admission.logicalSessionId -and $e.admission.logicalSessionId -cne $scope.LogicalSessionId)){throw 'AdmissionUnknown: ManagedBaselineUnbound'}
+        }
+        $existing=@($Entries|Where-Object{(Get-AdmissionGuid $_.taskId) -ceq (Get-AdmissionGuid $Target.taskId) -or (Get-AdmissionGuid $_.dispatchId) -ceq (Get-AdmissionGuid $Target.dispatchId)})
+        if($existing.Count){throw 'AdmissionUnknown: ExistingReservationRequiresReceiptOnlyRecovery'}
+        $parentJob=Read-AdmissionJson $Target.parentJobPath
+        $parents=@($Entries|Where-Object{(Get-AdmissionGuid $_.taskId) -ceq (Get-AdmissionGuid $parentJob.task_id) -and $_.state -in @('reserved','active')})
+        if($parents.Count -ne 1){throw 'AdmissionUnknown: ManagedParentReservationRequired'}
+        if($parentJob.role -ceq 'koordinator'){
+            if($Target.role -notmatch '^teamleiter_[a-z][a-z0-9_]*$'){throw 'AdmissionUnknown: CoordinatorMustStartTeamLeader'}
+            $team=[string]$Target.role
+        }else{
+            $team=[string](Get-AdmissionField $parents[0] 'teamKey')
+            if(-not $team -or $parentJob.role -cne $team -or $Target.role -like 'teamleiter_*' -or $Target.role -ceq 'koordinator'){throw 'AdmissionUnknown: SpecialistParentAuthorityRequired'}
+        }
+        $count=Get-AdmissionCount $Entries
+        if($count.CapacityUnknown){throw 'AdmissionUnknown: ManagedCapacityUnknown'}
+        $waitPath=Join-Path (Join-Path $Directory 'managed-waiting') ((Get-AdmissionGuid $Target.dispatchId)+'.json')
+        $wait=[ordered]@{target=$Target;targetHash=(Get-AdmissionObjectHash $Target);rootJobPath=$scope.RootJobPath;teamKey=$team;state='waiting';reason='capacity'}
+        if($count.Count -ge $scope.Capacity){[void](Write-AdmissionJson $waitPath $wait);throw 'CoordinatorCapacityFull'}
+        $limits=Get-AdmissionField $launch 'teamCapacities'
+        if($limits){foreach($property in $limits.PSObject.Properties){$limit=0;if(-not [int]::TryParse([string]$property.Value,[ref]$limit) -or $property.Name -notmatch '^teamleiter_[a-z][a-z0-9_]*$' -or $limit -lt 1 -or $limit -gt $scope.Capacity){throw 'AdmissionTeamCapacityInvalid'}}}
+        $teamLimit=Get-AdmissionField $limits $team $scope.Capacity
+        if($count.TeamCounts.ContainsKey($team) -and [int]$count.TeamCounts[$team] -ge [int]$teamLimit){$wait.reason='team-capacity';[void](Write-AdmissionJson $waitPath $wait);throw 'CoordinatorCapacityFull:TeamCapacity'}
+        # Team parents retain their slot while a specialist executes. Keep one
+        # unallocated child slot available for each newly admitted team parent.
+        $minimum=if($Target.role -like 'teamleiter_*' -and [int]$teamLimit -gt 1){2}else{1}
+        $headroom=Get-ManagedChildHeadroom $count.Executions
+        $required=$minimum
+        $workingSpecialists=@($count.Executions|Where-Object{(Get-AdmissionField $_ 'role') -cne 'koordinator' -and (Get-AdmissionField $_ 'role') -notlike 'teamleiter_*' -and $_.state -ceq 'active' -and (Get-AdmissionField $_ 'nativeThreadId')})
+        if($scope.Capacity -ge 4 -and $workingSpecialists.Count){$required=1}
+        if($Target.role -like 'teamleiter_*' -and $count.Count+$headroom+$required -gt $scope.Capacity){$wait.reason='child-headroom';[void](Write-AdmissionJson $waitPath $wait);throw 'CoordinatorCapacityFull:ChildHeadroom'}
+        $authority=Read-AdmissionJson $Target.startIntentPath
+        $requestHash=Get-AdmissionObjectHash @{target=$Target;scope=$scope.Hash;registry=(Get-AdmissionRegistryHash $file)}
+        $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $Target.taskId);dispatchId=(Get-AdmissionGuid $Target.dispatchId);executionId=(Get-AdmissionGuid $Target.dispatchId);nativeThreadId=$null;role=$Target.role;teamKey=$team;minimumConcurrentExecutions=$minimum;workItemId=(Get-AdmissionField $authority.parameters 'WorkItemId');resultPath=$Target.resultPath;jobPath=$null;payloadHash=$Target.payloadHash;dispatchJournalPath=$Target.dispatchJournalPath;parentJobPath=$Target.parentJobPath;parentContextPath=$Target.parentContextPath;parentContextHash=$Target.parentContextHash;startIntentPath=$Target.startIntentPath;startIntentHash=$Target.startIntentHash;state='reserved';terminalAt=$null;createdAt=[DateTime]::UtcNow.ToString('o');admission=@{kind='managed-local-v1';requestHash=$requestHash;targetHash=(Get-AdmissionObjectHash $Target);scopeHash=$scope.Hash;rootJobPath=$scope.RootJobPath;logicalSessionId=$scope.LogicalSessionId;revision=($revision+1)};Reused=$false}
+        foreach($pin in $scope.Pins.Keys){if((Get-AdmissionHash ([IO.File]::ReadAllBytes($pin))) -cne $scope.Pins[$pin]){throw 'AdmissionUnknown: ManagedAuthorityChangedBeforeCommit'}}
+        [void](Write-AdmissionJson $file @($Entries+$entry))
+        return $entry
     }
     if($Action -eq 'BeginAdmission'){
         $scope=Get-AdmissionScope $RootJobPath $SessionPath $Entries $Target
@@ -271,7 +334,7 @@ function Invoke-AdmissionRegistryLocked {
             foreach($o in @($answer.observations)){
                 if(-not $o.threadId -or $o.origin -cne $p.origin -or $o.generation -cne $p.generation){throw 'AdmissionUnknown: ObservationProviderIdentityMissing'}
                 $bound=@($Entries+$newObservations|Where-Object{(Get-AdmissionField $_ 'nativeThreadId') -ceq $o.threadId -and (Get-AdmissionField (Get-AdmissionField $_ 'providerBinding') 'origin') -ceq $p.origin -and (Get-AdmissionField (Get-AdmissionField $_ 'providerBinding') 'generation') -ceq $p.generation})
-                if(-not $bound.Count){$newObservations+=[pscustomobject]@{taskId=$null;dispatchId=$null;executionId=$null;nativeThreadId=$o.threadId;providerBinding=$p;state='unknown';role=$null;source='native-observation';observation=$o;requestHash=$RequestHash;resultPath=$null;terminalAt=$null;inventoryAbsentAt=$null}}
+                if(-not $bound.Count -and @($request.boundThreads|Where-Object{$_.id -ceq $o.threadId -and $_.origin -ceq $p.origin -and $_.generation -ceq $p.generation}).Count){$newObservations+=[pscustomobject]@{taskId=$null;dispatchId=$null;executionId=$null;nativeThreadId=$o.threadId;providerBinding=$p;state='unknown';role=$null;source='native-observation';observation=$o;requestHash=$RequestHash;resultPath=$null;terminalAt=$null;inventoryAbsentAt=$null}}
             }
         }
     }
@@ -372,7 +435,7 @@ function Invoke-AdmissionProviderCollection {
                     if(-not $t.id){throw 'ThreadCatalogIdMissing'}
                     $id=[string]$t.id;$fingerprint=Get-AdmissionObjectHash $t
                     if($catalogRecords.ContainsKey($id) -and $catalogRecords[$id] -cne $fingerprint){throw 'ThreadListPaginationRecordConflict'}
-                    $catalogRecords[$id]=$fingerprint;$ids[$id]=$true
+                    $catalogRecords[$id]=$fingerprint # Catalog presence never enrolls foreign threads.
                 }
                 $cursor=$page.nextCursor;if($null -ne $cursor){if(-not [string]$cursor -or $seen.ContainsKey([string]$cursor)){throw 'ThreadListCursorCycle'};$seen[[string]$cursor]=$true}
             }while($null -ne $cursor)
@@ -383,7 +446,7 @@ function Invoke-AdmissionProviderCollection {
             $loaded=& $Rpc 'thread/loaded/list' $params (Get-AdmissionRemainingMilliseconds $Budget)
             Add-AdmissionRpcReceipt $receipts 'thread/loaded/list' $Provider $Markers
             if(-not $loaded.PSObject.Properties[$api.loadedIdsField] -or -not $loaded.PSObject.Properties['nextCursor']){throw 'LoadedThreadIdsOrCursorMissing'}
-            foreach($id in @($loaded.($api.loadedIdsField))){if(-not $id){throw 'LoadedThreadIdMissing'};$ids[[string]$id]=$true}
+            foreach($id in @($loaded.($api.loadedIdsField))){if(-not $id){throw 'LoadedThreadIdMissing'}}
             [void]$receipts.Add(@{method='thread/loaded/list';request=$params;requestHash=(Get-AdmissionObjectHash $params);reply=$loaded;replyHash=(Get-AdmissionObjectHash $loaded);generation=$Provider.generation})
             $cursor=$loaded.nextCursor;if($null -ne $cursor){if(-not [string]$cursor -or $seenLoaded.ContainsKey([string]$cursor)){throw 'LoadedThreadCursorCycle'};$seenLoaded[[string]$cursor]=$true}
         }while($null -ne $cursor)
@@ -447,23 +510,8 @@ function Invoke-CoordinatorAdmission {
     $budget=New-AdmissionBudget $CallerRemainingMilliseconds
     $root=Read-AdmissionJson $Session.CoordinatorJobPath;$launch=Read-AdmissionJson $root.coordinator_launch.inputPath
     $policy=Get-AdmissionField $launch 'admissionPolicy';$budget.Limit=[int][Math]::Min($CallerRemainingMilliseconds,[int](Get-AdmissionField $policy 'scanBudgetMilliseconds' 10000));$envlp=$null
-    try{
-        $envlp=& $RegistryScript -Action BeginAdmission -DataDirectory $launch.registryDirectory -RootJobPath $Session.CoordinatorJobPath -SessionPath $SessionPath -TargetJson (ConvertTo-Json -InputObject $Target -Depth 50 -Compress) -AdmissionBudget $budget
-        foreach($p in @($envlp.Request.scope.Providers)){
-            if($p.kind -eq 'host' -and $p.processId -eq $Runtime.Process.Id -and $p.processStartedUtc -ceq $Runtime.StartedAtUtc){
-                $rpc=$HostRpc
-                $markers=$HostMarkers
-                Invoke-AdmissionCallerPump $launch.registryDirectory $p $budget $rpc $markers
-            }elseif($p.kind -eq 'cli'){
-                $answer=Join-Path ($p.origin+'.inventory') ($envlp.Hash+'.answer.json')
-                while(-not [IO.File]::Exists($answer)){[void](Get-AdmissionRemainingMilliseconds $budget);Start-Sleep -Milliseconds 20}
-            }else{throw 'AdmissionUnknown: MissingExternalAccess:AdmittedDesktopReader'}
-        }
-        & $RegistryScript -Action CommitAdmissionReserve -DataDirectory $launch.registryDirectory -TargetJson (ConvertTo-Json -InputObject $Target -Depth 50 -Compress) -AdmissionRequestHash $envlp.Hash -AdmissionBudget $budget
-    }catch{
-        if($envlp){try{& $RegistryScript -Action InvalidateAdmission -DataDirectory $launch.registryDirectory -AdmissionRequestHash $envlp.Hash -TargetJson (ConvertTo-Json -InputObject @{reason=$_.Exception.Message} -Compress) -AdmissionBudget (New-AdmissionBudget 1000)|Out-Null}catch{}}
-        throw
-    }
+    & $RegistryScript -Action ReserveManaged -DataDirectory $launch.registryDirectory -RootJobPath $Session.CoordinatorJobPath -SessionPath $SessionPath -TargetJson (ConvertTo-Json -InputObject $Target -Depth 50 -Compress) -AdmissionBudget $budget
+
 }
 function Request-CoordinatorAdmission([string]$RootJobPath,$Target,[int]$BudgetMilliseconds=10000) {
     $budget=New-AdmissionBudget $BudgetMilliseconds;$root=Read-AdmissionJson $RootJobPath;$dir=[IO.Path]::GetFullPath($root.coordinator_data_directory)
@@ -479,4 +527,4 @@ function Request-CoordinatorAdmission([string]$RootJobPath,$Target,[int]$BudgetM
         if($reply.status -cne 'Reserved' -or -not $reply.reservation.admission.requestHash){throw ('AdmissionUnknown: '+$reply.reason)};$reply.reservation
     }finally{if($writer){$writer.Dispose()};if($reader){$reader.Dispose()};$pipe.Dispose()}
 }
-Export-ModuleMember -Function Get-AdmissionField,Get-AdmissionHash,Get-AdmissionObjectHash,Read-AdmissionJson,Write-AdmissionJson,New-AdmissionBudget,Get-AdmissionRemainingMilliseconds,Get-AdmissionGuid,Get-AdmissionCount,Get-AdmissionRoot,Get-AdmissionScope,Invoke-AdmissionRegistryLocked,Get-AdmissionInstalledContract,New-AdmissionProviderReceipt,Invoke-AdmissionProviderCollection,Invoke-AdmissionCallerPump,Invoke-AdmissionReadDiagnostics,Invoke-CoordinatorAdmission,Request-CoordinatorAdmission
+Export-ModuleMember -Function Resume-ManagedSpecialistWaits,Get-ManagedChildHeadroom,Save-ManagedTurnCompletion,Begin-ManagedOperation,Complete-ManagedOperation,Assert-ManagedRelease,Publish-ManagedReleaseWake,Get-AdmissionField,Get-AdmissionHash,Get-AdmissionObjectHash,Read-AdmissionJson,Write-AdmissionJson,New-AdmissionBudget,Get-AdmissionRemainingMilliseconds,Get-AdmissionGuid,Get-AdmissionCount,Get-AdmissionRoot,Get-AdmissionScope,Invoke-AdmissionRegistryLocked,Get-AdmissionInstalledContract,New-AdmissionProviderReceipt,Invoke-AdmissionProviderCollection,Invoke-AdmissionCallerPump,Invoke-AdmissionReadDiagnostics,Invoke-CoordinatorAdmission,Request-CoordinatorAdmission

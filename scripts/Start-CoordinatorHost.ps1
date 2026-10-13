@@ -156,7 +156,16 @@ try {
     Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorEvents.psm1') -Force
     Import-Module (Join-Path $PSScriptRoot 'coordinator/CoordinatorAutomation.psm1') -Force
     if(-not (Test-Path -LiteralPath $EventJournalPath -PathType Leaf)){[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($EventJournalPath)));[IO.File]::WriteAllText($EventJournalPath,'{"schemaVersion":"1.0","events":[]}',$utf8)}
+    # The existing store ownership lock has already excluded a live competing host.
+    $session.OwnerPid=$PID;$session.OwnerStartedUtc=$owner.OwnerStartedUtc
+    Write-CoordinatorAtomicJson $path $session
+    $runtimeOperation='host-runtime:'+ $PID+':'+[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToString('o')
+    [void](Begin-ManagedOperation $RegistryDirectory $rootJob.task_id $runtimeOperation 'runtime/start' @{executable=$effectiveExe;arguments=@($launch.runtimeArguments);jobPath=$CoordinatorJobPath})
     $runtime=Start-CoordinatorRuntime $runtimeConfig
+    Complete-ManagedOperation $RegistryDirectory $rootJob.task_id $runtimeOperation @{processId=$runtime.Process.Id;processStartedUtc=$runtime.StartedAtUtc}
+    $runtime|Add-Member -NotePropertyName ManagedDirectory -NotePropertyValue $RegistryDirectory -Force
+    $runtime|Add-Member -NotePropertyName ManagedCompletionWire -NotePropertyValue @{} -Force
+    $runtime|Add-Member -NotePropertyName ManagedTaskId -NotePropertyValue $rootJob.task_id -Force
     # Keep the exact, already validated context binding on the runtime object
     # consumed by Invoke-CoordinatorTurn; the config itself is not that object.
     foreach($name in @('ContextJobPath','ContextStorePath','ContextDirectory')){
