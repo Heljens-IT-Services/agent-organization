@@ -32,8 +32,12 @@ foreach ($team in $central.teams) {
         $ids[$agent.agent_id] = $true; $agentCount++
         if ($null -ne $agent.role_file) {
             if ($agent.role_file -cne ($agent.agent_id + '.toml')) { throw "Role file mismatch: $($agent.agent_id)" }
-            $shortName = $agent.agent_id.Substring($team.team_id.Length + 1)
-            $file = Assert-ContractRelativeFile $RepositoryRoot ('teams/' + $team.team_id + '/agenten/' + $shortName + '.toml')
+            $roleReference = 'teams/' + $team.team_id + '/agenten/' + $agent.role_file
+            if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot $roleReference))) {
+                $shortName = $agent.agent_id.Substring($team.team_id.Length + 1)
+                $roleReference = 'teams/' + $team.team_id + '/agenten/' + $shortName + '.toml'
+            }
+            $file = Assert-ContractRelativeFile $RepositoryRoot $roleReference
             Assert-ContractRole $file $agent.agent_id
         } else { $unavailable += $agent.agent_id }
     }
