@@ -1,0 +1,39 @@
+# WI E71-R-QA: unabhängige finale Nachprüfung N1/N2
+
+Adressat ausschließlich teamleiter_agent_ressources. Rolle agent_ressources_qualitaetspruefung. Enges Deltaurteil: **Pass für N1 und N2 im Inhalts-/Diff-/Referenzscope**. Keine neue globale Prüfung, keine aktuelle Funktionsbestätigung, keine eigene Elternabnahme.
+
+Bewertungsgrundlage ist die abgeschlossene Nacharbeit: rework-result.json:2,19,21,22 enthält Task 83a9c65439494d9d8d4956a97bc3965a, terminal_outcome=completed, success=true, error=null. Erfolg des Umsetzungstasks ist keine fachliche Abnahme. Die gemeldete Basis d85efc0237f9611df71076e3cdc599004d45e066 wird aus Auftrag und Manifest übernommen; kein neuer Gitnachweis. Der bestehende isolated Worktree wurde genutzt.
+
+Gelesene Auftragsakte: workitems.md, rework-coordination.md, rework-request.md; gezielt N1/N2 aus independent-delta-review.md:23–39; rework-report.md/json, rework-manifest.json und enger rework.diff. Produktquellen ausschließlich an den für N1/N2 notwendigen Stellen und direkten Writer-/Receipt-/Lockreferenzen zurückgelesen. Sonstige Akten und unveränderte Lieferpfade nur gehasht, nicht erneut fachlich geprüft. Frühere QA Task8963c86e4c334661a50ecfe0d6948c4c completed/success=true und damaliges fachliches Delta-Fail werden gemäß Übergabe übernommen.
+
+## N1 / E71-R-QA-01: Pass
+
+Start-DelegatedCodexTask.ps1:722–741 kopiert vor Mutation das vollständige Quelldokument, benutzt denselben Set-WorkItemStoreEntry mit ExpectedRevision und bestehendem startEffect, erhält dessen tatsächliche Rückgabe und archiviert erst danach product-starter-transition-v1. Die Referenz wird vor Runnerstart im Job gespeichert. Kein zusätzlicher Statuswriter und kein synthetischer ACK. Vorhandene startingCAS bleibt erhalten (:732–734).
+
+ProductManagement.psm1:176–193 verlangt bei abweichender Revision einen hashgeprüften Transitionbeleg für exakt diese Execution, Task, WorkItem, Owner, Store und Elternlinie; Quellrevision muss der ursprünglichen Planrevision, Zielrevision der aktuellen Snapshotrevision entsprechen. Vollständiges Quelldokument wird gegen den ursprünglichen Plan gebunden. Effectcontext wird mit Startintent-/Attempthash und Elternthread/-turn abgeglichen. Originalreceipt muss published, changed und an dieselben Quell-/Zielrevisionen und denselben Effectcontext gebunden sein.
+
+Die Rekonstruktion erlaubt ausschließlich status=in_progress, blockReason=null und den belegten updatedAt-Wert dieses genau einen ursprünglich planned/rework befindlichen Owner-WorkItems. Derselbe Originalserializer muss daraus die vollständige aktuelle Storebytesrevision erzeugen; vollständiger Dokumentdigest wird zusätzlich verglichen. Damit wird keine weitere fremde Änderung akzeptiert. Plan und Vorstartrevision werden nicht umgeschrieben. Gleiche Revision behält den bestehenden direkten CAS-Pfad.
+
+Open-ProductSession:295–300,315–321 und Invoke-ProductReplacement:259–264 benutzen dieselbe Snapshotprüfung unter bestehender Session-/Storelockhaltung. Direkte technische Referenzen: WorkItemStore.psm1:379–385 Serializer, :414–425 Originalreceiptbytes/Hash/Effectbindung, :501–508 Kandidat, :519 Revision, :538–539 veröffentlichtes Writerresultat; Lifecycle.Persistence.ps1:12–23 unveränderliche Bytes und Hashprüfung. Starter:37 lädt die bestehende Hilfsquelle, :618/621 und :646 führen die gebundenen Jobfelder. Diese Quellen wurden gelesen, keine Funktion wurde aufgerufen.
+
+## N2 / E71-R-QA-02: Pass
+
+Get-ProductRecovery.ps1:30–52 hält Session→Storelock, liest aktuelle Storebytes/Revision, Solution-/PM-/Ownerbindung, selektiven Kontext und exakte Sessionbytes; ExpectedRevision und ExpectedSessionHash sind weiterhin erforderlich. ProductManagement.psm1:195–218 prüft Hash und vollständiges Base64 der vorherigen Sessionbytes vor jeder Änderung.
+
+Die Nacharbeit ergänzt ausschließlich RecoveryPlanned zur bisherigen Zustandsliste; Resuming bleibt der vorhandene interne Erstintentpfad. RecoveryPlanned und RecoveryClosed müssen den alten hashgebundenen Intent sowie dessen Sessionbinding und unveränderte nächste Generation bestehen. Der neue Intent hat eine neue Recovery-ID, predecessor={path,hash} und den Plan mit den exakten vorherigen Sessionbytes einschließlich alter Intentreferenz. Alte Intents/Pläne werden nicht verändert; Sessiongeneration wird nicht zurückgesetzt.
+
+Assert-ProductRecoveryUnconsumed:162–174 sperrt vorhandenes replacementStartIntent sowie immutable Startbelege mit gleicher Recovery-ID oder nächster Generation. Responsebelege werden auf den hashgeprüften Originalstartintent zurückgeführt. Unbekannte/unlesbare Belege, fehlende Originale und Hashkonflikte sperren. So kann auch ein bereits persistierter Startintent vor gescheitertem Sessioncommit nicht durch Replan verloren gehen. Die Prüfung gilt vor Replan, Open und Replacement (:205,317,262). Starting, StartingReplacement, ActivationPrepared, Running und andere ungeklärte Zustände bleiben außerhalb der zulässigen Liste. Direkter Verbrauchsanschluss :274–279 bleibt vor thread/start; kein automatischer Replay eingeführt.
+
+## Aktualisierte Referenzen und Erhalt
+
+PRODUCTMANAGEMENT.md:33–35 beschreibt genau die Starterexception und den eng gebundenen Replan-Nachfolger. rework.diff enthält ausschließlich Änderungen an ProductManagement.psm1, Starter und Vertrag. Die drei Vorherhashes stimmen mit der erklärten finalen QA-Baseline überein, alle sechs Lieferhashes und alle 16 Aktenhashes stimmen mit rework-manifest.json überein. Get-ProductRecovery.ps1, solutions.json und mapping-handoff.md sind bytegleich zur manifestierten QA-Lieferung. Die vier ausdrücklich ausgewiesenen alten Implementierungsberichte/Manifest/Diff bleiben hashgleich. Einzelhashes, Belegpfade und Grenzen stehen im JSON. Keine neue fachliche Prüfung der fünf HELJOS-Originalquellen; deren früherer Pass und Hashbelege sind übernommen.
+
+## Übernahme und kumulative Lieferannahmeempfehlung
+
+Explizit übernommen ohne Wiederholung: sämtliche positiven Mapping-/Einmaligkeits-/Fail-closed-/Provenienz-/selektiven Reload-/lokalen Lifecycle-/Bestandserhaltkriterien des vorherigen unabhängigen Delta-Reviews, einschließlich Starter/Host/Accounting/Skill113/Teamkopie/Tokenhistory/Mehrziel/Metrikbestand sowie frühere R1–R4, D1–D3, Index- und Integrationsabnahmen. Die hier geprüften direkten N1/N2-Folgen entwerten diese Übernahmen im Quellenscope nicht. Keine neue globale Reviewliste.
+
+Empfehlung an die Teamleitung: die kumulative Quellenlieferung einschließlich der eng nachgearbeiteten N1/N2 fachlich als begrenzte Teillieferung annehmen; die beiden damaligen P2-Nacharbeitsbefunde können auf dieser Quellenbasis geschlossen werden. Das ist keine Gesamtlieferannahme für Epic71 oder dessen offene Stories. Eigene Elternentscheidung verbleibt ausdrücklich teamleiter_agent_ressources.
+
+Get-ProductResumeDenial:220–225 bleibt geschlossen (definitive=false). Versionsgebundene definitive native Resume-Semantik und anschließender enger Adapter, tatsächliche HELJOS-PM-/Owner-/WorkItem-Zuordnung, bereits ausstehender Groundrücklauf und echtes priorisiertes #75-Feature mit Outcome-/Roadmapübergabe bleiben unverändert offen. Keine erneute externe Recherche oder zusätzliche Freigabe-/OwnerReceiptpflicht.
+
+Grenzen: reines Zurücklesen von Inhalt, Diff, Referenzen und SHA256-Dateisnapshots ohne Dateisystemsperre oder Zukunftsgarantie. Kein aktueller Funktionsnachweis. Keine Tests erstellt/ausgeführt, keine Produktparser-/Validatorläufe, Moduleimporte, Runtime-/native-/Browserproben, Fixtures oder Demos; kein Gitwrite/Issue/PR/Fremdkontakt/Unterauftrag/Fensteraktion. GitHub Actions nicht aktiviert. JSON-Verarbeitung ausschließlich für die Auftrags-/Prüfakte. Ownership ausschließlich final-rework-independent-review.md/json. Gemessener Eigenverbrauch null, keine Unteraufträge, keine inklusive Altaddition oder Schätzung.

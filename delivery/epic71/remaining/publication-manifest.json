@@ -1,0 +1,246 @@
+{
+    "workItem":  "E71-R-PUBLISH",
+    "acceptedSourceBase":  "d85efc0237f9611df71076e3cdc599004d45e066",
+    "publicationBase":  "ade6cba2bb570b2bc976f3ae23dbf5cb150787f3",
+    "branch":  "feature/ar-e71-recovery-mapping-20261013",
+    "sourceFiles":  [
+                        {
+                            "path":  "scripts/productmanagement/ProductManagement.psm1",
+                            "sha256":  "609528dcc67d71e4bcec44c2c7db1e9d3168d27e57d4d990a54259b07b1e08ea",
+                            "bytes":  39810
+                        },
+                        {
+                            "path":  "scripts/productmanagement/Get-ProductRecovery.ps1",
+                            "sha256":  "0b1a422cf72a79241efe2cff1196e95c4ba511b731ab7008fae3ea8f8908f47a",
+                            "bytes":  4485
+                        },
+                        {
+                            "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                            "sha256":  "939eecf464e88ea1978d358ad44fd5e7ac7c774f91312c12477fdc8d322e76d6",
+                            "bytes":  127718
+                        },
+                        {
+                            "path":  "docs/contracts/PRODUCTMANAGEMENT.md",
+                            "sha256":  "6970ddf22e2bdaca161fc873be5364fb113099fae62d5e2888bebfc0a60a4838",
+                            "bytes":  18343
+                        },
+                        {
+                            "path":  "productmanagement/solutions.json",
+                            "sha256":  "2e5e49403ed3eb14fc657ad735543585e95861754fc47ba16b8494d7623a211a",
+                            "bytes":  5130
+                        },
+                        {
+                            "path":  "delivery/epic71/remaining/mapping-handoff.md",
+                            "sha256":  "2ad65eaa68deee51794452a059ea8b1c541d3d9d1eaf10f6e7be0c6ae2f56c32",
+                            "bytes":  5366
+                        }
+                    ],
+    "evidenceFiles":  [
+                          {
+                              "path":  "delivery/epic71/remaining/parent-acceptance.md",
+                              "sha256":  "ba9ae7323ce9968ed52e84a4137b84f243613a7609c684f26e6b56db58751360",
+                              "bytes":  5431
+                          },
+                          {
+                              "path":  "delivery/epic71/remaining/rework-report.md",
+                              "sha256":  "1906b24bf86897a7d404b7c3afbaec49ec08cad160fe898f5f125f16c4bc1a8c",
+                              "bytes":  7642
+                          },
+                          {
+                              "path":  "delivery/epic71/remaining/final-rework-independent-review.md",
+                              "sha256":  "3bb3daa2fb13e087e00d221435da87eeb7e9ff244d8776a2d60396b0f550637c",
+                              "bytes":  7967
+                          },
+                          {
+                              "path":  "delivery/epic71/remaining/publication-scope.md",
+                              "sha256":  "96cce5b0aafa22ba4761add0ecc1d4fc7668dfaf29c6d0ba7743e31e81e6eb63",
+                              "bytes":  3636
+                          }
+                      ],
+    "acceptance":  "parent-acceptance.md",
+    "qa":  "final-rework-independent-review.md",
+    "evidenceBasis":  "content/diff/references",
+    "currentFunctionProof":  false,
+    "issuesRemainOpen":  [
+                             71,
+                             73,
+                             74,
+                             75,
+                             77,
+                             78
+                         ],
+    "measuredOwnTokens":  null
+,"integrationPublication":{
+    "decision":  "E71-R-INTEGRATION-ACCEPT",
+    "historicalFieldsAbove":  "unchanged previous publication snapshot; current binding is integrationPublication",
+    "base":  "120035ec7a36007cdfb11e116f89393e36b99ce6",
+    "acceptedPreHead":  "676f1d4999c573dd4da123dc67420388c95246cf",
+    "starterBlob":  "4c552bddc6f4673da8bfff9e34c70549d753c6cb",
+    "starterSha256":  "e9b3e2f93dee09d5e03e7205e867ba948113f8cc935fb1863b9b2c11b5dc0b6d",
+    "qa":  "Pass content/diff/references; IQA-01/IQA-02; no blocking findings",
+    "note":  "IQA-NOTE-01 resolved by targeted amendments of three existing records",
+    "references":  [
+                       {
+                           "path":  "TEMP/epic71-ar-pr119-integration-20261013/leader-integration-acceptance.md",
+                           "sha256":  "b7e9e492a4b6607734c413beafa73b5b05d753e2a819bb584ec71c225aa7014f"
+                       },
+                       {
+                           "path":  "TEMP/epic71-ar-pr119-integration-20261013/integration-report.json",
+                           "sha256":  "92382221b5d5eec437e3318c475b6a759746b269c8cd542f1b2ec2ea9ffcd3f3"
+                       },
+                       {
+                           "path":  "TEMP/epic71-ar-pr119-integration-20261013/review.md",
+                           "sha256":  "5209e4f2c5baad722f870b231600aac17d00575f0e69cd2441130b8d934d149c"
+                       },
+                       {
+                           "path":  "TEMP/epic71-ar-pr119-integration-20261013/review.json",
+                           "sha256":  "3127277ce400bf769f979c9ebcc03d143afb0621915253356dc41940d54e5280"
+                       }
+                   ],
+    "currentFiles":  [
+                         {
+                             "path":  "delivery/epic71/remaining/final-rework-independent-review.md",
+                             "blob":  "5be0d0b017044205bf53665f34d02cf26ea73afb",
+                             "sha256":  "3bb3daa2fb13e087e00d221435da87eeb7e9ff244d8776a2d60396b0f550637c",
+                             "bytes":  7967
+                         },
+                         {
+                             "path":  "delivery/epic71/remaining/mapping-handoff.md",
+                             "blob":  "c8c4c2e212977ae52584f2c119737a832cf7dada",
+                             "sha256":  "2ad65eaa68deee51794452a059ea8b1c541d3d9d1eaf10f6e7be0c6ae2f56c32",
+                             "bytes":  5366
+                         },
+                         {
+                             "path":  "delivery/epic71/remaining/parent-acceptance.md",
+                             "blob":  "a8487887c99e04d3ed20ffe2660801bd892e6e40",
+                             "sha256":  "809b6a0f46ce348f620adb095953d37ad16e6256c6cd51f0fc13320ff07c7b94",
+                             "bytes":  10789
+                         },
+                         {
+                             "path":  "delivery/epic71/remaining/publication-scope.md",
+                             "blob":  "41bf6ccea334548f1ea41d51364176e58a703ad1",
+                             "sha256":  "b5924e1452aa86a2b23b9e75a2b2d19242c19a8e60a9b55d8b22d63cdb5b76cc",
+                             "bytes":  6190
+                         },
+                         {
+                             "path":  "delivery/epic71/remaining/rework-report.md",
+                             "blob":  "d07e12e81c1f7d9847a06e743efc4d8acc854c67",
+                             "sha256":  "1906b24bf86897a7d404b7c3afbaec49ec08cad160fe898f5f125f16c4bc1a8c",
+                             "bytes":  7642
+                         },
+                         {
+                             "path":  "docs/contracts/PRODUCTMANAGEMENT.md",
+                             "blob":  "c3b0f1e539b3d98a136af3c0768fd9119e18ac2f",
+                             "sha256":  "6970ddf22e2bdaca161fc873be5364fb113099fae62d5e2888bebfc0a60a4838",
+                             "bytes":  18343
+                         },
+                         {
+                             "path":  "productmanagement/solutions.json",
+                             "blob":  "3244fb7d7d33f14f1daf047072f7101d458cf6ef",
+                             "sha256":  "2e5e49403ed3eb14fc657ad735543585e95861754fc47ba16b8494d7623a211a",
+                             "bytes":  5130
+                         },
+                         {
+                             "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                             "blob":  "4c552bddc6f4673da8bfff9e34c70549d753c6cb",
+                             "sha256":  "e9b3e2f93dee09d5e03e7205e867ba948113f8cc935fb1863b9b2c11b5dc0b6d",
+                             "bytes":  129374
+                         },
+                         {
+                             "path":  "scripts/productmanagement/Get-ProductRecovery.ps1",
+                             "blob":  "6d75a818f1895ab432e4b10aca8d5de02acbbd43",
+                             "sha256":  "0b1a422cf72a79241efe2cff1196e95c4ba511b731ab7008fae3ea8f8908f47a",
+                             "bytes":  4485
+                         },
+                         {
+                             "path":  "scripts/productmanagement/ProductManagement.psm1",
+                             "blob":  "bee8ee793c851e61f8ec0507254b843937c46778",
+                             "sha256":  "609528dcc67d71e4bcec44c2c7db1e9d3168d27e57d4d990a54259b07b1e08ea",
+                             "bytes":  39810
+                         }
+                     ],
+    "inheritedAccounting":  [
+                                {
+                                    "path":  "scripts/accounting/AccountingEvidence.psm1",
+                                    "upstreamBlob":  "b79441c85c0acf03c17bae30ef5173a5f11bb7f7",
+                                    "candidateBlob":  "b79441c85c0acf03c17bae30ef5173a5f11bb7f7",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                },
+                                {
+                                    "path":  "scripts/accounting/Get-TaskTokenUsage.ps1",
+                                    "upstreamBlob":  "82c31e5c0bad6597c26f9db7bcffa0f358e2538f",
+                                    "candidateBlob":  "82c31e5c0bad6597c26f9db7bcffa0f358e2538f",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                },
+                                {
+                                    "path":  "scripts/accounting/Get-WorkItemMetrics.ps1",
+                                    "upstreamBlob":  "48c4d887e9a153d414736f1dc68e41dcf2a3c220",
+                                    "candidateBlob":  "48c4d887e9a153d414736f1dc68e41dcf2a3c220",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                },
+                                {
+                                    "path":  "scripts/accounting/OriginalUsageAccountingCaller.psm1",
+                                    "upstreamBlob":  "e3d55b2303a6e15d3240b1fddfbbd7a20ed2279a",
+                                    "candidateBlob":  "e3d55b2303a6e15d3240b1fddfbbd7a20ed2279a",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                },
+                                {
+                                    "path":  "scripts/accounting/OriginalUsageAccountingHandoff.psm1",
+                                    "upstreamBlob":  "84cde15ad0d604703d5a329cdd20414bebc7d5ec",
+                                    "candidateBlob":  "84cde15ad0d604703d5a329cdd20414bebc7d5ec",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                },
+                                {
+                                    "path":  "scripts/accounting/Sync-WorkItemUsage.ps1",
+                                    "upstreamBlob":  "899787adedc9eee9287cf309494bff4f9192711c",
+                                    "candidateBlob":  "899787adedc9eee9287cf309494bff4f9192711c",
+                                    "exactUpstream":  true,
+                                    "ownership":  "PR118/develop; inherited without manual rewrite"
+                                }
+                            ],
+    "prPathCount":  11,
+    "finalHeadBinding":  "local integration publication-report.md/json after commit/push; manifest selfhash there",
+    "measuredOwnTokens":  null,
+    "finalizedIntegrationChildren":  [
+                                         {
+                                             "task_id":  "db0373dd4f654975b4220cdf4d266484",
+                                             "thread_id":  "01a134e8-0281-7b80-bf83-efa436500069",
+                                             "turn_id":  "01a134e8-03e1-77e3-92e6-7f8e86c7d490",
+                                             "usage_finalized":  true,
+                                             "own_token_usage":  {
+                                                                     "totalTokens":  492513,
+                                                                     "inputTokens":  484092,
+                                                                     "cachedInputTokens":  419840,
+                                                                     "cacheWriteInputTokens":  0,
+                                                                     "outputTokens":  8421,
+                                                                     "reasoningOutputTokens":  503
+                                                                 },
+                                             "source":  "optimizer-integration-result.json",
+                                             "sha256":  "4c8867584f4013fc6914ba7d846762da0cd29492301b6a240de1d6ffffcf5a91"
+                                         },
+                                         {
+                                             "task_id":  "413e6a58f0304a7da0c7bb518d83728c",
+                                             "thread_id":  "01a134ec-44ce-7fb0-846d-4fa65c0cd651",
+                                             "turn_id":  "01a134ec-464d-7b43-b1a5-74a47cacf110",
+                                             "usage_finalized":  true,
+                                             "own_token_usage":  {
+                                                                     "totalTokens":  2173336,
+                                                                     "inputTokens":  2163461,
+                                                                     "cachedInputTokens":  1996928,
+                                                                     "cacheWriteInputTokens":  0,
+                                                                     "outputTokens":  9875,
+                                                                     "reasoningOutputTokens":  754
+                                                                 },
+                                             "source":  "qa-integration-result.json",
+                                             "sha256":  "eb6f6e4f77657d9f9564ae98922960564864e7fb08f59aa8f6105dd72a798e17"
+                                         }
+                                     ],
+    "knownIntegrationChildTokens":  2665849,
+    "predecessorTotals":  "10896897 incomplete, publication_pending=true; separate, not added",
+    "currentFunctionProof":  false
+}}

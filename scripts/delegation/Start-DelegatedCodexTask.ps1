@@ -720,6 +720,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
         Write-Json $workItemReservationPath $reservationData
         Write-Json $jobPath $spec
         if ($startItem[0].status -ne 'in_progress') {
+            if ($Role -ceq 'produktmanagement_pm_strategie') { $productStartSource=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $currentStart.Document -Depth 100) }
             $itemToStart = $startItem[0]
             $itemToStart.status = 'in_progress'; $itemToStart.blockReason = $null; $itemToStart.updatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
             $startEffect=[ordered]@{effectId=('prestart-start:'+ $ExecutionId);executionId=$ExecutionId;requestId=(& $contextModule {param($p,$h)(Read-ContextJson $p).requestId} $ParentContextPath $ParentContextHash);threadId=$parentThreadId;turnId=$parentTurnId;eventId=('prestart-start:'+ $ExecutionId);inputHash=$StartIntentHash;planHash=$preparedAttemptHash;ordinal=1}
@@ -731,7 +732,10 @@ if ($PSCmdlet.ParameterSetName -eq 'Start') {# A coordinator console is user-own
             $startCAS=[ordered]@{sourceRevision=$currentStart.Revision;candidateRevision=('sha256:'+$startCandidateHash);effectContext=$startEffect}
             $reservationData|Add-Member -NotePropertyName startingCAS -NotePropertyValue $startCAS -Force
             Write-Json $workItemReservationPath $reservationData
-            Set-WorkItemStoreEntry -Path $WorkItemStorePath -Id $WorkItemId -Item $itemToStart -IsNew $false -ExpectedRevision $currentStart.Revision -RepositoryRoot $RepositoryRoot -TimeoutMilliseconds 5000 -EffectContext $startEffect | Out-Null
+            $startPublished=Set-WorkItemStoreEntry -Path $WorkItemStorePath -Id $WorkItemId -Item $itemToStart -IsNew $false -ExpectedRevision $currentStart.Revision -RepositoryRoot $RepositoryRoot -TimeoutMilliseconds 5000 -EffectContext $startEffect
+            if ($Role -ceq 'produktmanagement_pm_strategie') {
+                $spec.product_start_transition=Save-LCImmutable (Join-Path $AccountingDirectory 'product-start-transitions') ([ordered]@{kind='product-starter-transition-v1';executionId=$ExecutionId;taskId=$spec.task_id;workItemId=$WorkItemId;ownerId=$Role;storePath=[IO.Path]::GetFullPath($WorkItemStorePath);parentTaskId=$ParentTaskId;parentJobPath=$spec.parent_job_path;sourceRevision=$currentStart.Revision;candidateRevision=$startPublished.Revision;sourceDocument=$productStartSource;updatedAt=$itemToStart.updatedAt;effectContext=$startEffect;effectReceipt=$startPublished.EffectReceipt})
+            }
         }
     }
         Write-Json $jobPath $spec
@@ -968,9 +972,10 @@ function Wait-Rpc([int]$Id) {
     try{
         while(-not $script:admissionResponses.ContainsKey([string]$Id)){[void](Read-Rpc)}
         $message=$script:admissionResponses[[string]$Id];$script:admissionResponses.Remove([string]$Id)
+        $script:admissionLastRpcReceipt=$script:admissionRequests[[string]$Id];$script:admissionRequests.Remove([string]$Id)
+        # Preserve the native error reply bytes as well as successful replies.
         if(Get-AdmissionField $message 'error'){throw ('App-server-Fehler: '+$message.error.message)}
         if(-not $message.PSObject.Properties['result']){throw 'AdmissionUnknown: RpcResultMissing'}
-        $script:admissionLastRpcReceipt=$script:admissionRequests[[string]$Id];$script:admissionRequests.Remove([string]$Id)
         return $message.result
     }finally{$script:admissionWaitingResponse=$prior}
 }
@@ -1066,8 +1071,18 @@ try {
         # Until a thread/start receipt proves freshness, PM usage remains unknown.
         $evidence.usage_source = 'app_server_pm_thread_unknown_current_turn'
         # This remains the existing visible, admitted specialist runner.
-        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}
+        $productRpc={param($method,$parameters)
+            $script:admissionLastRpcReceipt=$null
+            try {
+                $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000
+                [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt;failure=$null}
+            } catch {
+                [pscustomobject]@{reply=$null;rpc=$script:admissionLastRpcReceipt;failure=[ordered]@{type=$_.Exception.GetType().FullName;message=$_.Exception.Message}}
+            }
+        }
         $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc
+        # The activation lock owns the final selective reload, including recovery.
+        $productContext=$productActivation.context
         if ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/start') {
             $evidence.usage_source = 'app_server_fresh_thread_single_turn'
         } elseif ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/resume') {
