@@ -12,12 +12,16 @@ function ConvertTo-HistoryUTC($Value) {
     if (-not [DateTimeOffset]::TryParse($Value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal, [ref]$parsed)) { return $null }
     return $parsed.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
 }
-function Get-TokenHistory([object[]]$Records, [string[]]$Sources) {
+function Get-TokenHistory([object[]]$Records, [string[]]$Sources, $MeasurementRecords=$null) {
     $result = [ordered]@{}; $evidence = @(); $conflicts = @(); $authority = [ordered]@{}
     foreach ($name in @('roleId','modelId','reasoningEffort','measurementUTC')) {
         $values = @(); $blocked = $false; $best = 0
-        for ($i = 0; $i -lt $Records.Count; $i++) {
-            $record = $Records[$i]
+        # The diagnostic reader supplies final own time evidence separately.
+        # All snapshots still contribute model/effort/role evidence and observations.
+        $fieldRecords=$Records
+        if ($name -ceq 'measurementUTC' -and $null -ne $MeasurementRecords) { $fieldRecords=@($MeasurementRecords) }
+        for ($i = 0; $i -lt $fieldRecords.Count; $i++) {
+            $record = $fieldRecords[$i]
             # Authority is preserved across normalized profile/merge boundaries.
             # Exact effective turn context outranks resolved fresh-thread defaults.
             $rank = Get-HistoryField (Get-HistoryField $record 'metadataAuthority') $name
@@ -41,7 +45,7 @@ function Get-TokenHistory([object[]]$Records, [string[]]$Sources) {
             if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value) -or $value -cin @('unknown','native_rollout')) { continue }
             if ($name -cne 'measurementUTC' -and $value -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') { continue }
             if ($name -ceq 'measurementUTC') { $value = ConvertTo-HistoryUTC $value; if ($null -eq $value) { continue } }
-            $source = if ($i -lt $Sources.Count) { $Sources[$i] } else { $null }
+            $source = if (($name -cne 'measurementUTC' -or $null -eq $MeasurementRecords) -and $i -lt $Sources.Count) { $Sources[$i] } else { $null }
             $evidence += @([pscustomobject]@{field=$name; value=$value; source=$source; authority=$rank})
             if ($rank -gt $best) { $values=@(); $blocked=$false; $best=$rank }
             if ($rank -eq $best) { $values+=@($value); if ($hasConflict) { $blocked=$true } }
@@ -57,10 +61,10 @@ function Get-TokenHistory([object[]]$Records, [string[]]$Sources) {
     $result['importObservationsUTC'] = $imports
     $result['measurementObservationsUTC'] = @($Records | ForEach-Object {
         ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementObservedAtUTC')
-        if ((Get-HistoryField $_ 'measurementTimeBasis') -ceq 'UTC receipt of last identity-matched native usage notification') { ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC') }
+        if ((Get-HistoryField $_ 'measurementTimeBasis') -cin @('native_record_timestamp','UTC receipt of last identity-matched native usage notification')) { ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC') }
     } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
     $result['requestedProfiles'] = @($Records | ForEach-Object { Get-HistoryField $_ 'requestedProfile' } | Where-Object { $null -ne $_ })
-    $result['measurementTimeBasis'] = if (@($Records | Where-Object { (Get-HistoryField $_ 'measurementTimeBasis') -ceq 'native_record_timestamp' -and $null -ne (ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC')) }).Count -gt 0) { 'native_record_timestamp' } else { 'recorded_measurement_observation_or_unknown' }
+    $result['measurementTimeBasis'] = if (@($fieldRecords | Where-Object { (Get-HistoryField $_ 'measurementTimeBasis') -ceq 'native_record_timestamp' -and $null -ne (ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC')) }).Count -gt 0) { 'native_record_timestamp' } else { 'recorded_measurement_observation_or_unknown' }
     $result['metadataConflicts'] = $conflicts
     $result['metadataAuthority'] = [pscustomobject]$authority
     $result['metadataSources'] = @($evidence)+@($Records | ForEach-Object { Get-HistoryField $_ 'metadataSources' })
@@ -83,6 +87,9 @@ function Get-EntryTokenHistory($Entry) {
     $records = @(Get-HistoryField $Entry 'records')
     # Merged records and unique path sets are not positional arrays. Embedded
     # metadataSources retain exact provenance; the projection exposes all paths.
+    if ($null -ne $Entry.PSObject.Properties['finalMeasurementRecords']) {
+        return Get-TokenHistory $records @() @(Get-HistoryField $Entry 'finalMeasurementRecords')
+    }
     return Get-TokenHistory $records @()
 }
 function Get-TokenHistoryProjection($Entries, [string[]]$EligibleNativeKeys, $Coverage) {
@@ -118,13 +125,14 @@ function Get-TokenHistoryProjection($Entries, [string[]]$EligibleNativeKeys, $Co
             tokenUsage=$displayUsage
             diagnosticTokenUsage=$(if ($null -ne $reason) { $observedUsage } else { $null })
             eligible=($null -eq $reason); exclusionReason=$reason; sources=@($entry.paths)
+            familyEligible=(Get-HistoryField $entry 'familyEligible'); familyDiagnostics=@(Get-HistoryField $entry 'familyDiagnostics')
         }
         $rows+=@($row)
         if ($null -ne $reason) { $excluded+=@([pscustomobject]@{nativeKey=$row.nativeKey;taskId=$id.taskId;reason=$reason;sources=@($entry.paths)}) }
     }
     return [pscustomobject]@{
         version=1; records=$rows; excluded=$excluded; coverage=$Coverage
-        semantics='Dedupliziert je Thread/Turn; nur finale eigene native Turnzähler. Cached Input und Reasoning Output sind Teilmengen. Summen sind bekannte Teilsummen, keine vollständige Familienabrechnung.'
+        semantics='Dedupliziert je Thread/Turn; nur finale eigene native Turnzähler. Cached Input und Reasoning Output sind Teilmengen. Summen sind bekannte Teilsummen des gewählten Quellenumfangs; Inventar- und Familienvollständigkeit sind nicht bewiesen.'
         timeBasis='Verbrauch nach finalem Messzeitpunkt (UTC). measurementUTC ist letzte finale native Messung; Empfangsbeobachtung und importedAtUTC sind getrennt. Keine zeitproportionale Aufteilung. Unbekannte Verbrauchszeit wird keiner Zeit-Säule zugeordnet.'
     }
 }

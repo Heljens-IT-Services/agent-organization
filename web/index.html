@@ -20,10 +20,18 @@
         <span class="separator">·</span><span id="data-age">Noch keine Daten</span>
       </div>
       <button id="refresh-button" class="button button-quiet" type="button">Jetzt aktualisieren</button>
+      <button id="history-open" class="button button-quiet" type="button" aria-controls="organization-history-panel">Tokenverbrauch</button>
     </header>
 
     <main id="overview" class="layout">
       <nav class="view-switch" aria-label="Ansicht w&#228;hlen"><button type="button" data-view="attention" aria-pressed="false">Aufmerksamkeit</button><button type="button" data-view="tree" aria-pressed="false">Baum</button><button type="button" data-view="details" aria-pressed="true">Details</button></nav>
+      <section id="organization-history-panel" class="panel organization-history-panel" aria-labelledby="organization-history-title" hidden>
+        <div class="history-heading"><h2 id="organization-history-title" tabindex="-1">Tokenverbrauch</h2><button id="history-refresh" class="button button-quiet" type="button">Verbrauch aktualisieren</button><button id="history-close" class="button button-quiet" type="button">Zur Arbeitsübersicht</button></div>
+        <label class="filter-control">Quellenumfang<select id="history-scope"><option value="">Gesamtübersicht · konfigurierter Quellenumfang</option></select></label>
+        <p id="history-family-note" class="metric-scope">Familienwahl wartet auf einen lesbaren WorkItem-Bestand.</p>
+        <p id="history-read-status" class="metric-scope" role="status">Accounting wird unabhängig vom WorkItem-Snapshot gelesen.</p>
+        <div id="organization-history-content" class="token-history" aria-live="polite"></div>
+      </section>
       <aside class="sidebar" aria-label="WorkItem-Navigation">
         <div class="section-heading"><div><p class="eyebrow">Navigation</p><h1>Arbeitsübersicht</h1></div></div>
         <label class="search-box"><span class="sr-only">WorkItems filtern</span><span aria-hidden="true">⌕</span><input id="tree-search" type="search" placeholder="WorkItems filtern…" autocomplete="off"></label>

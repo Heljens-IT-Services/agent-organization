@@ -3,6 +3,7 @@ import { renderTokenHistory } from "/token-history.js";
 
 const POLL_MS = 5000;
 const STALE_AFTER_MS = 5000;
+const organizationHistory = { workItemId: "", epoch: 0, pending: null, projection: null, loadedAt: null, error: null, revision: null };
 const state = { snapshot: null, selectedId: null, loadedAt: null, lockDiagnostic: null, refreshing: false, lastReadError: null, refreshTimer: null, search: "", statusFilter: "", humanFilter: "", view: "details", collapsed: new Set(), specificationCache: new Map(), metrics: null, metricsFor: null, metricsPending: new Map(), metricsTarget: null, preserveEditorFocus: false, toastTimer: null, draft: null, drafts: new Map(), saving: false, explicitDetailFocus: false, focusGeneration: 0 };
 const el = {
   connectionDot: document.getElementById("connection-dot"), connectionLabel: document.getElementById("connection-label"), dataAge: document.getElementById("data-age"),
@@ -13,6 +14,10 @@ const el = {
 };
 
 initializeBridge();
+document.getElementById("history-open").addEventListener("click", () => { persistActiveEditor(); setView("history"); refreshOrganizationHistory(); document.getElementById("organization-history-title").focus(); });
+document.getElementById("history-close").addEventListener("click", () => { setView("details"); document.getElementById("history-open").focus(); });
+document.getElementById("history-refresh").addEventListener("click", () => refreshOrganizationHistory());
+document.getElementById("history-scope").addEventListener("change", event => changeOrganizationScope(event.target.value));
 document.addEventListener("focusin", () => { state.focusGeneration++; });
 el.refreshButton.addEventListener("click", () => refreshSnapshot(true));
 el.treeSearch.addEventListener("input", () => { state.search = el.treeSearch.value.trim().toLocaleLowerCase(); renderTree(); refreshMetricsScope(); });
@@ -41,8 +46,9 @@ el.attentionList.addEventListener("click", event => {
 el.createToggle.addEventListener("click", () => openCreateForm());
 
 refreshSnapshot(false);
-state.refreshTimer = window.setInterval(() => refreshSnapshot(false), POLL_MS);
-window.setInterval(renderDataAge, 1000);
+refreshOrganizationHistory();
+state.refreshTimer = window.setInterval(() => { refreshSnapshot(false); refreshOrganizationHistory(); }, POLL_MS);
+window.setInterval(() => { renderDataAge(); drawOrganizationReadStatus(); }, 1000);
 window.addEventListener("resize", () => { if (window.matchMedia("(min-width: 900px)").matches && state.view === "tree") setView("details"); });
 
 async function refreshSnapshot(manual) {
@@ -84,6 +90,7 @@ async function refreshSnapshot(manual) {
     if (error?.lockDiagnostic && typeof error.lockDiagnostic === "object") state.lockDiagnostic = error.lockDiagnostic;
     else state.lockDiagnostic = staleLockDiagnostic(state.lockDiagnostic, "Snapshotlesung fehlgeschlagen; keine neue Producer-Lockdiagnose geliefert.");
     state.lastReadError = errorMessage(error);
+    renderOrganizationFamilyChoices();
     setConnection("error", `Lesefehler · ${errorMessage(error)}`);
     showToast(`Aktualisierung fehlgeschlagen: ${errorMessage(error)}`, true);
     renderLockStatus();
@@ -117,6 +124,7 @@ function renderDataAge() {
 }
 
 function renderAll(focusState = null) {
+  renderOrganizationFamilyChoices();
   renderHumanFilter();
   renderTree();
   renderAttention();
@@ -290,7 +298,7 @@ function humanInteraction(item) { return item?.humanInteraction && typeof item.h
 const STATUS = { planned:["Geplant","\u25f7"], in_progress:["In Arbeit","\u27f3"], blocked:["Blockiert","\u26d4"], implemented:["Umgesetzt","\u25cf"], rework:["Nacharbeit","\u21b6"], accepted:["Abgenommen","\u2713"], cancelled:["Abgebrochen","\u00d7"] };
 function statusLabel(value) { return STATUS[value]?.[0] ?? "Status unbekannt"; }
 function statusIcon(value) { return STATUS[value]?.[1] ?? "?"; }
-function setView(view) { if (view === "tree" && window.matchMedia("(min-width: 900px) and (max-width: 1199px)").matches) view = "details"; state.view = view; document.body.dataset.view = view; document.querySelectorAll("[data-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.view === view))); }
+function setView(view) { if (view === "tree" && window.matchMedia("(min-width: 900px) and (max-width: 1199px)").matches) view = "details"; state.view = view; document.body.dataset.view = view; document.getElementById("organization-history-panel").hidden = view !== "history"; document.querySelectorAll("[data-view]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.view === view))); }
 
 function captureFocusState() {
   const active = document.activeElement;
@@ -744,6 +752,55 @@ async function loadSpecification(item, markdownPath) {
   } catch (error) {
     const target = document.getElementById("specification-content");
     if (target && state.selectedId === item.id) target.textContent = `Spezifikation nicht verfügbar: ${errorMessage(error)} · Referenz: ${markdownPath}`;
+  }
+}
+
+function renderOrganizationFamilyChoices() {
+  const select = document.getElementById("history-scope");
+  const available = !!state.snapshot && !state.lastReadError && state.snapshot.exists !== false;
+  const items = available ? getItems() : [];
+  select.innerHTML = `<option value="">Gesamtübersicht · konfigurierter Quellenumfang</option>${items.map(item => `<option value="${escapeAttr(item.id)}">WorkItemfamilie · ${escapeHtml(item.id)} · ${escapeHtml(item.title ?? "")}</option>`).join("")}`;
+  document.getElementById("history-family-note").textContent = available ? "Optionale Familienwahl aus demselben konfigurierten Store. Gesamt- und Familiensummen sind alternative Sichten und werden nicht addiert." : "Familienwahl nicht verfügbar: kein aktuell lesbarer WorkItem-Bestand. Die Gesamtübersicht liest unabhängig weiter.";
+  if (organizationHistory.workItemId && !items.some(item => item.id === organizationHistory.workItemId)) changeOrganizationScope("");
+  select.value = organizationHistory.workItemId;
+}
+function changeOrganizationScope(workItemId) {
+  if (organizationHistory.workItemId === workItemId) return;
+  Object.assign(organizationHistory, { workItemId, epoch: organizationHistory.epoch + 1, pending: null, projection: null, loadedAt: null, revision: null, error: null });
+  document.getElementById("organization-history-content").innerHTML = `<p class="placeholder">Gewählter Quellenumfang wird gelesen…</p>`;
+  refreshOrganizationHistory();
+}
+function drawOrganizationReadStatus() {
+  const history = organizationHistory;
+  const stale = history.loadedAt && Date.now() - history.loadedAt > STALE_AFTER_MS;
+  document.getElementById("history-read-status").textContent = history.error
+    ? `Tokenverbrauch nicht verfügbar: ${history.error}.${history.projection ? ` Gezeigter Stand veraltet: letzte erfolgreiche Lesung ${formatDate(history.loadedAt)}; Revision ${history.revision}.` : " Keine belegte Messung; Verbrauch unbekannt."}`
+    : history.loadedAt ? `${stale ? "Stand möglicherweise veraltet · " : ""}Accounting gelesen ${formatDate(history.loadedAt)} · Projektion ${history.projection?.projectionGeneratedAtUTC ?? "Zeit unbekannt"} · Revision ${history.revision}. Quellen werden sequentiell gelesen.` : "Accounting wird gelesen…";
+}
+async function refreshOrganizationHistory() {
+  if (organizationHistory.pending) return;
+  const workItemId = organizationHistory.workItemId, epoch = organizationHistory.epoch;
+  const pending = dispatch("tokenHistory", workItemId ? { workItemId } : {});
+  organizationHistory.pending = pending;
+  try {
+    const { data, completedAt } = await pending;
+    if (organizationHistory.epoch !== epoch || organizationHistory.workItemId !== workItemId) return;
+    const projection = data?.tokenHistory ?? data?.data?.tokenHistory;
+    if (projection?.version !== 1 || !Array.isArray(projection.records) || typeof projection.projectionRevision !== "string") throw new BridgeError("InvalidTokenHistory", "Keine gültige History-Projektion geliefert.");
+    if (workItemId ? projection.scope?.kind !== "workitem_family" || projection.scope?.workItemId !== workItemId : projection.scope?.kind !== "organization_observed") throw new BridgeError("InvalidTokenHistoryScope", "Die History-Antwort gehört nicht zum gewählten Quellenumfang.");
+    const changed = organizationHistory.revision !== projection.projectionRevision;
+    Object.assign(organizationHistory, { projection, revision: projection.projectionRevision, loadedAt: parseTime(completedAt) ?? Date.now(), error: null });
+    if (changed) {
+      const focus = captureFocusState();
+      renderTokenHistory(document.getElementById("organization-history-content"), projection, JSON.stringify([projection.scope?.kind, projection.scope?.accountingDirectory, projection.scope?.storePath ?? null, workItemId]));
+      restoreFocusState(focus);
+    }
+  } catch (error) {
+    if (organizationHistory.epoch !== epoch || organizationHistory.workItemId !== workItemId) return;
+    organizationHistory.error = errorMessage(error);
+    if (!organizationHistory.projection) document.getElementById("organization-history-content").innerHTML = `<p class="notice">Tokenverbrauch nicht verfügbar. Es liegt keine belegte Messung vor; Verbrauch unbekannt.</p>`;
+  } finally {
+    if (organizationHistory.pending === pending) { organizationHistory.pending = null; drawOrganizationReadStatus(); }
   }
 }
 

@@ -388,7 +388,7 @@ function Invoke-LocalWebOperation {
     if ($Request.transportVersion -cne '1' -or $requestId -notmatch '^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$' -or $Request.payload -isnot [System.Management.Automation.PSCustomObject]) {
         return (Get-LocalWebFailure -Code 'MalformedRequest' -Message 'Unsupported transport version, request id or payload.' -StatusCode 400)
     }
-    if ($operation -notin @('read', 'specification', 'metrics', 'create', 'update', 'humanResponse')) { return (Get-LocalWebFailure -Code 'UnknownOperation' -Message 'Operation ist nicht unterstützt.' -StatusCode 400) }
+    if ($operation -notin @('read', 'specification', 'metrics', 'tokenHistory', 'create', 'update', 'humanResponse')) { return (Get-LocalWebFailure -Code 'UnknownOperation' -Message 'Operation ist nicht unterstützt.' -StatusCode 400) }
 
     try {
         switch ($operation) {
@@ -440,6 +440,18 @@ function Invoke-LocalWebOperation {
                     $content = [IO.File]::ReadAllText($path, (New-Object Text.UTF8Encoding($false, $true)))
                     $data = [pscustomobject]@{ workItemId = $item.id; revision = $snapshot.revision; markdownPath = [string]$item.specification.markdown; content = $content }
                 } else { return (Get-LocalWebFailure -Code 'SpecificationUnavailable' -Message 'WorkItem besitzt keine lesbare Spezifikation.' -StatusCode 422) }
+            }
+            'tokenHistory' {
+                if (@($Request.payload.PSObject.Properties.Name | Where-Object { $_ -cne 'workItemId' }).Count -gt 0) { return (Get-LocalWebFailure -Code 'UnknownProperty' -Message 'tokenHistory erwartet leeres payload oder workItemId.' -StatusCode 400) }
+                if ([string]::IsNullOrWhiteSpace([string]$Configuration.AccountingDirectory)) { return (Get-LocalWebFailure -Code 'AccountingUnavailable' -Message 'AccountingDirectory wurde beim Start nicht konfiguriert.' -StatusCode 503) }
+                $arguments=@{AccountingDirectory=$Configuration.AccountingDirectory;RepositoryRoot=$Configuration.RepositoryRoot}
+                if ($Request.payload.PSObject.Properties['workItemId']) {
+                    $value=$Request.payload.workItemId
+                    if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value)) { return (Get-LocalWebFailure -Code 'MalformedRequest' -Message 'workItemId muss eine nichtleere Zeichenfolge sein.' -StatusCode 400) }
+                    $arguments.StorePath=$Configuration.StorePath; $arguments.WorkItemId=$value
+                }
+                $caller=Join-Path $Configuration.RepositoryRoot 'scripts/accounting/Get-OrganizationTokenHistory.ps1'
+                $data=& $caller @arguments
             }
             'metrics' {
                 $allowed = @('workItemId')

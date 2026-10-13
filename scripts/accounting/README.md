@@ -47,3 +47,54 @@ An evidenced later version B after a complete failed decision A contributes once
 `workitem-goal-decision/v1:` is an Accounting evidence envelope in the existing single-string `verification.results[].evidence`, not a schema or role contract. It requires integer `version=1`, exact `workItemId`, UTC `implementedAt`, matching `criterionId`, version-bound `goal.metric/target`, parallel nonempty `measurementIds` and `measurementSources` arrays with unique measurement IDs, `unit`, `definition`, `period`, `sourceReview`, `rationale`, and `assessment` (`achieved` with criterion.passed=true or `not_achieved` with false). Every referenced measurement must match goal, source, unit, definition and period and precede checkedAt. Reviewer and checkedAt come from the surrounding complete verification, never from a second invented reviewer identity. Missing `scope` or `scope=criterion` produces only an individual goal claim. Overall projection requires explicit `scope=whole_goal` plus `goalDefinitionSource` and `validityContext`, expressly declaring the reviewer's overall goal interpretation. Only current-version whole-goal decisions affect current lifecycle/root achievement; conflicting assessments keep it unknown. No inferred aggregation of partial criteria and no automatic free-text target/value comparison are implemented. Leads, activities and customer outcomes remain different metrics.
 
 All evidence formats above are accounting-only design conventions inside existing evidence strings. Existing free text is preserved, shown as raw unresolved evidence and never rewritten into a reviewer decision. Absent actual historical/first-review/goal sources remain specific unknowns; no fabricated evidence is necessary to adopt the code. Read-back and diff evidence for this design are not runtime, independent-review or parent-acceptance evidence. No tests, parsers, validators, production functions or demonstrations were run for this delivery. No CI activation.
+# AR-108 Gesamtübersicht über beobachtetes Accounting
+
+`Get-OrganizationTokenHistory.ps1` ist ein produktiver **lesender** Sourcecaller:
+AccountingDirectory und RepositoryRoot sind erforderlich, WorkItemId und StorePath
+nur als gemeinsam übergebene optionale same-store Familienauswahl. Die lokale Bridge
+ergänzt `tokenHistory({})` für die Gesamtübersicht und `tokenHistory({workItemId})`
+für eine explizite Familie. Roots und Store kommen ausschließlich aus vorhandener
+serverseitiger Konfiguration. Browserpayloads können keine Pfade auswählen.
+`metrics(workItemId)` und die bisherigen strikten Reader bleiben erhalten.
+
+Im freigegebenen WorkItem AR-108-ORG-HISTORY-20261013 ist genau
+`C:/Users/Tom-OliverMarek/AppData/Local/Temp/agent-org-backlog-accounting` belegt.
+Der Reader verwendet direkt, nicht rekursiv, die vorhandenen fünf Muster:
+`*.usage.json`, `*.profile.json`, `execution-*.json`, `workitem-transfer-*.json`,
+`workitem-current-*.json`. Es gibt keinen zusätzlichen Rollout-/Archivroot,
+keinen Indexscan, keine heutigen Rollen-TOMLs und keine neue Abrechnung.
+Diese dokumentierte Konfiguration beweist keinen entsprechend aktiven Webstart.
+
+Der additive `Read-UsageEntries -HistoryDiagnostics`-Modus verwendet vorhandene
+Identity-/Counter-/Finalitätsnormalisierung. Native Thread/Turn werden über alle
+Quellen dedupliziert und korreliert, bevor die optionale Familie gewählt wird.
+Finale eindeutige eigene `turn_token_usage` bleiben auch ohne vollständige
+Familienbindung verwendbar. Reine Familienclaimkonflikte sperren Familienaufnahme;
+echte native/task/Counterkonflikte quarantänisieren die betroffene Messung. Finale
+Counterwidersprüche bleiben für den ganzen Read gesperrt. Provisorische kumulative
+Snapshots ersetzen einander nur bei Counterdominanz; sie werden nie addiert.
+Profile ergänzen nur Metadaten an vorhandenen native/task-Ankern. Weder inclusive,
+thread_total_without_baseline noch Legacy ohne belegte Own-Semantik werden summiert.
+Unlesbare Quellen bleiben diagnostisch; ein unlesbarer Root ist nicht verfügbar.
+
+`tokenHistory.version=1` bleibt erhalten: Int64-Counter als Dezimalstrings,
+feldweise unbekannte historische Metadaten, Inhaltrevision und sequentielles
+Lesefenster. `known_partial`, unbekannte Erwartungsmengen/Gesamtinventare und
+`originalRootCapture=not_proven` sind ausdrücklich sichtbar. Diagnosezahlen sind
+überlappend und kein exakter Fehlmengenprozentsatz. Gesamt- und Familiensichten
+sind Alternativen und dürfen nicht addiert werden.
+
+Der UI-Bereich **Tokenverbrauch** ist ohne WorkItemauswahl erreichbar und liest
+unabhängig vom WorkItemsnapshot. Familienwahl verwendet dessen aktuell lesbaren
+Storebestand. Scopewechsel und Leseepochs verwerfen verspätete Antworten; Fehler
+zeigen nicht verfügbare bzw. ausdrücklich veraltete Daten mit Zeitstand. Vorhandene
+TokenHistory-Tabellen, gestapelte SVG-Säulen, UTC-Schnitte und gemeinsame Filter
+werden wiederverwendet. Native finale Messzeit bestimmt Buckets; unbekannte Zeiten
+bleiben außerhalb begrenzter Zeitraumsummen, unbegrenzt in der Tabelle. Keine
+geschätzte Intra-Turn-Zeit- oder Profilverteilung.
+
+Offen bleiben exhaustive Originalrooterfassung, vollständige Erwartungsinventare
+und disjunkte native Intra-Turn-Teilbelege. Diese Sourceänderung ist weder aktueller
+Funktions- noch visueller Nachweis: im Auftrag ausschließlich Inhalt/Diff/Referenzen,
+keine Tests, Parser, Validatoren oder Runtime-/Browser-/native Produktproben.
+
