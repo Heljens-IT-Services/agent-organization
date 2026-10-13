@@ -1,5 +1,6 @@
 # Technical design; backend owns adoption. No organizational contract changes.
 Set-StrictMode -Version 2
+Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
 $script:TokenFields = @('inputTokens','cachedInputTokens','outputTokens','reasoningOutputTokens','totalTokens','cacheWriteInputTokens')
 function Get-Field($Object, [string]$Name) {
     if ($null -eq $Object) { return $null }
@@ -150,6 +151,16 @@ function Read-UsageEntries([string]$Directory) {
                 AliasTaskIds=@($identity.taskId); paths=@($file.FullName); records=@($record)
             }
         }
+    }
+    # Immutable enrichment does not add usage or alter accepted accounting identity.
+    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter '*.profile.json' -File -ErrorAction SilentlyContinue) {
+        $profile = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ((Get-Field $profile 'schema') -cne 'native-token-profile/v1') { continue }
+        $key = (Get-CanonicalId (Get-Field $profile 'thread_id')) + '/' + (Get-CanonicalId (Get-Field $profile 'turn_id'))
+        if (-not $native.ContainsKey($key)) { continue }
+        $entry = $native[$key]
+        if ($entry.AliasTaskIds -cnotcontains (Get-CanonicalId (Get-Field $profile 'task_id'))) { continue }
+        $entry.records += @($profile); $entry.paths += @($file.FullName)
     }
     foreach ($id in @($tasks.Keys)) {
         $seen = @{}; $cursor = $id
@@ -369,11 +380,14 @@ function Get-LedgerCounterKind($Entry) {
 }
 function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$RolloutPaths, [string[]]$RootTaskIds, [string[]]$EventLogPaths, $SupplementalBindings=@()) {
     $rows=@(); $lifecycles=@(); $sources=@(); $conflicts=@(); $diagnostics=@()
+    $jobProfiles=@()
     $roots=@($RootTaskIds | ForEach-Object { Get-CanonicalId $_ } | Select-Object -Unique)
     foreach ($path in @($JobArtifactPaths | Select-Object -Unique)) {
         $full=Get-CanonicalPath $path; $sources+=@($full)
         $document=Get-Content -LiteralPath $full -Raw -Encoding UTF8 | ConvertFrom-Json
-        $rows+=@(New-AccountingBinding $document @($full))
+        $jobBinding=New-AccountingBinding $document @($full)
+        $rows+=@($jobBinding)
+        $jobProfiles+=@([pscustomobject]@{binding=$jobBinding;roleId=(Get-Field $document 'role');source=$full})
     }
     foreach ($binding in @($SupplementalBindings)) { $rows+=@(New-AccountingBinding $binding @(Get-Field $binding 'sources')) }
     foreach ($path in @($RolloutPaths | Select-Object -Unique)) {
@@ -400,7 +414,7 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
                     if ($null -eq $turn) { continue }
                     if (-not $local.ContainsKey($turn)) {
                         $binding=New-AccountingBinding ([pscustomobject]@{thread_id=$thread;turn_id=$turn}) @($full)
-                        $local[$turn]=[pscustomobject]@{binding=$binding;source=$full;startOrdinal=$null;completeOrdinal=$null;context=$false;snapshots=@();issues=@()}
+                        $local[$turn]=[pscustomobject]@{binding=$binding;source=$full;startOrdinal=$null;completeOrdinal=$null;context=$false;profiles=@();snapshots=@();issues=@()}
                         $rows+=@($binding)
                     }
                     $state=$local[$turn]
@@ -408,9 +422,10 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
                         $ctx=New-AccountingBinding $payload @($full)
                         if ($null -ne $ctx.threadId -and $ctx.threadId -cne $thread) { throw 'Foreign context thread.' }
                         $ctx.threadId=$thread; $rows+=@($ctx); $state.context=$true
+                        $state.profiles+=@(Get-TurnContextHistory $payload ($full+'#ordinal='+$ordinal))
                     } elseif ($type -ceq 'token_usage_record') {
                         if ((Get-CanonicalId (Get-Field $payload 'thread_id')) -cne $thread) { throw 'Foreign token thread.' }
-                        $state.snapshots+=@([pscustomobject]@{ordinal=[long]$ordinal;usage=Get-NormalizedNativeUsage (Get-Field $payload 'turn_token_usage');source=$full})
+                        $state.snapshots+=@([pscustomobject]@{ordinal=[long]$ordinal;usage=Get-NormalizedNativeUsage (Get-Field $payload 'turn_token_usage');measurementUTC=(ConvertTo-HistoryUTC (Get-Field $record 'timestamp'));source=$full})
                     } elseif ($type -ceq 'event_msg') {
                         $eventType=Get-Field $payload 'type'
                         if ($eventType -ceq 'task_started') {
@@ -464,11 +479,20 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
             if (-not $monotone) { $conflicts+=@(New-AccountingConflict $sample 'native_turn_counter_reversal' @($state.source)); continue }
             if ($inside.Count -eq 0 -or $ids.Count -ne 1) { continue }
             $chosen=$inside[-1]
+            $assignments=@($jobProfiles | Where-Object {
+                $null -ne $_.binding.taskId -and $_.binding.taskId -ceq $sample.taskId -and
+                ($null -eq $_.binding.threadId -or $_.binding.threadId -ceq $sample.threadId) -and
+                ($null -eq $_.binding.turnId -or $_.binding.turnId -ceq $sample.turnId)
+            })
+            $history=Get-TokenHistory (@($state.profiles)+@($assignments)) (@($state.profiles | ForEach-Object { $state.source })+@($assignments | ForEach-Object source))
             $candidates+=@([pscustomobject]@{
                 taskId=$sample.taskId;parentTaskId=$sample.parentTaskId;parentThreadId=$sample.parentThreadId;parentTurnId=$sample.parentTurnId
                 threadId=$sample.threadId;turnId=$sample.turnId;workItemId=$sample.workItemId;executionId=$sample.executionId;storePath=$sample.storePath
                 tokenUsage=$chosen.usage;final=$true;role='native_rollout';source=$state.source;sources=@($state.source)
                 usageOrdinal=$chosen.ordinal;startOrdinal=$state.startOrdinal;completeOrdinal=$state.completeOrdinal;counterKind='turn_token_usage'
+                roleId=$history.roleId;modelId=$history.modelId;reasoningEffort=$history.reasoningEffort;measurementUTC=$chosen.measurementUTC
+                metadataConflicts=$history.metadataConflicts;metadataSources=$history.metadataSources;metadataAuthority=$history.metadataAuthority
+                measurementTimeBasis='native_record_timestamp'
             })
         }
     }
@@ -478,6 +502,8 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
         foreach ($candidate in $group.Group) { if (-not (Compare-AccountingUsage $first.tokenUsage $candidate.tokenUsage)) { $same=$false } }
         if (-not $same) { $conflicts+=@(New-AccountingConflict $first 'conflicting_source_final_native_measurements' @($group.Group | ForEach-Object source)); continue }
         $first.sources=@($group.Group | ForEach-Object source | Select-Object -Unique)
+        $history=Get-TokenHistory @($group.Group) @($group.Group | ForEach-Object source)
+        foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','metadataConflicts','metadataSources','metadataAuthority')) { $first.$field=$history.$field }
         $measurements+=@($first)
     }
     # Event totals are diagnostic only, even after turn/completed.
@@ -506,6 +532,7 @@ function Merge-NativeAccountingMeasurements($Entries, $Measurements) {
         $matches=@($all | Where-Object native_key -ceq $key)
         if ($null -eq $measurement.taskId -or $matches.Count -gt 1) { $conflicts+=@(New-AccountingConflict $measurement 'ambiguous_measurement_identity' $measurement.sources); continue }
         $record=[pscustomobject]@{task_id=$measurement.taskId;parent_task_id=$measurement.parentTaskId;parent_thread_id=$measurement.parentThreadId;parent_turn_id=$measurement.parentTurnId;role=$measurement.role;thread_id=$measurement.threadId;turn_id=$measurement.turnId;work_item_id=$measurement.workItemId;execution_id=$measurement.executionId;work_item_store_path=$measurement.storePath;token_usage=$measurement.tokenUsage;final=$true;source='local_rollout_native_turn_usage'}
+        foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','measurementTimeBasis','metadataConflicts','metadataSources','metadataAuthority')) { $record | Add-Member -NotePropertyName $field -NotePropertyValue (Get-Field $measurement $field) }
         $identity=Get-UsageIdentity $record; $aliases=@($measurement.taskId); $paths=@($measurement.sources); $records=@($record); $blocked=$false
         if ($matches.Count -eq 1) {
             $prior=$matches[0]; $old=$prior.identity

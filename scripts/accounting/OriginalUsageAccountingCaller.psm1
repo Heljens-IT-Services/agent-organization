@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 
 $script:UsageFields = @('input_tokens','cached_input_tokens','cache_write_input_tokens','output_tokens','reasoning_output_tokens','total_tokens')
 $script:MaximumUsageSnapshotBytes = 134217728L
+$script:ProfileFields = @('role_id','roleId','model','modelId','effort','reasoning_effort','reasoningEffort')
 
 function Get-UsagePropertyValue($Object, [string]$Name) {
     if ($null -eq $Object -or $Object -isnot [System.Management.Automation.PSCustomObject]) { return $null }
@@ -128,13 +129,14 @@ function Test-PublicRawRecord($B,$Top,[string]$Type,$PayloadSpans){
     if($Top.Count -lt 3 -or -not $Top.Contains('ordinal') -or -not $Top.Contains('type') -or -not $Top.Contains('payload')){return 'record envelope is incomplete'}
     if($Top.Contains('timestamp')){
         $timestamp=Get-PublicValue $B $Top 'timestamp'
-        if($timestamp -isnot [string] -or $timestamp -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?Z$'){return 'timestamp is not strict UTC ISO-8601'}
-        $formats=@("yyyy-MM-dd'T'HH:mm:ss'Z'");for($digits=1;$digits -le 7;$digits++){$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"'Z'")}
-        $parsed=[datetime]::MinValue;if(-not [datetime]::TryParseExact($timestamp,$formats,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){return 'timestamp calendar value is invalid'}
+        if($timestamp -isnot [string] -or $timestamp -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$'){return 'timestamp has no explicit ISO-8601 offset'}
+        $formats=@("yyyy-MM-dd'T'HH:mm:ss'Z'","yyyy-MM-dd'T'HH:mm:sszzz")
+        for($digits=1;$digits -le 7;$digits++){$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"'Z'");$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"zzz")}
+        $parsed=[datetimeoffset]::MinValue;if(-not [datetimeoffset]::TryParseExact($timestamp,$formats,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){return 'timestamp calendar value is invalid'}
     }
     $allowedPayload=@()
     if($Type -ceq 'session_meta'){$allowedPayload=@('id')}
-    elseif($Type -ceq 'turn_context'){$allowedPayload=@('thread_id','threadId','turn_id','turnId','root_turn_id')}
+    elseif($Type -ceq 'turn_context'){$allowedPayload=@('thread_id','threadId','turn_id','turnId','root_turn_id')+$script:ProfileFields}
     elseif($Type -ceq 'token_usage_record'){$allowedPayload=@('thread_id','turn_id','turn_token_usage')}
     elseif($Type -ceq 'event_msg'){$allowedPayload=@('type','thread_id','threadId','turn_id','turnId','task_id','taskId','parent_task_id','parentTaskId','work_item_id','workItemId','execution_id','executionId','parent_thread_id','parentThreadId','parent_turn_id','parentTurnId','turn_attribution')}
     else{return 'record type is not allowlisted'}
@@ -142,7 +144,11 @@ function Test-PublicRawRecord($B,$Top,[string]$Type,$PayloadSpans){
     if($Type -ceq 'session_meta'){
         $v=Get-PublicValue $B $PayloadSpans 'id';if($v -isnot [string] -or -not (Test-PublicGuid $v)){return 'session id is not a GUID'}
     }elseif($Type -ceq 'turn_context'){
-        foreach($key in $PayloadSpans.Keys){$v=Get-PublicValue $B $PayloadSpans $key;if($v -isnot [string] -or -not (Test-PublicGuid $v)){return "context identity is not a GUID: $key"}}
+        foreach($key in $PayloadSpans.Keys){
+            $v=Get-PublicValue $B $PayloadSpans $key
+            if($key -cin $script:ProfileFields){if($null -ne $v -and ($v -isnot [string] -or $v -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$')){return "context profile value invalid: $key"}}
+            elseif($v -isnot [string] -or -not (Test-PublicGuid $v)){return "context identity is not a GUID: $key"}
+        }
     }elseif($Type -ceq 'token_usage_record'){
         foreach($key in @('thread_id','turn_id')){$v=Get-PublicValue $B $PayloadSpans $key;if($v -isnot [string] -or -not (Test-PublicGuid $v)){return "usage identity is not a GUID: $key"}}
         if($PayloadSpans.Contains('turn_token_usage') -and $null -ne (Get-PublicValue $B $PayloadSpans 'turn_token_usage')){
@@ -174,7 +180,13 @@ function Get-PublicNative($Snapshot){
             if($type -ceq 'session_meta'){
                 $safe=Select-PublicFields $b $ps @('id');$sessions++
                 if($sessions -ne 1 -or -not $safe.Contains('id') -or $safe.id -isnot [string] -or ([guid]$safe.id).ToString('D') -cne $thread){throw 'NativeSessionInvalid'}
-            }elseif($type -ceq 'turn_context'){$safe=Select-PublicFields $b $ps ($script:BindingNames+@('root_turn_id'))}
+            }elseif($type -ceq 'turn_context'){
+                $safe=Select-PublicFields $b $ps ($script:BindingNames+@('root_turn_id'))
+                foreach($f in $script:ProfileFields){
+                    if(-not $ps.Contains($f)){continue};$v=Get-PublicValue $b $ps $f
+                    $safe[$f]=if($v -is [string] -and $v -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$v}else{$null}
+                }
+            }
             elseif($type -ceq 'token_usage_record'){
                 $safe=Select-PublicFields $b $ps @('thread_id','turn_id')
                 if(-not $safe.Contains('thread_id')){throw 'NativeUsageIdentityMissing'}
@@ -195,6 +207,13 @@ function Get-PublicNative($Snapshot){
                 $originalTurnId=if($safe.Contains('turn_id')){$safe.turn_id}else{$null}
                 if($type -cne 'session_meta'){if(-not $safe.Contains('turn_id') -or $safe.turn_id -isnot [string]){throw 'NativeTurnMissing'};$safe.turn_id=([guid]$safe.turn_id).ToString('D')}
                 $row=[pscustomobject][ordered]@{ordinal=[long]$ord;type=$type;payload=[pscustomobject]$safe}
+                if($top.Contains('timestamp')){
+                    $ts=Get-PublicValue $b $top 'timestamp'
+                    $parsedTime=[datetimeoffset]::MinValue
+                    if($ts -is [string] -and $ts -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($ts,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsedTime)){
+                        $row | Add-Member -NotePropertyName timestamp -NotePropertyValue $ts
+                    }
+                }
                 if($type -cne 'token_usage_record' -or $null -ne $safe.turn_token_usage){$rows.Add($row);$lines.Add(($row|ConvertTo-Json -Depth 20 -Compress))}
                 $original=[byte[]]::new($i-$start+1);[Array]::Copy($b,$start,$original,0,$original.Length)
                 $rawReason=Test-PublicRawRecord $b $top $type $ps
@@ -274,12 +293,92 @@ function Get-PublicEventBytes($Snapshot){
         };$start=$i+1
     };return [pscustomobject]@{Bytes=[Text.UTF8Encoding]::new($false).GetBytes(($lines -join "`n")+$(if($lines.Count){"`n"}else{''}));TailOffset=[long]$start;TailLength=[long]($b.Length-$start)}
 }
+function Get-PublicMetadataSources([byte[]]$B,$Top){
+    # Scan array elements before decoding: unknown/private members never enter the projection.
+    if(-not $Top.Contains('metadataSources')){return}
+    $span=$Top['metadataSources'];$end=$span.Offset+$span.Length;$i=$span.Offset
+    while($i -lt $end -and $B[$i] -in @(9,10,13,32)){$i++}
+    if($i -ge $end -or $B[$i] -ne 91){return};$i++
+    while($i -lt $end){
+        while($i -lt $end -and $B[$i] -in @(9,10,13,32)){$i++}
+        if($i -ge $end){throw 'MetadataSourcesTruncated'};if($B[$i] -eq 93){return}
+        $start=$i;$depth=0;$quoted=$false
+        while($i -lt $end){
+            $c=$B[$i]
+            if($quoted){if($c -eq 92){$i+=2;continue};if($c -eq 34){$quoted=$false}}
+            else{if($c -eq 34){$quoted=$true}elseif($c -in @(123,91)){$depth++}elseif($c -in @(125,93)){if($depth -eq 0){break};$depth--}elseif($c -eq 44 -and $depth -eq 0){break}}
+            $i++
+        }
+        if($quoted -or $depth -ne 0 -or $i -ge $end){throw 'MetadataSourcesTruncated'}
+        if($B[$start] -eq 123){
+            $fields=Get-PublicSpans $B $start ($i-$start)
+            $field=Get-PublicValue $B $fields 'field';$value=Get-PublicValue $B $fields 'value'
+            $valid=$field -cin @('roleId','modelId','reasoningEffort','measurementUTC')
+            if($field -ceq 'measurementUTC'){
+                $parsed=[datetimeoffset]::MinValue
+                $valid=$valid -and $value -is [string] -and $value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($value,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)
+            }else{$valid=$valid -and $value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'}
+            if($valid){
+                $source=Get-PublicValue $B $fields 'source'
+                # Only concrete JSON/JSONL paths and the existing explicit historical assignment prefix.
+                $safeSource=if($source -is [string] -and $source.Length -le 4096 -and $source -cnotmatch '[\x00-\x1f]' -and $source -cmatch '^(explicit historical import assignment; )?([A-Za-z]:[\\/]|/|\\\\).+\.jsonl?$'){$source}else{$null}
+                $safe=[ordered]@{field=$field;value=$value;source=$safeSource}
+                if($fields.Contains('sha256')){$hash=Get-PublicValue $B $fields 'sha256';$safe['sha256']=if($hash -is [string] -and $hash -cmatch '^[0-9a-fA-F]{64}$'){$hash}else{$null}}
+                if($fields.Contains('basis')){$basis=Get-PublicValue $B $fields 'basis';$safe['basis']=if($basis -ceq 'resolved fresh thread defaults; turn/start has no model or effort override'){$basis}else{$null}}
+                if($fields.Contains('authority')){$rank=Get-PublicValue $B $fields 'authority';if($rank -is [int] -and $rank -in @(10,20,30)){$safe['authority']=$rank}}
+                [pscustomobject]$safe
+            }
+        }
+        if($B[$i] -eq 93){return};if($B[$i] -ne 44){throw 'MetadataSourcesSeparator'};$i++
+    }
+    throw 'MetadataSourcesTruncated'
+}
 function Get-PublicDocumentBytes($Snapshot){
     $top=Get-PublicSpans $Snapshot.Bytes
-    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
+    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames+@('role')}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
         elseif($Snapshot.Kind -ceq 'ledger'){$script:BindingNames+@('role','token_usage','final','source','counter_kind','counterKind')}
+        elseif($Snapshot.Kind -ceq 'profile'){@('schema','task_id','thread_id','turn_id')}
         else{$script:BindingNames+@('complete','startingSnapshot','candidate')}
-    return ConvertTo-PublicBytes (Select-PublicFields $Snapshot.Bytes $top $names)
+    $public=Select-PublicFields $Snapshot.Bytes $top $names
+    if($Snapshot.Kind -ceq 'profile'){
+        if($public['schema'] -cne 'native-token-profile/v1'){throw 'NativeProfileSchemaInvalid'}
+        foreach($field in @('task_id','thread_id','turn_id')){
+            $value=$public[$field]
+            if($value -isnot [string] -or $value -cnotmatch '^([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'){throw 'NativeProfileIdentityInvalid'}
+        }
+    }
+    if($Snapshot.Kind -cin @('ledger','profile')){
+        foreach($field in @('roleId','modelId','reasoningEffort')){
+            if(-not $top.Contains($field)){continue};$value=Get-PublicValue $Snapshot.Bytes $top $field
+            $public[$field]=if($value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$value}else{$null}
+        }
+        foreach($field in @('measurementUTC','importedAtUTC','measurementObservedAtUTC')){
+            if(-not $top.Contains($field)){continue};$value=Get-PublicValue $Snapshot.Bytes $top $field;$parsed=[datetimeoffset]::MinValue
+            $public[$field]=if($value -is [string] -and $value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($value,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){$value}else{$null}
+        }
+        $basis=Get-PublicValue $Snapshot.Bytes $top 'measurementTimeBasis'
+        if($basis -cin @('native_record_timestamp','UTC receipt of last identity-matched native usage notification','native_time_unknown_notification_observation_only')){$public['measurementTimeBasis']=$basis}
+        $rawConflicts=Get-PublicValue $Snapshot.Bytes $top 'metadataConflicts'
+        $public['metadataConflicts']=@($rawConflicts | Where-Object { $_ -cin @('roleId','modelId','reasoningEffort','measurementUTC') })
+        $rawAuthority=Get-PublicValue $Snapshot.Bytes $top 'metadataAuthority'
+        $safeAuthority=[ordered]@{}
+        foreach($field in @('roleId','modelId','reasoningEffort','measurementUTC')){
+            $rank=Get-UsagePropertyValue $rawAuthority $field
+            if($rank -is [int] -and $rank -in @(10,20,30)){$safeAuthority[$field]=$rank}
+        }
+        $public['metadataAuthority']=[pscustomobject]$safeAuthority
+        $public['metadataSources']=@(Get-PublicMetadataSources $Snapshot.Bytes $top)
+        $requested=if($Snapshot.Kind -ceq 'ledger'){Get-PublicValue $Snapshot.Bytes $top 'requestedProfile'}else{$null}
+        if($Snapshot.Kind -ceq 'ledger' -and $null -ne $requested){
+            $safeRequested=[ordered]@{effective=$false}
+            foreach($field in @('modelId','reasoningEffort')){
+                $value=Get-UsagePropertyValue $requested $field
+                $safeRequested[$field]=if($value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$value}else{$null}
+            }
+            $public['requestedProfile']=[pscustomobject]$safeRequested
+        }
+    }
+    return ConvertTo-PublicBytes $public
 }
 function New-PublicPlan([string]$Root,$Item){
     $path=[IO.Path]::GetFullPath((Join-Path $Root $Item.Relative));$prefix=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')+[IO.Path]::DirectorySeparatorChar
@@ -336,8 +435,8 @@ function Invoke-OriginalUsageAccountingCaller {
     foreach($group in @(@('job',$ExpectedJobArtifacts),@('native',$NativeRolloutPaths),@('events',$NativeEventLogPaths),@('expected',$ExpectedTaskSources))){
         foreach($path in @($group[1])){$descriptors.Add([pscustomobject]@{Kind=$group[0];Path=[IO.Path]::GetFullPath($path)})}
     }
-    foreach($pattern in @('*.usage.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')){
-        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -ceq '*.usage.json'){'ledger'}else{'execution'});Path=$file.FullName})}
+    foreach($pattern in @('*.usage.json','*.profile.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')){
+        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -ceq '*.usage.json'){'ledger'}elseif($pattern -ceq '*.profile.json'){'profile'}else{'execution'});Path=$file.FullName})}
     }
     if($descriptors.Count -gt 4096){throw 'InputCountLimit'}
     $missing=@($descriptors|Where-Object{-not [IO.File]::Exists($_.Path)}|ForEach-Object Path)
@@ -369,7 +468,7 @@ function Invoke-OriginalUsageAccountingCaller {
     $id=Get-OriginalUsageSha256 (ConvertTo-PublicBytes $index);$base="retained/$id";$items=[Collections.Generic.List[object]]::new();$map=@{job=@();native=@();events=@();expected=@()}
     foreach($s in $snapshots){
         $slot=Get-OriginalUsageSha256 ([Text.UTF8Encoding]::new($false).GetBytes($s.Path));$name=[IO.Path]::GetFileName($s.Path)
-        $relative=if($s.Kind -in @('ledger','execution')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
+        $relative=if($s.Kind -in @('ledger','execution','profile')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
         $source=[ordered]@{path=$s.Path;observedLength=[long]$s.Bytes.Length;observedSha256=$s.Sha256;tailOffset=$s.TailOffset;tailLength=$s.TailLength;originalReceipt=$s.OriginalReceipt}
         if($s.Kind -ceq 'native'){
             $source.ranges=@($s.Native.Ranges|ForEach-Object{[ordered]@{ordinal=$_.ordinal;offset=$_.offset;length=$_.length;rangeSha256=$_.rangeSha256;originalPath=$_.originalPath;originalThreadId=$_.originalThreadId;originalTurnId=$_.originalTurnId;rawRangeAvailable=$_.rawRangeAvailable;rawUnavailableReason=$_.rawUnavailableReason;threadId=$_.threadId;turnId=$_.turnId;nativeFinalIdentity=$_.nativeFinalIdentity}})

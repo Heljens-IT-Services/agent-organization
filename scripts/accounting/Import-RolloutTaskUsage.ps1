@@ -13,6 +13,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
 $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
 # Explicit opt-in to this observed internal format, not a public rollout API.
 # Only metadata is read; message payloads are never returned or included in errors.
@@ -101,6 +102,7 @@ $directMetadata = 0
 $directStarted = $false
 $directCompleted = $false
 $directError = $null
+$profiles = @(); $measurementUTC = $null
 $directStream = [System.IO.File]::Open($file.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
 $directReader = New-Object System.IO.StreamReader($directStream, $utf8, $false)
 try {
@@ -109,6 +111,12 @@ try {
         if ($null -eq $data -or $data -isnot [pscustomobject] -or $data.type -isnot [string] -or $data.payload -isnot [pscustomobject]) { throw 'Unknown rollout record envelope.' }
         if (@('session_meta','event_msg','response_item','turn_context','compacted','world_state','inter_agent_communication_metadata','token_usage_record') -cnotcontains $data.type) { throw 'Unknown rollout record type.' }
         if ($data.type -eq 'session_meta' -and (Get-CanonicalId (Get-Field $data.payload 'id')) -ceq (Get-CanonicalId $thread)) { $directMetadata++ }
+        if ($data.type -ceq 'turn_context' -and $directMetadata -eq 1 -and
+            (Get-CanonicalId (Get-Field $data.payload 'turn_id') -Optional) -ceq (Get-CanonicalId $turn)) {
+            $contextThread=Get-CanonicalId (Get-Field $data.payload 'thread_id') -Optional
+            if ($null -ne $contextThread -and $contextThread -cne (Get-CanonicalId $thread)) { throw 'Foreign selected turn context.' }
+            $profiles+=@(Get-TurnContextHistory $data.payload ($file.FullName+'#turn_context:'+ $turn))
+        }
         if ($data.type -eq 'event_msg' -and (Get-CanonicalId (Get-Field $data.payload 'turn_id') -Optional) -ceq (Get-CanonicalId $turn)) {
             if ($data.payload.type -eq 'task_started') {
                 if ($directStarted -or $directMetadata -ne 1) { $directError = 'Ambiguous selected native turn start.' }
@@ -126,6 +134,7 @@ try {
                 foreach ($key in $ledgerFields) { if ($next.$key -lt $direct.$key) { throw 'Native turn counter reset.' } }
             }
             $direct = $next
+            $measurementUTC = ConvertTo-HistoryUTC (Get-Field $data 'timestamp')
         }
     }
 } finally { $directReader.Dispose() }
@@ -171,7 +180,7 @@ try {
                             }
                         }
                         $latest = $snapshot
-                        if ($activeTurn -eq $turn) { $final = $snapshot }
+                        if ($activeTurn -eq $turn) { $final = $snapshot; $measurementUTC = ConvertTo-HistoryUTC (Get-Field $data 'timestamp') }
                     }
                     'task_started' {
                         $eventTurn = Id $event.turn_id 'task start turn'
@@ -223,6 +232,10 @@ $record = [pscustomobject][ordered]@{
     task_id = $task; parent_task_id = $parent; role = $Role; thread_id = $thread; turn_id = $turn
     parent_thread_id = $parentThread; parent_turn_id = $parentTurn; token_usage = $usage; final = $true; source = $(if ($null -ne $direct) { 'local_rollout_native_turn_usage' } else { 'local_rollout_completed_turn_delta' })
 }
+$history = Get-TokenHistory (@($profiles)+@([pscustomobject]@{roleId=$Role;measurementUTC=$measurementUTC;measurementTimeBasis='native_record_timestamp'})) (@($profiles | ForEach-Object { $file.FullName })+@('explicit historical import assignment; '+$file.FullName))
+foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','metadataConflicts','metadataSources','metadataAuthority')) { $record | Add-Member -NotePropertyName $field -NotePropertyValue $history.$field }
+$record | Add-Member -NotePropertyName importedAtUTC -NotePropertyValue ([DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'"))
+$record | Add-Member -NotePropertyName measurementTimeBasis -NotePropertyValue 'native_record_timestamp'
 if ($null -ne $workItem) {
     $record | Add-Member -NotePropertyName work_item_id -NotePropertyValue $workItem
     $record | Add-Member -NotePropertyName execution_id -NotePropertyValue $execution
@@ -279,6 +292,21 @@ try {
                 if ($raced.taskId -cne $identity.taskId -or $raced.threadId -cne $identity.threadId -or $raced.turnId -cne $identity.turnId -or (Get-NativeSignature $raced) -cne (Get-NativeSignature $identity)) { throw 'Concurrent destination conflict.' }
             }
         } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
+    }
+    # Persist trustworthy backfill without replacing an existing Unknown/final
+    # measurement. This additive profile has no counters and cannot be summed.
+    $profile=[ordered]@{schema='native-token-profile/v1';task_id=$task;thread_id=$thread;turn_id=$turn}
+    foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','measurementTimeBasis','metadataConflicts','metadataSources','metadataAuthority')) { $profile[$field]=$record.$field }
+    $profileIdentityText=$profile | ConvertTo-Json -Depth 20
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try { $hash=([BitConverter]::ToString($sha.ComputeHash($utf8.GetBytes($profileIdentityText)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+    $profile['importedAtUTC']=$record.importedAtUTC
+    $profileText=$profile | ConvertTo-Json -Depth 20
+    $profilePath=Join-Path $directory ($thread+'.'+$turn+'.'+$hash+'.profile.json')
+    if (-not [IO.File]::Exists($profilePath)) {
+        $profileTemporary=Join-Path $directory ([guid]::NewGuid().ToString('N')+'.tmp')
+        try { [IO.File]::WriteAllText($profileTemporary,$profileText,$utf8); [IO.File]::Move($profileTemporary,$profilePath) }
+        finally { if ([IO.File]::Exists($profileTemporary)) { [IO.File]::Delete($profileTemporary) } }
     }
 } finally { $lock.Dispose() }
 $record
