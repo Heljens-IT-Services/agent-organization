@@ -55,7 +55,18 @@ function Get-AdmissionCount([object[]]$Entries) {
     }
     $groups=@{};for($i=0;$i -lt $rows.Count;$i++){$p=$i;while($parent[$p] -ne $p){$p=$parent[$p]};if(-not $groups.ContainsKey($p)){$groups[$p]=[Collections.ArrayList]::new()};[void]$groups[$p].Add($rows[$i])}
     foreach($group in $groups.Values){foreach($n in @('taskId','dispatchId','executionId')){$ids=@($group|ForEach-Object{$v=[string](Get-AdmissionField $_ $n);if($v){Get-AdmissionGuid $v}}|Sort-Object -Unique);if($ids.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingAlias:'+ $n)}}}
-    [pscustomobject]@{Count=$groups.Count;Executions=$rows;CapacityKnown=(-not $unknown);CapacityUnknown=$unknown;Reasons=@($reasons.ToArray())}
+    $roleCounts=@{};$workItemIds=@{}
+    foreach($group in $groups.Values){
+        $roles=@($group|ForEach-Object{Get-AdmissionField $_ 'role'}|Where-Object{$_}|Sort-Object -Unique)
+        if($roles.Count -eq 0){$unknown=$true;$reasons.Add('ExecutionRoleUnknown')}
+        if($roles.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingExecutionRoles')}
+        if($roles.Count -eq 1){$role=[string]$roles[0];if(-not $roleCounts.ContainsKey($role)){$roleCounts[$role]=0};$roleCounts[$role]++}
+        $groupWorkIds=@($group|ForEach-Object{Get-AdmissionField $_ 'workItemId'}|Where-Object{$_}|Sort-Object -Unique)
+        if($groupWorkIds.Count -gt 1){$unknown=$true;$reasons.Add('ConflictingExecutionWorkItems')}
+        if($roles.Count -eq 1 -and [string]$roles[0] -like 'teamleiter_*' -and $groupWorkIds.Count -ne 1){$unknown=$true;$reasons.Add('TeamExecutionWorkItemUnknown')}
+        foreach($id in $groupWorkIds){$workItemIds[[string]$id]=$true}
+    }
+    [pscustomobject]@{Count=$groups.Count;Executions=$rows;RoleCounts=$roleCounts;WorkItemIds=@($workItemIds.Keys);CapacityKnown=(-not $unknown);CapacityUnknown=$unknown;Reasons=@($reasons.ToArray())}
 }
 function Add-AdmissionPin([Collections.IDictionary]$Pins,[string]$Path) {
     if(-not $Path -or -not [IO.Path]::IsPathRooted($Path)){throw 'AdmissionBindingPathMissing'}
@@ -119,6 +130,9 @@ function Get-AdmissionScope([string]$RootJobPath,[string]$SessionPath,[object[]]
         if([IO.File]::Exists($journalPath)){
             try{$journal=Add-AdmissionPin $pins $journalPath
                 foreach($dispatch in @($journal.executions|Where-Object{$_.state -ne 'Returned'})){
+                    # Prepared has no native start authority yet. A denied
+                    # admission for one root must not occupy another root's slot.
+                    if($dispatch.state -ceq 'Prepared' -and -not $dispatch.launchBinding -and -not $dispatch.runningAtUtc -and -not (Get-AdmissionField $dispatch 'launchIntentAtUtc')){continue}
                     $registered=@($work|Where-Object{(Get-AdmissionGuid (Get-AdmissionField $_ 'dispatchId')) -ceq (Get-AdmissionGuid $dispatch.executionId)})
                     $isTarget=$Target -and (Get-AdmissionGuid $Target.dispatchId) -ceq (Get-AdmissionGuid $dispatch.executionId) -and $dispatch.input.payloadHash -ceq $Target.payloadHash
                     if(-not $registered.Count -and -not $isTarget){$unknown.Add('UnresolvedAdmittedDispatch:'+ $dispatch.executionId)}
@@ -283,8 +297,23 @@ function Invoke-AdmissionRegistryLocked {
     $existing=@($Entries|Where-Object{(Get-AdmissionGuid $_.taskId) -ceq (Get-AdmissionGuid $Target.taskId) -or (Get-AdmissionGuid $_.dispatchId) -ceq (Get-AdmissionGuid $Target.dispatchId)})
     if($existing.Count){throw 'AdmissionUnknown: ExistingReservationRequiresReceiptOnlyRecovery'}
     if($count.Count -ge $scope.Capacity){throw 'CoordinatorCapacityFull'}
+    $rootForLimits=Read-AdmissionJson $scope.RootJobPath
+    $launchForLimits=Read-AdmissionJson $rootForLimits.coordinator_launch.inputPath
+    foreach($pinPath in @($scope.RootJobPath,$rootForLimits.coordinator_launch.inputPath)){if((Get-AdmissionHash ([IO.File]::ReadAllBytes($pinPath))) -cne $scope.Pins[[IO.Path]::GetFullPath($pinPath)]){throw 'AdmissionLimitSourceChangedBeforeReserve'}}
+    $teamLimits=Get-AdmissionField $launchForLimits 'teamCapacities'
+    if($teamLimits){
+        foreach($property in $teamLimits.PSObject.Properties){$limit=0;if(-not [int]::TryParse([string]$property.Value,[ref]$limit) -or $property.Name -notmatch '^teamleiter_[a-z][a-z0-9_]*$' -or $limit -lt 1 -or $limit -gt $scope.Capacity){throw 'AdmissionTeamCapacityInvalid'}}
+        $teamLimit=Get-AdmissionField $teamLimits ([string]$Target.role)
+        if($null -ne $teamLimit){$used=if($count.RoleCounts.ContainsKey([string]$Target.role)){[int]$count.RoleCounts[[string]$Target.role]}else{0};if($used -ge [int]$teamLimit){throw 'CoordinatorCapacityFull:TeamCapacity'}}
+    }
     [void](Get-AdmissionRemainingMilliseconds $Budget)
     $entry=[pscustomobject]@{taskId=(Get-AdmissionGuid $Target.taskId);dispatchId=(Get-AdmissionGuid $Target.dispatchId);executionId=(Get-AdmissionGuid $Target.dispatchId);nativeThreadId=$null;role=$Target.role;resultPath=$Target.resultPath;jobPath=$null;payloadHash=$Target.payloadHash;dispatchJournalPath=$Target.dispatchJournalPath;parentJobPath=$Target.parentJobPath;parentContextPath=$Target.parentContextPath;parentContextHash=$Target.parentContextHash;startIntentPath=$Target.startIntentPath;startIntentHash=$Target.startIntentHash;state='reserved';createdAt=[DateTime]::UtcNow.ToString('o');terminalAt=$null;inventoryAbsentAt=$null;admission=@{requestHash=$RequestHash;scopeHash=$scope.Hash;targetHash=$request.targetHash;revision=($revision+1);consumedBy=$request.targetHash;rootJobPath=$scope.RootJobPath;logicalSessionId=$scope.LogicalSessionId}}
+    if($Target.startIntentPath){
+        $authorityBytes=[IO.File]::ReadAllBytes($Target.startIntentPath)
+        if((Get-AdmissionHash $authorityBytes) -cne $Target.startIntentHash){throw 'AdmissionAuthorityChangedBeforeReserve'}
+        $authority=ConvertFrom-Json -InputObject $script:AdmissionUtf8.GetString($authorityBytes) -ErrorAction Stop
+        $entry|Add-Member -NotePropertyName workItemId -NotePropertyValue (Get-AdmissionField $authority.parameters 'WorkItemId')
+    }
     $bytesHash=Write-AdmissionJson $file @($Entries+$entry) # leading durable commit
     [void](Get-AdmissionRemainingMilliseconds $Budget) # late write is ambiguous, reservation retained
     [void](Write-AdmissionJson $metaPath @{mutationRevision=($revision+1);inFlight=@{hash=$RequestHash;state='Consumed';consumedBy=$request.targetHash};committedRegistryHash=$bytesHash;snapshotReuse=$false})

@@ -197,6 +197,14 @@ try {
         # Production host remains resident; callers use the single local dispatcher.
         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq 'completed'}|Select-Object -Last 1)
         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties['retryBaseSeconds']){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties['retryCeilingSeconds']){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties['retryAttemptCeiling']){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties['eventBatchLimit']){[int]$launch.eventBatchLimit}else{256})}
+        $teamCapacities=@{}
+        $configuredTeams=Get-CoordinatorConfigValue $launch 'teamCapacities'
+        if($configuredTeams){foreach($property in $configuredTeams.PSObject.Properties){
+            $limit=0
+            if(-not [int]::TryParse([string]$property.Value,[ref]$limit) -or $property.Name -notmatch '^teamleiter_[a-z][a-z0-9_]*$' -or $limit -lt 1 -or $limit -gt $AutomationCapacity){throw 'BlockedRecovery: invalid explicit team capacity.'}
+            $teamCapacities[$property.Name]=$limit
+        }}
+        $automationConfig|Add-Member -NotePropertyName TeamCapacities -NotePropertyValue $teamCapacities
         $automationConfig | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference
         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)
             if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}
