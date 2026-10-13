@@ -12,6 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $readStarted = [DateTime]::UtcNow
 Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'WorkItemMetricEvidence.psm1') -Force
 Import-Module (Join-Path $RepositoryRoot 'scripts/workitems/WorkItemStore.psm1') -Force
 # Designed production use of the existing revision/validation boundary, never
@@ -176,6 +177,7 @@ $rootLifecycle = @($lifecycle | Where-Object { $_.id -ceq $WorkItemId })[0]
 $classified = @($lifecycle | Where-Object { $null -ne $_.firstAcceptance })
 $firstAccepted = @($classified | Where-Object { $_.firstAcceptance }).Count
 $details = @($selectedEntries | ForEach-Object {
+    $history = Get-EntryTokenHistory $_
     [pscustomobject]@{
         task_id=$_.identity.taskId; AliasTaskIds=@($_.AliasTaskIds); native_key=$_.native_key
         parent_task_id=$_.identity.parentTaskId; parent_thread_id=$_.identity.parentThreadId; parent_turn_id=$_.identity.parentTurnId
@@ -183,12 +185,37 @@ $details = @($selectedEntries | ForEach-Object {
         execution_id=$_.identity.executionId; work_item_store_path=$_.identity.storePath
         token_usage=$_.identity.tokenUsage; final=$_.identity.final; paths=@($_.paths)
         correlationValid=($executions[$_.identity.executionId].conflicts.Count -eq 0)
+        roleId=$history.roleId; modelId=$history.modelId; reasoningEffort=$history.reasoningEffort
+        measurementUTC=$history.measurementUTC; importedAtUTC=$history.importedAtUTC
+        metadataSources=$history.metadataSources; metadataConflicts=$history.metadataConflicts; missingMetadata=$history.missingMetadata
     }
 })
 $sourcePaths = @($StorePath) + @($entries | ForEach-Object { $_.paths }) + @($executions.Values | ForEach-Object { $_.sources }) + @($family.sources) + @($observedFamily.sources)
+$historyEligible=@($known | Where-Object { $executions[$_.identity.executionId].conflicts.Count -eq 0 } | ForEach-Object native_key)
+$historyCoverage=[pscustomobject]@{
+    familyCompletenessProven=$false; familyCompletenessReason=$observedFamily.completenessReason
+    missingExpectedExecutions=$expectedMissing; missingExpectedNativeTurns=$missingNativeTurns
+    executionSetUnknownWorkItemIds=$unknownItems; bindingGaps=$bindingGaps; parentBindingGaps=$parentGaps
+    correlationConflicts=$conflicts; nativeConflicts=$allNativeConflicts; incompleteTransfers=$incompleteTransfers
+}
+$tokenHistory=Get-TokenHistoryProjection $selectedEntries $historyEligible $historyCoverage
+$tokenHistory | Add-Member -NotePropertyName scope -NotePropertyValue ([pscustomobject]@{
+    kind='workitem_family'; workItemId=$WorkItemId; includedWorkItemIds=@($selected.Keys | Sort-Object)
+    storePath=$store; accountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)
+    expectedNativeKeys=@($scopedExpectations | Where-Object { $_.storePath -ceq $store -and $null -ne $_.workItemId -and $selected.ContainsKey($_.workItemId) -and $null -ne $_.threadId -and $null -ne $_.turnId } | ForEach-Object { $_.threadId+'/'+$_.turnId } | Sort-Object -Unique)
+    expectedSetComplete=$false; unboundTasksIncluded=$false
+})
+# Revision includes actual attributed content/coverage, not only store revision.
+$historyText=$tokenHistory | ConvertTo-Json -Depth 60 -Compress
+$historyHasher=[Security.Cryptography.SHA256]::Create()
+try { $historyRevision=([BitConverter]::ToString($historyHasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($historyText)))).Replace('-','').ToLowerInvariant() }
+finally { $historyHasher.Dispose() }
+$tokenHistory | Add-Member -NotePropertyName projectionRevision -NotePropertyValue $historyRevision
+$tokenHistory | Add-Member -NotePropertyName projectionGeneratedAtUTC -NotePropertyValue ([DateTime]::UtcNow.ToString('o'))
 [pscustomobject][ordered]@{
     workItemId=$WorkItemId; includedWorkItemIds=@($selected.Keys | Sort-Object); storePath=[IO.Path]::GetFullPath($StorePath); storeRevision=$snapshot.Revision
     accountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)
+    tokenHistory=$tokenHistory
     readWindow=[pscustomobject]@{startedAt=$readStarted.ToString('o'); endedAt=[DateTime]::UtcNow.ToString('o'); sourcePaths=@($sourcePaths | Select-Object -Unique); consistency='Fixed store revision; sequential ledger/binding reads, not an atomic snapshot.'}
     tokenUsage=[pscustomobject]@{
         own=$(if ($ownCoverageComplete) { $ownPartial } else { $null }); ownKnownPartial=$ownPartial; ownCoverageComplete=$ownCoverageComplete

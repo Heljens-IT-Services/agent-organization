@@ -1,4 +1,5 @@
 import { BridgeError, dispatch, initializeBridge } from "/bridge.js";
+import { renderTokenHistory } from "/token-history.js";
 
 const POLL_MS = 5000;
 const STALE_AFTER_MS = 5000;
@@ -767,23 +768,25 @@ async function renderMetrics(inheritedFocus = null) {
   const revision = revisionOf() ?? "unbekannte Revision";
   const key = `${item.id}\u0000${revision}`;
   if (state.metricsFor === key && state.metrics) { state.metricsTarget = target; drawMetrics(state.metrics, item, target, inheritedFocus); return; }
+  const readEpoch = state.loadedAt;
+  const requestKey = `${key}\u0000${readEpoch}`;
   const pendingFocus = inheritedFocus ?? captureFocusState();
   target.innerHTML = `<p class="placeholder">Vorhandene Projektion wird gelesen…</p>`;
   try {
-    let pending = state.metricsPending.get(key);
+    let pending = state.metricsPending.get(requestKey);
     if (!pending) {
-      pending = dispatch("metrics", { workItemId: item.id }).finally(() => { if (state.metricsPending.get(key) === pending) state.metricsPending.delete(key); });
-      state.metricsPending.set(key, pending);
+      pending = dispatch("metrics", { workItemId: item.id }).finally(() => { if (state.metricsPending.get(requestKey) === pending) state.metricsPending.delete(requestKey); });
+      state.metricsPending.set(requestKey, pending);
     }
     const { data } = await pending;
-    if (state.selectedId !== item.id || (revisionOf() ?? "unbekannte Revision") !== revision || target !== el.metricsContent || !target.isConnected) return;
+    if (state.loadedAt !== readEpoch || state.selectedId !== item.id || (revisionOf() ?? "unbekannte Revision") !== revision || target !== el.metricsContent || !target.isConnected) return;
     state.metrics = data?.metrics ?? data?.data ?? data;
     state.metricsFor = key;
     state.metricsTarget = target;
     drawMetrics(state.metrics, item, target, pendingFocus);
     if (pendingFocus && document.activeElement === document.body) restoreFocusState(pendingFocus);
   } catch (error) {
-    if (state.selectedId === item.id && (revisionOf() ?? "unbekannte Revision") === revision && target === el.metricsContent && target.isConnected) {
+    if (state.loadedAt === readEpoch && state.selectedId === item.id && (revisionOf() ?? "unbekannte Revision") === revision && target === el.metricsContent && target.isConnected) {
       target.innerHTML = `<div class="notice"><strong>Metrikprojektion nicht verfügbar</strong>${escapeHtml(errorMessage(error))}</div>`;
       if (pendingFocus && document.activeElement === document.body) restoreFocusState(pendingFocus);
     }
@@ -814,9 +817,10 @@ function drawMetrics(metrics, item, target = el.metricsContent, inheritedFocus =
   const readWindow = metrics?.readWindow;
   const sourcePaths = Array.isArray(readWindow?.sourcePaths) ? readWindow.sourcePaths : Array.isArray(metrics?.sourcePaths) ? metrics.sourcePaths : [];
   const projectionMeta = (readWindow || sourcePaths.length) ? `<details class="projection-meta"><summary>Quellfenster und Quellen</summary><div>${readWindow ? `Lesefenster: ${escapeHtml(readWindow.startedAt ?? "unbekannt")} – ${escapeHtml(readWindow.endedAt ?? "unbekannt")} · ${escapeHtml(readWindow.consistency ?? "Konsistenz unbekannt")}` : "Lesefenster unbekannt"}</div>${sourcePaths.length ? `<ul>${sourcePaths.map(path => `<li>${escapeHtml(path)}</li>`).join("")}</ul>` : "Quellpfade unbekannt"}</details>` : `<div class="metric-revision">Quellpfade und Lesefenster unbekannt.</div>`;
-  const explicit = `${snapshotStatusCounts}${tokenScopes}${fields.filter(key => key !== "tokenUsage").map(key => `<details class="metric-field"><summary>${escapeHtml(metricFieldLabel(key))}</summary><div class="metric-readable">${escapeHtml(metricReadable(key, projected[key]))}</div><pre>${escapeHtml(display(projected[key]))}</pre></details>`).join("")}`;
+  const explicit = `<section class="token-history" aria-label="Historischer Tokenverbrauch"></section>${snapshotStatusCounts}${tokenScopes}${fields.filter(key => key !== "tokenUsage").map(key => `<details class="metric-field"><summary>${escapeHtml(metricFieldLabel(key))}</summary><div class="metric-readable">${escapeHtml(metricReadable(key, projected[key]))}</div><pre>${escapeHtml(display(projected[key]))}</pre></details>`).join("")}`;
   const navFilter = [state.search && `Text „${state.search}“`, state.statusFilter && `Status ${statusLabel(state.statusFilter)}`].filter(Boolean).join(" · ") || "keiner";
-  target.innerHTML = `<p class="metric-scope">Auswahl: ${escapeHtml(item.id)} · Revision: ${escapeHtml(snapshotRevision ?? "unbekannt")}. Baumfilter: ${escapeHtml(navFilter)} (wirkt nur auf Navigation). Kennzahlenumfang: einzelne WorkItem-Projektion wie geliefert; Statuszählung: geladener Snapshot. Keine Rollen-/Team- oder Prozentableitung.</p>${mismatch ? `<div class="notice"><strong>Revisionsabweichung</strong>Metriken und WorkItem-Snapshot stammen aus unterschiedlichen Ständen. Aktualisiere den Snapshot vor einem Vergleich.</div>` : ""}<p class="notice">${escapeHtml(tokenCoverage)}. Fehlende Felder und unbekannte Werte bleiben ausdrücklich sichtbar.</p>${explicit}<details class="projection-meta"><summary>Vollständige Rohprojektion</summary><pre>${escapeHtml(JSON.stringify(metrics, null, 2) ?? "Unbekannt")}</pre></details><div class="metric-revision">${metricRevision ? `Metrikrevision: ${escapeHtml(metricRevision)} · Snapshot: ${escapeHtml(snapshotRevision ?? "unbekannt")}` : "Revision der Metrikprojektion unbekannt"} · Projektion für ${escapeHtml(item.id)}. Keine eigene Aggregation.</div>${projectionMeta}`;
+  target.innerHTML = `<p class="metric-scope">Auswahl: ${escapeHtml(item.id)} · Revision: ${escapeHtml(snapshotRevision ?? "unbekannt")}. Baumfilter: ${escapeHtml(navFilter)} (wirkt nur auf Navigation). Kennzahlenumfang: einzelne WorkItem-Projektion wie geliefert; Statuszählung: geladener Snapshot. Historische Rollenprofile verwenden ausschließlich die gelieferte native Messzuordnung; keine Team- oder Prozentableitung.</p>${mismatch ? `<div class="notice"><strong>Revisionsabweichung</strong>Metriken und WorkItem-Snapshot stammen aus unterschiedlichen Ständen. Aktualisiere den Snapshot vor einem Vergleich.</div>` : ""}<p class="notice">${escapeHtml(tokenCoverage)}. Fehlende Felder und unbekannte Werte bleiben ausdrücklich sichtbar.</p>${explicit}<details class="projection-meta"><summary>Vollständige Rohprojektion</summary><pre>${escapeHtml(JSON.stringify(metrics, null, 2) ?? "Unbekannt")}</pre></details><div class="metric-revision">${metricRevision ? `Metrikrevision: ${escapeHtml(metricRevision)} · Snapshot: ${escapeHtml(snapshotRevision ?? "unbekannt")}` : "Revision der Metrikprojektion unbekannt"} · Projektion für ${escapeHtml(item.id)}. Historische Rollen-/Zeitsummen gruppieren ausschließlich die deduplizierte History-Projektion.</div>${projectionMeta}`;
+  renderTokenHistory(target.querySelector(".token-history"), metrics?.tokenHistory, item.id);
   assignFocusKeys(target);
   restoreFocusState(focusState);
 }

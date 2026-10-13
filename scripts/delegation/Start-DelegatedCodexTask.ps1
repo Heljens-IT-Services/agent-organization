@@ -870,6 +870,7 @@ $evidence = [ordered]@{
     parent_context_path=$job.parent_context_path;parent_context_hash=$job.parent_context_hash;request_hash=$job.request_hash
     start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash
     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
+    roleId=$job.role; modelId=$null; reasoningEffort=$null; measurementUTC=$null; measurementObservedAtUTC=$null; metadataSources=@()
 }
 $notifications = New-Object System.Collections.Generic.List[object]
 $progressState = New-ProgressState
@@ -880,6 +881,8 @@ function Update-NativeUsage($Notification) {
         $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {
         # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.
         $evidence.token_usage = $Notification.params.tokenUsage.total
+        # Observation of the actual own native measurement, before publication.
+        $evidence['measurementObservedAtUTC'] = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
     }
 }
 function Write-Event([string]$Kind, $Data) {
@@ -1035,10 +1038,20 @@ try {
     Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
     $thread = Wait-Rpc 2
     $evidence.thread_id = $thread.thread.id
+    # Resolved thread/start response, never requested/current TOML settings.
+    # This runner starts exactly one turn on a fresh thread, without overrides.
     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
     $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
+    foreach($field in @('model','reasoningEffort')) {
+        $property=$thread.PSObject.Properties[$field]
+        if($null -ne $property -and $property.Value -is [string] -and $property.Value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') {
+            $target=if($field -ceq 'model'){'modelId'}else{'reasoningEffort'}
+            $evidence[$target]=$property.Value
+            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis='resolved fresh thread defaults; turn/start has no model or effort override'})
+        }
+    }
     if ($job.registry_directory) {
         [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action RegisterNative -DataDirectory $job.registry_directory -TaskId $job.task_id -DispatchId $job.registry_dispatch_id -NativeThreadId $evidence.thread_id -Role $job.role -State active -NativeAckPath $nativeAckPath -NativeAckHash $nativeAckHash)
     }
@@ -1128,6 +1141,11 @@ try {
         if($terminalContext){$evidence.own_context_path=$terminalContext.path;$evidence.own_context_hash=$terminalContext.hash}
         Write-Json (Join-Path $job.accounting_directory ($job.task_id + '.usage.json')) ([ordered]@{
             task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
+            roleId=$evidence.roleId; modelId=$evidence.modelId; reasoningEffort=$evidence.reasoningEffort
+            measurementUTC=$evidence.measurementUTC; importedAtUTC=[DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
+            measurementObservedAtUTC=$evidence['measurementObservedAtUTC']; measurementTimeBasis='native_time_unknown_notification_observation_only'
+            requestedProfile=[ordered]@{modelId=$job.model;reasoningEffort=$job.config.model_reasoning_effort;source=$JobFile;effective=$false}
+            metadataSources=$evidence.metadataSources; source='app_server_fresh_thread_single_turn'; counter_kind='turn_token_usage'
             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
         })
         $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory

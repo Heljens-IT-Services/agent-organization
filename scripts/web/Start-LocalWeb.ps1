@@ -58,6 +58,7 @@ $staticFiles = @{
     '/styles.css' = @{ path = 'web/styles.css'; type = 'text/css; charset=utf-8' }
     '/app.js' = @{ path = 'web/app.js'; type = 'text/javascript; charset=utf-8' }
     '/bridge.js' = @{ path = 'web/bridge.js'; type = 'text/javascript; charset=utf-8' }
+    '/token-history.js' = @{ path = 'web/token-history.js'; type = 'text/javascript; charset=utf-8' }
 }
 $randomBytes = New-Object byte[] 32
 $randomGenerator = [Security.Cryptography.RandomNumberGenerator]::Create()
