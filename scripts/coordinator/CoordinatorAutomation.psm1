@@ -574,7 +574,7 @@ function Get-AutomationRoot($Items, $Item) {
     $root = $Item
     $seen = @{}
     while ($parentId = [string](Get-AutomationValue $root 'parentId')) {
-        if (-not $byId.ContainsKey($parentId) -or $seen.ContainsKey($parentId)) { break }
+        if (-not $byId.ContainsKey($parentId) -or $seen.ContainsKey($parentId)) { throw 'AutomationRootAncestryInvalid' }
         $seen[$parentId] = $true
         $root = $byId[$parentId]
     }
@@ -603,6 +603,13 @@ function Add-AutomationStartDiagnostic($Config, $Dispatch, $Item, [string]$Reaso
     Write-AutomationJson $state.Path @{ effects = @(Get-AutomationValue $state.Data 'effects' @()); diagnostics = @($diagnostics) + @($diagnostic); nextSequence = [int](Get-AutomationValue $state.Data 'nextSequence' 1) }
 }
 
+function Get-AutomationWorkItemDispatchInput([string]$AuthorityPath, [string]$AuthorityHash, $Authority) {
+    # Keep field order and values identical to the real WorkItem starter contract.
+    # Task text is pinned by the start effect/job, not an extra dispatch input field.
+    $parameters = $Authority.parameters
+    return [ordered]@{authorityPath=[IO.Path]::GetFullPath($AuthorityPath);authorityHash=$AuthorityHash;parentJobPath=$Authority.parentJobPath;parentJobHash=$Authority.parentJobHash;parentContextPath=$Authority.parentContextPath;parentContextHash=$Authority.parentContextHash;payloadHash=$AuthorityHash;resultPath=[IO.Path]::GetFullPath([string]$parameters.ResultPath);role=[string]$parameters.Role;workItemId=[string]$parameters.WorkItemId;purpose=[string]$parameters.Purpose;generation=[int]$parameters.Generation}
+}
+
 function Get-AutomationStartEvidence($Config, $Effect, $Dispatch) {
     $resultPath = [IO.Path]::GetFullPath([string]$Effect.resultPath)
     $jobPath = $resultPath + '.job.json'
@@ -614,13 +621,30 @@ function Get-AutomationStartEvidence($Config, $Effect, $Dispatch) {
     $taskIdN = ([guid]$Effect.taskId).ToString('N')
     $dispatchIdD = ([guid]$Effect.executionId).ToString('D')
     $jobResult = [IO.Path]::GetFullPath([string](Get-AutomationValue $job 'result_file'))
-    if (((ConvertTo-AutomationGuid ([string]$Dispatch.taskId)) -cne $Effect.taskId) -or [string]$Dispatch.workItemId -cne $Effect.workItemId -or [string]$Dispatch.purpose -cne $Effect.purpose -or [int]$Dispatch.generation -ne [int]$Effect.generation -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $job 'task_id'))) -cne $Effect.taskId -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $job 'dispatch_id'))) -cne $Effect.executionId -or [string](Get-AutomationValue $job 'work_item_id') -cne $Effect.workItemId -or [string](Get-AutomationValue $job 'purpose') -cne $Effect.purpose -or [int](Get-AutomationValue $job 'generation') -ne [int]$Effect.generation -or $jobResult -cne $resultPath -or [string](Get-AutomationValue $job 'task') -cne [string]$Effect.taskText -or [string](Get-AutomationValue $job 'dispatch_journal_path') -cne (Join-Path $Config.DataDirectory 'dispatch-journal.json') -or [string](Get-AutomationValue $job 'payload_hash') -cne [string]$Effect.payloadHash -or [string](Get-AutomationValue $job 'payload_hash') -cne [string]$Dispatch.input.payloadHash -or [string]$Dispatch.input.task -cne [string]$Effect.taskText -or [IO.Path]::GetFullPath([string]$Dispatch.input.resultPath) -cne $resultPath -or [string]$Dispatch.input.role -cne [string](Get-AutomationValue $job 'role')) { return $null }
+    if (((ConvertTo-AutomationGuid ([string]$Dispatch.taskId)) -cne $Effect.taskId) -or [string]$Dispatch.workItemId -cne $Effect.workItemId -or [string]$Dispatch.purpose -cne $Effect.purpose -or [int]$Dispatch.generation -ne [int]$Effect.generation -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $job 'task_id'))) -cne $Effect.taskId -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $job 'dispatch_id'))) -cne $Effect.executionId -or [string](Get-AutomationValue $job 'work_item_id') -cne $Effect.workItemId -or [string](Get-AutomationValue $job 'purpose') -cne $Effect.purpose -or [int](Get-AutomationValue $job 'generation') -ne [int]$Effect.generation -or $jobResult -cne $resultPath -or [string](Get-AutomationValue $job 'task') -cne [string]$Effect.taskText -or [string](Get-AutomationValue $job 'dispatch_journal_path') -cne (Join-Path $Config.DataDirectory 'dispatch-journal.json') -or [string](Get-AutomationValue $job 'payload_hash') -cne [string]$Effect.payloadHash -or [string](Get-AutomationValue $job 'payload_hash') -cne [string]$Dispatch.input.payloadHash -or [IO.Path]::GetFullPath([string]$Dispatch.input.resultPath) -cne $resultPath -or [string]$Dispatch.input.role -cne [string](Get-AutomationValue $job 'role')) { return $null }
     if ((ConvertTo-AutomationGuid ([string](Get-AutomationValue $go 'task_id'))) -cne $Effect.taskId -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $window 'task_id'))) -cne $Effect.taskId -or -not [bool](Get-AutomationValue $go 'visible') -or -not [bool](Get-AutomationValue $go 'console_binding_verified')) { return $null }
     $runner = [string](Get-AutomationValue $go 'runner_pid')
     $handle = [string](Get-AutomationValue $go 'window_handle')
     $title = [string](Get-AutomationValue $go 'title')
     if (-not $runner -or -not $handle -or -not $title -or [string](Get-AutomationValue $go 'title') -cne ([string]$Effect.roleDisplayName + ' - ' + [string]$Effect.taskTitle) -or [string](Get-AutomationValue $window 'runner_pid') -cne $runner -or [string](Get-AutomationValue $window 'window_handle') -cne $handle -or [string](Get-AutomationValue $window 'title') -cne $title) { return $null }
     if ($Dispatch.state -notin @('Running', 'Returned') -or -not $Dispatch.runningAtUtc -or -not $Dispatch.launchBinding) { return $null }
+    foreach($pair in @(@('start_intent_path','startIntentPath'),@('start_intent_hash','startIntentHash'),@('parent_context_path','parentContextPath'),@('parent_context_hash','parentContextHash'))){
+        $expected=[string](Get-AutomationValue $Effect $pair[1])
+        if(-not $expected -or [string](Get-AutomationValue $job $pair[0]) -cne $expected){return $null}
+    }
+    try {
+        $authorityBytes = [IO.File]::ReadAllBytes([string]$Effect.startIntentPath)
+        if ((Get-AutomationBytesHash $authorityBytes) -cne [string]$Effect.startIntentHash) { return $null }
+        $authority = ConvertFrom-Json -InputObject ([Text.UTF8Encoding]::new($false,$true).GetString($authorityBytes)) -ErrorAction Stop
+        if ($authority.kind -cne 'delegated-start-authority-v1') { return $null }
+        $expectedInput = Get-AutomationWorkItemDispatchInput $Effect.startIntentPath $Effect.startIntentHash $authority
+        $expectedInputHash = Get-AutomationHash (ConvertTo-Json -InputObject $expectedInput -Depth 50 -Compress)
+        $actualInputHash = Get-AutomationHash (ConvertTo-Json -InputObject $Dispatch.input -Depth 50 -Compress)
+        if ($expectedInputHash -cne [string]$Dispatch.inputHash -or $actualInputHash -cne $expectedInputHash) { return $null }
+        if ([string]$authority.parentContextPath -cne [string]$Effect.parentContextPath -or [string]$authority.parentContextHash -cne [string]$Effect.parentContextHash -or [string]$authority.parentJobPath -cne [string](Get-AutomationValue $job 'parent_job_path') -or [string]$authority.parentJobHash -cne [string](Get-AutomationValue $job 'parent_job_hash')) { return $null }
+        # Preserve the bootstrap text evidence separately from SSOT dispatch identity.
+        if ((Get-AutomationHash ([string]$Effect.taskText)) -cne [string]$Effect.taskTextHash -or [string]$Effect.taskText -cne 'Read the JSON request file and retrieve the current authoritative WorkItem using the documented store API. Return only a structured LTC result.') { return $null }
+    } catch { return $null }
     try { $binding = $Dispatch.launchBinding | ConvertFrom-Json -ErrorAction Stop } catch { return $null }
     if ((ConvertTo-AutomationGuid ([string](Get-AutomationValue $binding 'taskId'))) -cne $Effect.taskId -or [string](Get-AutomationValue $binding 'runnerPid') -cne $runner -or [string](Get-AutomationValue $binding 'windowHandle') -cne $handle -or [string](Get-AutomationValue $binding 'title') -cne $title) { return $null }
     $hashes = @{}
@@ -635,6 +659,23 @@ function Reconcile-AutomationStartEffects($Config, $DispatchModule, $PlanningMod
     foreach ($effect in $effects) {
         if ($effect.state -eq 'Applied') { continue }
         $dispatchPath = Join-Path $Config.DataDirectory 'dispatch-journal.json'
+        if($effect.state -ceq 'AdmissionDeferred'){
+            try{
+                $registryPath=Join-Path $Config.RegistryDirectory 'executions.json'
+                if(-not [IO.File]::Exists($registryPath)){throw 'DeferredAdmissionRegistryMissing'}
+                $registered=@(Read-AdmissionJson $registryPath | Where-Object {(ConvertTo-AutomationGuid ([string](Get-AutomationValue $_ 'taskId'))) -ceq $effect.taskId -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $_ 'dispatchId'))) -ceq $effect.executionId})
+                $deferredDispatch=& $DispatchModule {param($p,$id)Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id} $dispatchPath $effect.executionId
+                $candidateFiles=@($effect.resultPath,($effect.resultPath+'.job.json'),($effect.resultPath+'.go.json'),($effect.resultPath+'.window.json'))
+                $lateFiles=@($candidateFiles | Where-Object {[IO.File]::Exists($_)})
+                $prelaunch=(-not $deferredDispatch) -or ($deferredDispatch.state -ceq 'Prepared' -and $deferredDispatch.input.authorityHash -ceq $effect.startIntentHash -and -not $deferredDispatch.launchBinding -and -not $deferredDispatch.runningAtUtc -and -not (Get-AutomationValue $deferredDispatch 'launchIntentAtUtc'))
+                if(-not $registered.Count -and $prelaunch -and -not $lateFiles.Count){continue}
+                # Late evidence must pass normal pinned start reconciliation.
+                $effect.state='AwaitingEvidence';Save-AutomationStartEffect $Config $effect
+            }catch{
+                $effect.state='RecoveryRequired';$effect.lastError=$_.Exception.Message
+                Save-AutomationStartEffect $Config $effect;return $true
+            }
+        }
         $dispatch = & $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath $effect.executionId
         if (-not $dispatch) {
             if ($effect.state -eq 'Prepared') { continue }
@@ -661,7 +702,7 @@ function Reconcile-AutomationStartEffects($Config, $DispatchModule, $PlanningMod
             $effect.state = 'Applied'; $effect.appliedAtUtc = [DateTime]::UtcNow.ToString('o'); Save-AutomationStartEffect $Config $effect
         }
     }
-    return @($effects | Where-Object { $_.state -notin @('Applied', 'Prepared') }).Count -gt 0
+    return @($effects | Where-Object { $_.state -notin @('Applied', 'Prepared','AdmissionDeferred') }).Count -gt 0
 }
 
 function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskText, [string]$ResultPath, [string]$RootId, [string]$Priority, [int]$Generation) {
@@ -669,7 +710,7 @@ function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskT
     $existing = @(Get-AutomationValue $state.Data 'effects' @() | Where-Object { $_.executionId -ceq $Identity.ExecutionId })
     $textHash = Get-AutomationHash $TaskText
     $role = [string](Get-AutomationValue (Get-AutomationValue $Item 'owner') 'id')
-    $words = @($TaskText -split '\s+' | Where-Object { $_ })
+    $words = @(([string]$Item.description) -split '\s+' | Where-Object { $_ })
     $title = if ($words.Count -ge 3) { $words[0..2] -join ' ' } else { 'Auftrag jetzt bearbeiten' }
     $workdir = (Resolve-Path -LiteralPath $Config.WorkingDirectory).Path
     $resultFullPath = [IO.Path]::GetFullPath($ResultPath)
@@ -679,7 +720,7 @@ function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskT
     $payloadHash = Get-AutomationHash $payloadText
     if ($existing.Count) {
         $effect = $existing[0]
-        if ($existing.Count -ne 1 -or $effect.taskTextHash -cne $textHash -or $effect.payloadHash -cne $payloadHash -or $effect.taskTitle -cne $title -or $effect.roleDisplayName -cne $role -or [IO.Path]::GetFullPath($effect.resultPath) -cne $resultFullPath -or $effect.rootId -cne $RootId -or $effect.priority -cne $Priority) { throw 'AutomationStartIntentConflict' }
+        if ($existing.Count -ne 1 -or $effect.taskTextHash -cne $textHash -or (Get-AutomationValue $effect 'preparedPayloadHash' $effect.payloadHash) -cne $payloadHash -or $effect.taskTitle -cne $title -or $effect.roleDisplayName -cne $role -or [IO.Path]::GetFullPath($effect.resultPath) -cne $resultFullPath -or $effect.rootId -cne $RootId -or $effect.priority -cne $Priority) { throw 'AutomationStartIntentConflict' }
         return $effect
     }
     $bands = @{ urgent = '0'; high = '1'; normal = '2'; low = '3' }
@@ -688,7 +729,7 @@ function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskT
     $taskIdN = ([guid]$Identity.TaskId).ToString('N')
     $jobBinding = [pscustomobject]@{ taskId = $taskIdN; dispatchId = [string]$Identity.ExecutionId; workItemId = [string]$Item.id; purpose = 'teamleiter-workitem'; generation = $Generation; payloadHash = $payloadHash; resultPath = $resultFullPath }
     $nextSequence = [int](Get-AutomationValue $state.Data 'nextSequence' 1)
-    $effect = [pscustomobject]@{ effectId = 'cursor:' + $Identity.ExecutionId; executionId = $Identity.ExecutionId; taskId = $taskIdD; workItemId = [string]$Item.id; purpose = 'teamleiter-workitem'; generation = $Generation; resultPath = $resultFullPath; taskText = $TaskText; taskTextHash = $textHash; payloadHash = $payloadHash; taskTitle = $title; roleDisplayName = $role; rootId = $RootId; priority = $Priority; band = $band; sequence = $nextSequence; state = 'Prepared'; jobBinding = $jobBinding; startEvidence = $null; appliedAtUtc = $null; lastError = $null }
+    $effect = [pscustomobject]@{ effectId = 'cursor:' + $Identity.ExecutionId; executionId = $Identity.ExecutionId; taskId = $taskIdD; workItemId = [string]$Item.id; purpose = 'teamleiter-workitem'; generation = $Generation; resultPath = $resultFullPath; taskText = $TaskText; taskTextHash = $textHash; preparedPayloadHash = $payloadHash; payloadHash = $payloadHash; taskTitle = $title; roleDisplayName = $role; rootId = $RootId; priority = $Priority; band = $band; sequence = $nextSequence; state = 'Prepared'; startIntentPath = $null; startIntentHash = $null; parentContextPath = $null; parentContextHash = $null; nextAttemptAtUtc = $null; jobBinding = $jobBinding; startEvidence = $null; appliedAtUtc = $null; lastError = $null }
     Write-AutomationJson $state.Path @{ effects = @(Get-AutomationValue $state.Data 'effects' @()) + @($effect); diagnostics = @(Get-AutomationValue $state.Data 'diagnostics' @()); nextSequence = ($nextSequence + 1) }
     return $effect
 }
@@ -721,16 +762,22 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
                 if (-not @(Get-AutomationValue $startState.Data 'effects' @() | Where-Object { $_.executionId -ceq $identity.ExecutionId }).Count) { Add-AutomationStartDiagnostic $Config $prior $item 'Legacy dispatch has no persisted pinned start/cursor intent; automatic restart and cursor reconstruction are prohibited.' }
             }
             if ($prior.state -eq 'Returned') { continue }
-            if ($prior.state -in @('Prepared', 'LaunchIntent', 'Running', 'RecoveryRequired')) { continue }
+            if ($prior.state -in @('LaunchIntent', 'Running', 'RecoveryRequired')) { continue }
+            if($prior.state -ceq 'Prepared'){
+                $savedIntent=@(Get-AutomationValue $startState.Data 'effects' @() | Where-Object {$_.executionId -ceq $identity.ExecutionId -and $_.state -ceq 'AdmissionDeferred'})
+                if($savedIntent.Count -ne 1){continue}
+            }
         }
         if (-not $Config.ResultDirectories.Count) { return }
-        $taskText = ([string]$item.description + "`n`nSpezifikation:`n" + (Get-AutomationTaskSpecification $Config $item) + "`n`nAbnahmekriterien:`n" + (ConvertTo-Json -InputObject (Get-AutomationValue $item 'acceptanceCriteria' @()) -Depth 30 -Compress)).Trim()
+        $taskText = 'Read the JSON request file and retrieve the current authoritative WorkItem using the documented store API. Return only a structured LTC result.'
         $taskId = ([guid]$identity.TaskId).ToString('N')
         $resultPath = Join-Path $Config.ResultDirectories[0] ($taskId + '.json')
         $root = Get-AutomationRoot $items $item
     $priority = [string](Get-AutomationValue $item 'priority' 'unspecified')
     if ([string]::IsNullOrWhiteSpace($priority)) { $priority = 'unspecified' }
         $intent = Prepare-AutomationStartEffect $Config $item $identity $taskText $resultPath ([string]$root.id) $priority $generation
+        $retryAt=Get-AutomationValue $intent 'nextAttemptAtUtc'
+        if($intent.state -ceq 'AdmissionDeferred' -and $retryAt -and [DateTimeOffset]::Parse([string]$retryAt).UtcDateTime -gt [DateTime]::UtcNow){continue}
         if ($intent.state -in @('AwaitingEvidence', 'StartConfirmed', 'RecoveryRequired', 'Applied')) { continue }
         $jobPath = $resultPath + '.job.json'
         $goPath = $resultPath + '.go.json'
@@ -738,27 +785,53 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
     $intent.state = 'AwaitingEvidence'
         Save-AutomationStartEffect $Config $intent
         $starter = Join-Path $Config.RepositoryRoot 'scripts/delegation/Start-DelegatedCodexTask.ps1'
+        $admission=$null
         try {
             if(-not $Config.ParentContextPath -or -not $Config.ParentContextHash -or -not $Config.ParentJobPath){throw 'Completed immutable coordinator parent context missing.'}
             $cm=Import-Module $script:ExecutionContextModule -PassThru -Force
             $parentContext=& $cm {param($p,$h,$j,$t,$s,$a) Assert-ExecutionContext -ContextPath $p -ContextHash $h -JobPath $j -TaskId $t -StorePath $s -AccountingDirectory $a -RequireTerminal -RequireLiveCoordinator} $Config.ParentContextPath $Config.ParentContextHash $Config.ParentJobPath $Config.TaskId $Config.WorkItemStorePath $Config.AccountingDirectory
             $requestPath=$intent.resultPath+'.request.json';$authorityParameters=[ordered]@{Role=$role;WorkItemId=[string]$item.id;ExecutionId=[string]$identity.ExecutionId;WorkItemStorePath=[IO.Path]::GetFullPath($Config.WorkItemStorePath);WorkItemRequestPath=[IO.Path]::GetFullPath($requestPath);Purpose=$purpose;Generation=$generation;DispatchJournalPath=[IO.Path]::GetFullPath($dispatchPath);ParentTaskId=[string]$Config.TaskId;AccountingDirectory=[IO.Path]::GetFullPath($Config.AccountingDirectory);StableTaskId=$taskId;DispatchId=[string]$identity.ExecutionId;WorkingDirectory=(Resolve-Path -LiteralPath $Config.WorkingDirectory).Path;ResultPath=[IO.Path]::GetFullPath($intent.resultPath);CoordinatorDataDirectory=[IO.Path]::GetFullPath($Config.RegistryDirectory);AdmissionCapacity=[int]$Config.Capacity;TimeoutSeconds=120;KeepWindowOpen=$false;DetachedAfterVisibleAck=$true}
             $authorityParameters.ResumeAssessment=$resumeAssessment
-            $authority=& $cm {param($d,$p,$j,$cp,$ch,$rev) New-DelegatedStartAuthority -Directory $d -Parameters $p -ParentJobPath $j -ParentContextPath $cp -ParentContextHash $ch -StoreRevision $rev} (Join-Path $Config.DataDirectory 'start-authorities') $authorityParameters $Config.ParentJobPath $Config.ParentContextPath $Config.ParentContextHash ([string]$Snapshot.Revision)
+            if($prior -and $prior.state -ceq 'Prepared'){
+                $record=& $cm {param($p,$h)Read-DelegatedStartAuthority $p $h} $intent.startIntentPath $intent.startIntentHash
+                if($record.storeRevision -cne [string]$Snapshot.Revision -or $record.parentContextHash -cne $Config.ParentContextHash){throw 'DeferredAdmissionAuthorityChanged; explicit recovery required'}
+                $authority=[pscustomobject]@{path=$intent.startIntentPath;hash=$intent.startIntentHash;record=$record}
+            }else{
+                $authority=& $cm {param($d,$p,$j,$cp,$ch,$rev) New-DelegatedStartAuthority -Directory $d -Parameters $p -ParentJobPath $j -ParentContextPath $cp -ParentContextHash $ch -StoreRevision $rev} (Join-Path $Config.DataDirectory 'start-authorities') $authorityParameters $Config.ParentJobPath $Config.ParentContextPath $Config.ParentContextHash ([string]$Snapshot.Revision)
+            }
             $intent.startIntentPath=$authority.path;$intent.startIntentHash=$authority.hash;$intent.parentContextPath=$Config.ParentContextPath;$intent.parentContextHash=$Config.ParentContextHash;$intent.payloadHash=$authority.hash;$intent.jobBinding.payloadHash=$authority.hash
             Save-AutomationStartEffect $Config $intent
-            $dispatchInput=[ordered]@{authorityPath=$authority.path;authorityHash=$authority.hash;parentJobPath=$Config.ParentJobPath;parentJobHash=$Config.CoordinatorJobHash;parentContextPath=$Config.ParentContextPath;parentContextHash=$Config.ParentContextHash;payloadHash=$authority.hash;resultPath=$intent.resultPath;role=$role;workItemId=[string]$item.id;purpose=$purpose;generation=$generation}
-            $priorDispatch=& $dispatchModule {param($p,$id)Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id} $dispatchPath $identity.ExecutionId
-            if(-not $priorDispatch){$prepared=& $dispatchModule {param($j,$w,$p,$g,$i) Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i} $dispatchPath ([string]$item.id) $purpose $generation $dispatchInput;if($prepared.state -cne 'Prepared'){throw 'DispatchReplayNoNewProcess'};[void](& $dispatchModule {param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent} $dispatchPath $identity.ExecutionId)}
+            $dispatchInput=Get-AutomationWorkItemDispatchInput $authority.path $authority.hash $authority.record
+            $prepared=& $DispatchModule {param($j,$w,$p,$g,$i) Start-CoordinatorDispatch -JournalPath $j -WorkItemId $w -Purpose $p -Generation $g -Input $i} $dispatchPath ([string]$item.id) $purpose $generation $dispatchInput
+            if($prepared.state -cne 'Prepared'){throw 'DispatchReplayNoNewProcess'}
             $target=[ordered]@{taskId=$taskId;dispatchId=([guid]$identity.ExecutionId).ToString('D');payloadHash=$authority.hash;resultPath=$intent.resultPath;role=$role;dispatchJournalPath=$dispatchPath;startIntentPath=$authority.path;startIntentHash=$authority.hash;parentJobPath=$Config.ParentJobPath;parentContextPath=$Config.ParentContextPath;parentContextHash=$Config.ParentContextHash}
             Import-Module (Join-Path $PSScriptRoot 'CoordinatorHost.Core.psm1')
             $hostRpc={param($m,$q,$ms)Invoke-CoordinatorRuntimeRpc $Runtime $m $q ([int][Math]::Min($ms,$Runtime.RpcTimeoutMilliseconds))}.GetNewClosure()
             $hostMarkers={@{mutation=$Runtime.MutationGeneration;gap=$Runtime.GapGeneration;rpc=$Runtime.LastRpcReceipt}}.GetNewClosure()
             $admission=Invoke-CoordinatorAdmission $Runtime $Session $SessionPath $target (Join-Path $PSScriptRoot 'Register-CoordinatorExecution.ps1') -HostRpc $hostRpc -HostMarkers $hostMarkers
+            # The required Prepared dispatch precedes admission; launch intent
+            # follows the actual reservation, so denial remains retryable.
+            [void](& $DispatchModule {param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent} $dispatchPath $identity.ExecutionId)
             & $starter -ResumeAssessment $resumeAssessment -Role $role -RoleDisplayName $intent.roleDisplayName -TaskTitle $intent.taskTitle -WorkingDirectory $authorityParameters.WorkingDirectory -ResultPath $intent.resultPath -ParentTaskId $Config.TaskId -ParentJobPath $Config.ParentJobPath -ParentContextPath $Config.ParentContextPath -ParentContextHash $Config.ParentContextHash -StartIntentPath $authority.path -StartIntentHash $authority.hash -AccountingDirectory $Config.AccountingDirectory -CoordinatorDataDirectory $Config.RegistryDirectory -AdmissionCapacity $Config.Capacity -StableTaskId $taskId -DispatchId ([guid]$identity.ExecutionId).ToString('D') -WorkItemId ([string]$item.id) -ExecutionId ([string]$identity.ExecutionId) -WorkItemStorePath $Config.WorkItemStorePath -WorkItemRequestPath $requestPath -Purpose $purpose -Generation $generation -DispatchJournalPath $dispatchPath -DetachedAfterVisibleAck -AdmissionReservationJson (ConvertTo-Json -InputObject $admission -Depth 60 -Compress) | Out-Null
         } catch {
-            if ($_.Exception.Message -like 'AdmissionUnknown:*' -or $_.Exception.Message -like 'MissingExternalAccess:*' -or $_.Exception.Message -like 'CoordinatorCapacityFull*' -or $_.Exception.Message -like 'NativeInventoryUnconfirmed*' -or $_.Exception.Message -like 'NativeInventoryIncomplete*') { $intent.state = 'Prepared'; Save-AutomationStartEffect $Config $intent; continue }
-            $intent.lastError = $_.Exception.Message; $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; return
+            $failureMessage=$_.Exception.Message
+            if (-not $admission -and ($failureMessage -like 'AdmissionUnknown:*' -or $failureMessage -like 'MissingExternalAccess:*' -or $failureMessage -like 'CoordinatorCapacityFull*')) {
+                # A failed response is not proof of non-reservation. Read the
+                # real registry and dispatch before permitting a later attempt.
+                try{
+                $registryPath=Join-Path $Config.RegistryDirectory 'executions.json'
+                if(-not [IO.File]::Exists($registryPath)){throw 'DeferredAdmissionRegistryMissing'}
+                $registered=@(Read-AdmissionJson $registryPath | Where-Object {(ConvertTo-AutomationGuid ([string](Get-AutomationValue $_ 'taskId'))) -ceq $intent.taskId -or (ConvertTo-AutomationGuid ([string](Get-AutomationValue $_ 'dispatchId'))) -ceq $intent.executionId})
+                $existingDispatch=& $DispatchModule {param($p,$id)Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id} $dispatchPath $identity.ExecutionId
+                $prelaunch=(-not $existingDispatch) -or ($existingDispatch.state -ceq 'Prepared' -and $existingDispatch.input.authorityHash -ceq $intent.startIntentHash -and -not $existingDispatch.launchBinding -and -not $existingDispatch.runningAtUtc -and -not (Get-AutomationValue $existingDispatch 'launchIntentAtUtc'))
+                if(-not $registered.Count -and $prelaunch -and -not [IO.File]::Exists($jobPath) -and -not [IO.File]::Exists($goPath) -and -not [IO.File]::Exists($intent.resultPath) -and -not [IO.File]::Exists($intent.resultPath+'.window.json')){
+                    $intent.state='AdmissionDeferred';$intent.lastError=$failureMessage
+                    Set-LCValue $intent 'nextAttemptAtUtc' ([DateTime]::UtcNow.AddSeconds([Math]::Max(5,[int](Get-AutomationValue $Config 'AdmissionRetrySeconds' 60))).ToString('o'))
+                    Save-AutomationStartEffect $Config $intent;continue
+                }
+                }catch{$failureMessage+='; deferred readback failed: '+$_.Exception.Message}
+            }
+            $intent.lastError = $failureMessage; $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; return
         }
         [void](Reconcile-AutomationStartEffects $Config $DispatchModule $PlanningModule)
         return
@@ -825,7 +898,8 @@ function Invoke-CoordinatorAutomationIdle {
         if(-not $required.Count){continue};$resumeRequired+=[string]$item.id
         try{$g=Get-AutomationGeneration $Config $item 'teamleiter-workitem';$id=& $dispatch {param($w,$g)Get-CoordinatorDispatchIdentity $w 'teamleiter-workitem' $g} $item.id $g;$assessment=Get-LCResumeForStart $Config $item $id.ExecutionId $g;if($assessment){$resumeAssessments[[string]$item.id]=$assessment}}catch{continue}
     }
-    $plan = & $planning { param($items, $capacity, $running, $wakeIds, $directory,$required,$assessments) Get-CoordinatorPlanningDecision -WorkItems $items -Capacity $capacity -ActiveExecutions $running -WakeEventIds $wakeIds -StateDirectory $directory -ResumeRequiredWorkItemIds $required -ResumeAssessments $assessments } $planningItems ([int]$Config.Capacity) $active $wake $Config.DataDirectory $resumeRequired $resumeAssessments
+    $teamCapacities=Get-AutomationValue $Config 'TeamCapacities' @{}
+    $plan = & $planning { param($items, $capacity, $running, $wakeIds, $directory,$required,$assessments,$teams) Get-CoordinatorPlanningDecision -WorkItems $items -Capacity $capacity -ActiveExecutions $running -WakeEventIds $wakeIds -StateDirectory $directory -ResumeRequiredWorkItemIds $required -ResumeAssessments $assessments -TeamCapacities $teams } $planningItems ([int]$Config.Capacity) $active $wake $Config.DataDirectory $resumeRequired $resumeAssessments $teamCapacities
     if ($startRecoveryPending -or $inventory.Unknown -or (Get-AutomationValue $plan 'CapacityUnknown') -or [int](Get-AutomationValue $plan 'AvailableSlots' 0) -lt 1) { return }
     Invoke-CoordinatorDelegation $Config $snapshot $plan $inventory $dispatch $planning $Runtime $Session $SessionPath
 }
