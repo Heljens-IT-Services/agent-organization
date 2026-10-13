@@ -218,11 +218,63 @@ function Save-ProductRecoveryIntent($Plan,[string]$Directory,[string]$SessionPat
 }
 
 function Get-ProductResumeDenial($Runtime,$Attempt,[string]$ThreadId) {
-    # No reviewed version-bound denial classifier is supplied by the installed
-    # contract. Do not accept a caller's boolean, text, status, or error code as
-    # the missing provider guarantee. Only this adapter may eventually classify
-    # a documented native thread/resume denial for the pinned runtime.
-    return [pscustomobject]@{definitive=$false;reason='VersionBoundDefinitiveResumeSemanticsUnspecified';runtime=$Runtime;threadId=$ThreadId;rpc=(Get-LCValue $Attempt 'rpc')}
+    # 0.162.1 / 092d3acd6bec3e3a14bdc7e7a2810ab628ab759d:
+    # thread-store/store.rs load_latest_model_context defaults to Unsupported;
+    # thread_processor.rs load_resume_initial_history_from_stored_thread maps
+    # it through thread_store_resume_read_error before resume_thread_with_history.
+    # Other -32601 paths can follow side effects: never classify the code alone.
+    $denial=[pscustomobject]@{definitive=$false;reason='ProductResumeObservationUnclassified';noEffect=$false;runtime=$Runtime;threadId=$ThreadId;rpc=(Get-LCValue $Attempt 'rpc');nativeError=$null;classificationException=$null;contract=$null}
+    $binaryHash='dd13bdb162a184fa04039488b234a8258ef9b76f84e926c505d5742b19249a6a'
+    try {
+        if (-not $ThreadId -or (Get-LCValue $Attempt 'reply') -or -not (Get-LCValue $Attempt 'failure')) { return $denial }
+        if ((Get-LCValue $Runtime 'binaryHash') -cne $binaryHash -or -not [IO.Path]::IsPathRooted([string](Get-LCValue $Runtime 'executable'))) {
+            $denial.reason='ProductResumeRuntimeUnsupported';return $denial
+        }
+        if ((Get-LCHash ([IO.File]::ReadAllBytes($Runtime.executable))) -cne $binaryHash) {
+            $denial.reason='ProductResumeRuntimeChanged';return $denial
+        }
+        $wire=$denial.rpc
+        foreach ($name in @('requestBase64','replyBase64','requestBytesHash','replyBytesHash','startedUtc','endedUtc')) {
+            if (-not (Get-LCValue $wire $name)) { $denial.reason='ProductResumeNativeReceiptMissing';return $denial }
+        }
+        $requestBytes=[Convert]::FromBase64String($wire.requestBase64)
+        $replyBytes=[Convert]::FromBase64String($wire.replyBase64)
+        if ((Get-LCHash $requestBytes) -cne $wire.requestBytesHash -or (Get-LCHash $replyBytes) -cne $wire.replyBytesHash) {
+            $denial.reason='ProductResumeNativeReceiptConflict';return $denial
+        }
+        $utf8=[Text.UTF8Encoding]::new($false,$true)
+        $request=ConvertFrom-Json -InputObject ($utf8.GetString($requestBytes)) -ErrorAction Stop
+        $response=ConvertFrom-Json -InputObject ($utf8.GetString($replyBytes)) -ErrorAction Stop
+        $requestId=Get-LCValue $request 'id';$responseId=Get-LCValue $response 'id'
+        $parameters=Get-LCValue $request 'params'
+        # This is precisely the existing PM request, not path/history resume or
+        # override-driven teardown. Bind the error to its actual native request.
+        if ($wire.method -cne 'thread/resume' -or (Get-LCValue $request 'method') -cne 'thread/resume' -or
+            ($requestId -isnot [int] -and $requestId -isnot [long]) -or $requestId -le 0 -or
+            ($responseId -isnot [int] -and $responseId -isnot [long]) -or
+            $requestId -ne $responseId -or $requestId -ne (Get-LCValue $wire 'id') -or
+            -not $parameters -or @($parameters.PSObject.Properties).Count -ne 1 -or
+            @($parameters.PSObject.Properties)[0].Name -cne 'threadId' -or (Get-LCValue $parameters 'threadId') -cne $ThreadId -or
+            $response.PSObject.Properties['result'] -or $response.PSObject.Properties['method']) {
+            $denial.reason='ProductResumeNativeRequestConflict';return $denial
+        }
+        $nativeError=Get-LCValue $response 'error';$denial.nativeError=$nativeError
+        $code=Get-LCValue $nativeError 'code'
+        # Exact versioned capability discriminator, not English substring matching.
+        # Transport, auth, operational store errors and late unsupported reads
+        # do not satisfy this pre-resume denial contract.
+        if (($code -isnot [int] -and $code -isnot [long]) -or $code -ne -32601 -or
+            (Get-LCValue $nativeError 'message') -cne 'load_latest_model_context is not supported yet' -or
+            $null -ne (Get-LCValue $nativeError 'data')) { return $denial }
+        $denial.contract=[ordered]@{version='0.162.1';binaryHash=$binaryHash;sourceCommit='092d3acd6bec3e3a14bdc7e7a2810ab628ab759d';method='thread/resume';unsupportedOperation='load_latest_model_context';noEffectScope='No native session creation or resume ACK from this request; independent prior lifecycle required';sources=@('codex-rs/thread-store/src/store.rs','codex-rs/app-server/src/request_processors/thread_processor.rs','codex-rs/app-server/src/error_code.rs')}
+        $denial.reason='ProductResumeModelContextUnsupported';$denial.noEffect=$true;$denial.definitive=$true
+    } catch {
+        # Preserve structured evidence; malformed or unreadable observations
+        # cannot authorize a replacement or turn into a generic denial.
+        $denial.reason='ProductResumeObservationInvalid'
+        $denial.classificationException=[ordered]@{type=$_.Exception.GetType().FullName;message=$_.Exception.Message}
+    }
+    return $denial
 }
 
 function Get-ProductPriorLifecycle($Session,$Job) {
@@ -262,13 +314,14 @@ function Invoke-ProductReplacement($Binding,[string]$DataDirectory,$Job,$Rpc,$Se
     Assert-ProductRecoveryUnconsumed $Session $Intent $Directory
     $context=Get-ProductContext $Binding $DataDirectory @($plan.context.documents | ForEach-Object { $_.id }) @($plan.context.decisions | ForEach-Object { $_.entry.id })
     if ((Get-LCHash (Get-LCBytes $context)) -cne (Get-LCHash (Get-LCBytes $plan.context))) { throw 'ProductRecoveryContextChanged' }
-    $attemptRef=Save-LCImmutable (Join-Path $Directory 'recovery-attempts') ([ordered]@{kind='product-recovery-resume-observation-v1';recoveryId=$Intent.recoveryId;priorThreadId=$Session.threadId;attempt=$Attempt})
     $denial=Get-ProductResumeDenial $Job.admission_runtime $Attempt $Session.threadId
+    $attemptRef=Save-LCImmutable (Join-Path $Directory 'recovery-attempts') ([ordered]@{kind='product-recovery-resume-observation-v1';recoveryId=$Intent.recoveryId;priorThreadId=$Session.threadId;attempt=$Attempt;denial=$denial})
     if (-not $denial.definitive) {
         Set-LCValue $Session 'recoveryObservation' $attemptRef
         $Session.state='RecoveryClosed';Write-LCJournal $Path $Session
         throw ('BlockedRecovery: '+$denial.reason)
     }
+    if (-not @($context.documents).Count) { throw 'BlockedRecovery: ProductRecoveryCanonicalDocumentsMissing' }
     $lifecycle=Get-ProductPriorLifecycle $Session $Job
     # Persist a single consumption record before the only replacement RPC.
     $startIntent=Save-LCImmutable (Join-Path $Directory 'recovery-starts') ([ordered]@{kind='product-replacement-start-intent-v1';recoveryId=$Intent.recoveryId;generation=$Intent.generation;priorThreadId=$Session.threadId;priorExecutionId=$Session.executionId;priorTurnId=$Session.turnId;newExecutionId=$Job.execution_id;newTaskId=$Job.task_id;workItemId=$Job.work_item_id;intent=$Session.recoveryIntent;resumeObservation=$attemptRef;denial=$denial;lifecycle=$lifecycle;context=$context})
