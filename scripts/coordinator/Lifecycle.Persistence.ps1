@@ -88,7 +88,7 @@ function Write-LCJournal([string]$Path,$Document,[int]$HotLimit=256,[int]$HotRet
     # Hash commit of manifest+hot projection; the journal replacement is the sole commit point.
     $tmp=$full+'.'+[guid]::NewGuid().ToString('N')+'.writing';$bytes=Get-LCBytes $projection
     Write-LCCreateNew $tmp $bytes
-    if([IO.File]::Exists($full)){[IO.File]::Replace($tmp,$full,$null)}else{[IO.File]::Move($tmp,$full)}
+    if([IO.File]::Exists($full)){[IO.File]::Replace($tmp,$full,[System.Management.Automation.Language.NullString]::Value)}else{[IO.File]::Move($tmp,$full)}
     if((Get-LCHash ([IO.File]::ReadAllBytes($full))) -cne (Get-LCHash $bytes)){throw 'JournalCommitReadbackConflict'}
     # Caller keeps the fully hydrated document, so live references remain intact.
     Set-LCValue $Document 'archiveSegments' $refs
