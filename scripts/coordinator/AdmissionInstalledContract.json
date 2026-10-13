@@ -25,6 +25,8 @@
     }
   ],
   "apiDeclarations": "not shipped in this npm package",
+  "resourceScope": "managed organization host starts and explicitly bound descendants only",
+  "managedAdmission": "local durable reservation and single-consumption operations; no provider exclusivity guarantee",
   "completion": "not established",
   "nativeBirthFence": "not exposed by installed sources"
 }

@@ -663,6 +663,40 @@ function Get-AutomationStartEvidence($Config, $Effect, $Dispatch) {
     return [pscustomobject]@{ taskId = $Effect.taskId; dispatchId = $Effect.executionId; resultPath = $resultPath; runnerPid = $runner; windowHandle = $handle; title = $title; hashes = $hashes }
 }
 
+function Get-AutomationStartBarrier($Config) {
+    $effects=@(Get-AutomationValue (Get-AutomationStartState $Config).Data 'effects' @())
+    $file=Join-Path $Config.RegistryDirectory 'executions.json'
+    $entries=if([IO.File]::Exists($file)){@(Read-AdmissionJson $file)}else{@()}
+    $blocked=@{};$global=$false
+    foreach($effect in $effects){
+        if($effect.state -ceq 'Applied'){continue}
+        $bound=@($entries|Where-Object{(ConvertTo-AutomationGuid $_.taskId) -ceq $effect.taskId -and (ConvertTo-AutomationGuid $_.dispatchId) -ceq $effect.executionId})
+        if($bound.Count -eq 1 -and (Get-AdmissionField $bound[0].admission 'kind') -ceq 'managed-local-v1' -and $bound[0].payloadHash -ceq $effect.payloadHash){
+            $blocked[[string]$effect.workItemId]=$true;continue
+        }
+        $late=@(@($effect.resultPath,($effect.resultPath+'.job.json'),($effect.resultPath+'.go.json'),($effect.resultPath+'.window.json'))|Where-Object{[IO.File]::Exists($_)})
+        $journal=Read-AutomationJson (Join-Path $Config.DataDirectory 'dispatch-journal.json') ([pscustomobject]@{executions=@()})
+        $dispatches=@($journal.executions|Where-Object{$_.executionId -ceq $effect.executionId})
+        $noRight=$dispatches.Count -eq 0 -or ($dispatches.Count -eq 1 -and $dispatches[0].state -ceq 'Prepared' -and -not $dispatches[0].launchBinding -and -not $dispatches[0].runningAtUtc -and -not (Get-AutomationValue $dispatches[0] 'launchIntentAtUtc'))
+        if($noRight -and -not $bound.Count -and -not $late.Count){if($effect.state -notin @('Prepared','AdmissionDeferred')){$blocked[[string]$effect.workItemId]=$true};continue}
+        # An unbounded possible effect remains a shared membership barrier.
+        $global=$true;$blocked[[string]$effect.workItemId]=$true
+    }
+    $items=@((Get-AutomationStoreSnapshot $Config).Document.items);$changed=$true
+    while($changed){
+        $changed=$false
+        foreach($item in $items){
+            if($blocked.ContainsKey([string]$item.id)){continue}
+            $dependencies=@(Get-AutomationValue $item 'dependencies' @())
+            $parentId=[string](Get-AutomationValue $item 'parentId')
+            if(($parentId -and $blocked.ContainsKey($parentId)) -or @($dependencies|Where-Object{$blocked.ContainsKey([string]$_)}).Count){$blocked[[string]$item.id]=$true;$changed=$true}
+        }
+    }
+    $rootIds=@{};foreach($item in $items){if($blocked.ContainsKey([string]$item.id)){$root=Get-AutomationRoot $items $item;if($root){$rootIds[[string]$root.id]=$true}}}
+    return [pscustomobject]@{GlobalBarrier=$global;WorkItemIds=@($blocked.Keys);RootIds=@($rootIds.Keys)}
+
+}
+
 function Reconcile-AutomationStartEffects($Config, $DispatchModule, $PlanningModule) {
     $state = Get-AutomationStartState $Config
     $effects = @(Get-AutomationValue $state.Data 'effects' @() | Sort-Object sequence)
@@ -683,23 +717,23 @@ function Reconcile-AutomationStartEffects($Config, $DispatchModule, $PlanningMod
                 $effect.state='AwaitingEvidence';Save-AutomationStartEffect $Config $effect
             }catch{
                 $effect.state='RecoveryRequired';$effect.lastError=$_.Exception.Message
-                Save-AutomationStartEffect $Config $effect;return $true
+                Save-AutomationStartEffect $Config $effect;continue
             }
         }
         $dispatch = & $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath $effect.executionId
         if (-not $dispatch) {
             if ($effect.state -eq 'Prepared') { continue }
-            $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; return $true
+            $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; continue
         }
         $evidence = Get-AutomationStartEvidence $Config $effect $dispatch
         if (-not $evidence) {
-            if ($effect.state -in @('AwaitingEvidence', 'RecoveryRequired', 'StartConfirmed')) { $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; return $true }
+            if ($effect.state -in @('AwaitingEvidence', 'RecoveryRequired', 'StartConfirmed')) { $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; continue }
             continue
         }
         $cursorPriority = [string]$effect.priority
         if ([string]::IsNullOrWhiteSpace($cursorPriority)) {
             if ([string]$effect.band -cne '4' -or [string]::IsNullOrWhiteSpace([string]$effect.rootId) -or [string]$effect.workItemId -cne [string]$dispatch.workItemId) {
-                $effect.state = 'RecoveryRequired'; $effect.lastError = 'AutomationStartRecoveryRequired: pinned root/work-item binding is missing or inconsistent.'; Save-AutomationStartEffect $Config $effect; return $true
+                $effect.state = 'RecoveryRequired'; $effect.lastError = 'AutomationStartRecoveryRequired: pinned root/work-item binding is missing or inconsistent.'; Save-AutomationStartEffect $Config $effect; continue
             }
             $cursorPriority = 'unspecified'
         }
@@ -708,11 +742,11 @@ function Reconcile-AutomationStartEffects($Config, $DispatchModule, $PlanningMod
             & $PlanningModule { param($dir, $priority, $rootId) Advance-CoordinatorRootCursor -StateDirectory $dir -Priority $priority -StartedRootId $rootId } $Config.DataDirectory $cursorPriority $effect.rootId | Out-Null
             $cursorPath = Join-Path $Config.DataDirectory 'planning-root-cursors.json'
             $cursor = Read-AutomationJson $cursorPath $null
-            if (-not $cursor -or [string](Get-AutomationValue $cursor $effect.band) -cne [string]$effect.rootId) { $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; return $true }
+            if (-not $cursor -or [string](Get-AutomationValue $cursor $effect.band) -cne [string]$effect.rootId) { $effect.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $effect; continue }
             $effect.state = 'Applied'; $effect.appliedAtUtc = [DateTime]::UtcNow.ToString('o'); Save-AutomationStartEffect $Config $effect
         }
     }
-    return @($effects | Where-Object { $_.state -notin @('Applied', 'Prepared','AdmissionDeferred') }).Count -gt 0
+    return (Get-AutomationStartBarrier $Config).GlobalBarrier
 }
 
 function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskText, [string]$ResultPath, [string]$RootId, [string]$Priority, [int]$Generation) {
@@ -744,16 +778,17 @@ function Prepare-AutomationStartEffect($Config, $Item, $Identity, [string]$TaskT
     return $effect
 }
 
-function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory, $DispatchModule, $PlanningModule, $Runtime, $Session, [string]$SessionPath) {
+function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory, $DispatchModule, $PlanningModule, $Runtime, $Session, [string]$SessionPath, $SelectionBarrier) {
     if ($Inventory.Unknown -or $Decision.CapacityUnknown -or $Decision.AvailableSlots -lt 1) { return }
     if (Reconcile-AutomationStartEffects $Config $DispatchModule $PlanningModule) { return }
     $items = @($Snapshot.Document.items)
     $startState = Get-AutomationStartState $Config
     $pendingStarts = @(Get-AutomationValue $startState.Data 'effects' @() | Where-Object { $_.state -eq 'Prepared' })
-    if ($pendingStarts.Count -gt 1) { return }
-    if ($pendingStarts.Count -eq 1 -and @($Decision.SelectedWorkItemIds | Where-Object { $_ -ceq $pendingStarts[0].workItemId }).Count -eq 0) { return }
+    $barrier=Get-AutomationStartBarrier $Config
+    if($barrier.GlobalBarrier -or $SelectionBarrier.GlobalBarrier){return}
+    $excluded=@($SelectionBarrier.WorkItemIds)+@($barrier.WorkItemIds)
     foreach ($id in $Decision.SelectedWorkItemIds) {
-        if ($pendingStarts.Count -eq 1 -and [string]$id -cne [string]$pendingStarts[0].workItemId) { continue }
+        if($id -in $excluded){continue}
         $selected = @($items | Where-Object { $_.id -ceq $id } | Select-Object -First 1)
         if (-not $selected.Count) { continue }
         $item = $selected[0]
@@ -775,7 +810,7 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
             if ($prior.state -in @('LaunchIntent', 'Running', 'RecoveryRequired')) { continue }
             if($prior.state -ceq 'Prepared'){
                 $savedIntent=@(Get-AutomationValue $startState.Data 'effects' @() | Where-Object {$_.executionId -ceq $identity.ExecutionId -and $_.state -ceq 'AdmissionDeferred'})
-                if($savedIntent.Count -ne 1){continue}
+                if($savedIntent.Count -ne 1 -and -not @($pendingStarts|Where-Object{$_.executionId -ceq $identity.ExecutionId}).Count){continue}
             }
         }
         if (-not $Config.ResultDirectories.Count) { return }
@@ -787,11 +822,11 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
     if ([string]::IsNullOrWhiteSpace($priority)) { $priority = 'unspecified' }
         $intent = Prepare-AutomationStartEffect $Config $item $identity $taskText $resultPath ([string]$root.id) $priority $generation
         $retryAt=Get-AutomationValue $intent 'nextAttemptAtUtc'
-        if($intent.state -ceq 'AdmissionDeferred' -and $retryAt -and [DateTimeOffset]::Parse([string]$retryAt).UtcDateTime -gt [DateTime]::UtcNow){continue}
+        if($intent.state -ceq 'AdmissionDeferred' -and $retryAt -and -not (Get-AutomationValue $Config 'CapacityReleasedThisPoll' $false) -and [DateTimeOffset]::Parse([string]$retryAt).UtcDateTime -gt [DateTime]::UtcNow){continue}
         if ($intent.state -in @('AwaitingEvidence', 'StartConfirmed', 'RecoveryRequired', 'Applied')) { continue }
         $jobPath = $resultPath + '.job.json'
         $goPath = $resultPath + '.go.json'
-        if ((Test-Path -LiteralPath $jobPath) -or (Test-Path -LiteralPath $goPath)) { $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; return }
+        if ((Test-Path -LiteralPath $jobPath) -or (Test-Path -LiteralPath $goPath)) { $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; continue }
     $intent.state = 'AwaitingEvidence'
         Save-AutomationStartEffect $Config $intent
         $starter = Join-Path $Config.RepositoryRoot 'scripts/delegation/Start-DelegatedCodexTask.ps1'
@@ -819,9 +854,7 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
             $hostRpc={param($m,$q,$ms)Invoke-CoordinatorRuntimeRpc $Runtime $m $q ([int][Math]::Min($ms,$Runtime.RpcTimeoutMilliseconds))}.GetNewClosure()
             $hostMarkers={@{mutation=$Runtime.MutationGeneration;gap=$Runtime.GapGeneration;rpc=$Runtime.LastRpcReceipt}}.GetNewClosure()
             $admission=Invoke-CoordinatorAdmission $Runtime $Session $SessionPath $target (Join-Path $PSScriptRoot 'Register-CoordinatorExecution.ps1') -HostRpc $hostRpc -HostMarkers $hostMarkers
-            # The required Prepared dispatch precedes admission; launch intent
-            # follows the actual reservation, so denial remains retryable.
-            [void](& $DispatchModule {param($j,$id) Set-CoordinatorDispatchState -JournalPath $j -ExecutionId $id -State LaunchIntent} $dispatchPath $identity.ExecutionId)
+            # Starter owns Prepared -> LaunchIntent after exact reservation/claim binding.
             & $starter -ResumeAssessment $resumeAssessment -Role $role -RoleDisplayName $intent.roleDisplayName -TaskTitle $intent.taskTitle -WorkingDirectory $authorityParameters.WorkingDirectory -ResultPath $intent.resultPath -ParentTaskId $Config.TaskId -ParentJobPath $Config.ParentJobPath -ParentContextPath $Config.ParentContextPath -ParentContextHash $Config.ParentContextHash -StartIntentPath $authority.path -StartIntentHash $authority.hash -AccountingDirectory $Config.AccountingDirectory -CoordinatorDataDirectory $Config.RegistryDirectory -AdmissionCapacity $Config.Capacity -StableTaskId $taskId -DispatchId ([guid]$identity.ExecutionId).ToString('D') -WorkItemId ([string]$item.id) -ExecutionId ([string]$identity.ExecutionId) -WorkItemStorePath $Config.WorkItemStorePath -WorkItemRequestPath $requestPath -Purpose $purpose -Generation $generation -DispatchJournalPath $dispatchPath -DetachedAfterVisibleAck -AdmissionReservationJson (ConvertTo-Json -InputObject $admission -Depth 60 -Compress) | Out-Null
         } catch {
             $failureMessage=$_.Exception.Message
@@ -841,7 +874,7 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
                 }
                 }catch{$failureMessage+='; deferred readback failed: '+$_.Exception.Message}
             }
-            $intent.lastError = $failureMessage; $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; return
+            $intent.lastError = $failureMessage; $intent.state = 'RecoveryRequired'; Save-AutomationStartEffect $Config $intent; continue
         }
         [void](Reconcile-AutomationStartEffects $Config $DispatchModule $PlanningModule)
         return
@@ -850,6 +883,7 @@ function Invoke-CoordinatorDelegation($Config, $Snapshot, $Decision, $Inventory,
 
 function Invoke-CoordinatorAutomationIdle {
     param($Config, $Runtime, $Session, [string]$SessionPath)
+    if([IO.File]::Exists((Join-Path $Config.RegistryDirectory 'executions.json'))){Publish-ManagedReleaseWake $Config.RegistryDirectory $Config.EventJournalPath}
     Invoke-LCImport $Config 'Import-CoordinatorWorkItemOutbox' ($Config.WorkItemStorePath+'.outbox.json')
     Invoke-LCImport $Config 'Import-CoordinatorReminderFiles' (Join-Path $Config.DataDirectory 'planning-reminders.json')
     Invoke-LCImport $Config 'Import-CoordinatorNativeResults' (Join-Path $Config.DataDirectory 'result-import-cursor.json')
@@ -857,7 +891,7 @@ function Invoke-CoordinatorAutomationIdle {
     $dispatch = Import-Module (Join-Path $PSScriptRoot 'CoordinatorDispatch.psm1') -PassThru -Force
     $startRecoveryPending = Reconcile-AutomationStartEffects $Config $dispatch $planning
     $snapshot = Get-AutomationStoreSnapshot $Config
-    $event=$null
+    $event=$null;$wakeIds=@{};$capacityEvents=@()
     $retryBase=[int](Get-AutomationValue $Config 'RetryBaseSeconds' 5)
     $retryCeiling=[int](Get-AutomationValue $Config 'RetryCeilingSeconds' 3600)
     $attemptCeiling=[int](Get-AutomationValue $Config 'RetryAttemptCeiling' 256)
@@ -866,7 +900,12 @@ function Invoke-CoordinatorAutomationIdle {
     for($n=0;$n -lt $batchLimit;$n++){
         $event=Get-CoordinatorNextEvent -Path $Config.EventJournalPath -LeaseSeconds 3600
         if(-not $event){break}
+        $wakeId=[string](Get-AutomationValue $event.payload 'workItemId');if($wakeId){$wakeIds[$wakeId]=$true}
         try{
+            if((Get-AutomationValue $event.payload 'capacityReleased' $false) -eq $true){
+                $capacityEvents+= $event
+                continue
+            }
             if(Complete-LCConsumedTrigger $Config $event){continue}
             # Unknown serial host ownership prevents model activity, not source import/diagnosis.
             if($Session.State -notin @('Ready','Completed')){throw 'HostTurnOwnershipUnknown'}
@@ -895,11 +934,7 @@ function Invoke-CoordinatorAutomationIdle {
     }
     $inventory = Get-AutomationInventory $Config $Session
     $active = @($inventory.Entries)
-    $wake = @()
-    if ($event) {
-        $wakeId = [string](Get-AutomationValue $event.payload 'workItemId')
-        if ($wakeId) { $wake = @($wakeId) }
-    }
+    $wake = @($wakeIds.Keys)
     $planningItems = @($snapshot.Document.items)
     $resumeRequired=@();$resumeAssessments=@{};$store=Get-AutomationStoreModule $Config
     foreach($item in $planningItems){
@@ -908,10 +943,18 @@ function Invoke-CoordinatorAutomationIdle {
         if(-not $required.Count){continue};$resumeRequired+=[string]$item.id
         try{$g=Get-AutomationGeneration $Config $item 'teamleiter-workitem';$id=& $dispatch {param($w,$g)Get-CoordinatorDispatchIdentity $w 'teamleiter-workitem' $g} $item.id $g;$assessment=Get-LCResumeForStart $Config $item $id.ExecutionId $g;if($assessment){$resumeAssessments[[string]$item.id]=$assessment}}catch{continue}
     }
+    $startBarrier=Get-AutomationStartBarrier $Config
+    $startRecoveryPending=$startBarrier.GlobalBarrier
     $teamCapacities=Get-AutomationValue $Config 'TeamCapacities' @{}
-    $plan = & $planning { param($items, $capacity, $running, $wakeIds, $directory,$required,$assessments,$teams) Get-CoordinatorPlanningDecision -WorkItems $items -Capacity $capacity -ActiveExecutions $running -WakeEventIds $wakeIds -StateDirectory $directory -ResumeRequiredWorkItemIds $required -ResumeAssessments $assessments -TeamCapacities $teams } $planningItems ([int]$Config.Capacity) $active $wake $Config.DataDirectory $resumeRequired $resumeAssessments $teamCapacities
+    $plan = & $planning { param($items, $capacity, $running, $wakeIds, $directory,$required,$assessments,$teams,$excluded) Get-CoordinatorPlanningDecision -WorkItems $items -Capacity $capacity -ActiveExecutions $running -WakeEventIds $wakeIds -StateDirectory $directory -ResumeRequiredWorkItemIds $required -ResumeAssessments $assessments -TeamCapacities $teams -ExcludedWorkItemIds $excluded } $planningItems ([int]$Config.Capacity) $active $wake $Config.DataDirectory $resumeRequired $resumeAssessments $teamCapacities $startBarrier.WorkItemIds
+    foreach($capacityEvent in $capacityEvents){
+        Write-AutomationJson (Join-Path $Config.DataDirectory ('capacity-decision-'+$capacityEvent.id+'.json')) @{eventId=$capacityEvent.id;plan=$plan;globalBarrier=$startRecoveryPending}
+        Complete-CoordinatorEvent -Path $Config.EventJournalPath -EventId $capacityEvent.id -ClaimId $capacityEvent.claimId | Out-Null
+    }
     if ($startRecoveryPending -or $inventory.Unknown -or (Get-AutomationValue $plan 'CapacityUnknown') -or [int](Get-AutomationValue $plan 'AvailableSlots' 0) -lt 1) { return }
-    Invoke-CoordinatorDelegation $Config $snapshot $plan $inventory $dispatch $planning $Runtime $Session $SessionPath
+    Set-LCValue $Config 'CapacityReleasedThisPoll' ($capacityEvents.Count -gt 0)
+    Resume-ManagedSpecialistWaits $Config.RegistryDirectory $Session.CoordinatorJobPath $Config.RepositoryRoot $startBarrier.WorkItemIds
+    Invoke-CoordinatorDelegation $Config $snapshot $plan $inventory $dispatch $planning $Runtime $Session $SessionPath $startBarrier
 }
 
 Export-ModuleMember -Function Invoke-CoordinatorAutomationIdle,Update-CoordinatorAutomationParentContext
