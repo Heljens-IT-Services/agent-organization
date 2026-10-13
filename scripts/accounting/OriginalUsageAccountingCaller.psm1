@@ -335,11 +335,12 @@ function Get-PublicMetadataSources([byte[]]$B,$Top){
 }
 function Get-PublicDocumentBytes($Snapshot){
     $top=Get-PublicSpans $Snapshot.Bytes
-    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames+@('role')}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
+    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames+@('role')}elseif($Snapshot.Kind -ceq 'capture'){$script:BindingNames+@('role','initial_execution_turn')}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
         elseif($Snapshot.Kind -ceq 'ledger'){$script:BindingNames+@('role','token_usage','final','source','counter_kind','counterKind')}
         elseif($Snapshot.Kind -ceq 'profile'){@('schema','task_id','thread_id','turn_id')}
-        else{$script:BindingNames+@('complete','startingSnapshot','candidate')}
+        else{$script:BindingNames+@('schema','initial_execution_turn','complete','startingSnapshot','candidate')}
     $public=Select-PublicFields $Snapshot.Bytes $top $names
+    if($Snapshot.Kind -ceq 'capture'){$public['schema']='retained-capture-binding/v1'}
     if($Snapshot.Kind -ceq 'profile'){
         if($public['schema'] -cne 'native-token-profile/v1'){throw 'NativeProfileSchemaInvalid'}
         foreach($field in @('task_id','thread_id','turn_id')){
@@ -417,10 +418,11 @@ function Publish-PublicPlans([object[]]$Plans){
 function Invoke-OriginalUsageAccountingCaller {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$TaskId,[Parameter(Mandatory)][string]$AccountingDirectory,
-        [Parameter(Mandatory)][string[]]$ExpectedJobArtifacts,[Parameter(Mandatory)][string[]]$NativeRolloutPaths,[string[]]$NativeEventLogPaths=@(),
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$ExpectedJobArtifacts,[Parameter(Mandatory)][AllowEmptyCollection()][string[]]$NativeRolloutPaths,[string[]]$NativeEventLogPaths=@(),
         [string[]]$ExpectedTaskSources=@(),[switch]$ExactRootTasks,[switch]$IncludeOwnRecords,
         [Parameter(Mandatory)][string]$ArchiveDirectory,[Parameter(Mandatory)][string]$AccountingScriptsDirectory,
         [string[]]$RootTaskIds,[string[]]$BoundWorkItemIds,[string]$BoundStorePath,[string]$RepositoryRoot,[string]$WorkItemId)
+    Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1')
     [void]([guid]$TaskId)
     if(-not [IO.Path]::IsPathRooted($AccountingDirectory)){throw 'GenuineAccountingDirectoryRequired'}
     if(-not [IO.Path]::IsPathRooted($ArchiveDirectory) -or -not [IO.Path]::IsPathRooted($AccountingScriptsDirectory)){throw 'AbsoluteLocalPathsRequired'}
@@ -432,11 +434,16 @@ function Invoke-OriginalUsageAccountingCaller {
     $taskReader=Join-Path $AccountingScriptsDirectory 'Get-TaskTokenUsage.ps1';$metricReader=Join-Path $AccountingScriptsDirectory 'Get-WorkItemMetrics.ps1'
     if(-not [IO.File]::Exists($taskReader) -or ($WorkItemId -and -not [IO.File]::Exists($metricReader))){throw 'ExistingReaderMissing'}
     $descriptors=[Collections.Generic.List[object]]::new()
+    # Capture expectations exist before usage, and remain independent of the
+    # ledger. Retain their public bindings as explicit job-reader inputs.
+    $captures=@(Read-OriginalUsageCaptures $AccountingDirectory)
+    foreach($capture in $captures){$descriptors.Add([pscustomobject]@{Kind='capture';Path=$capture.path})}
+    $ExpectedJobArtifacts=@(@($ExpectedJobArtifacts)+@(Read-OriginalUsageTurnExpectations $AccountingDirectory | ForEach-Object { $_.sources }) | Select-Object -Unique)
     foreach($group in @(@('job',$ExpectedJobArtifacts),@('native',$NativeRolloutPaths),@('events',$NativeEventLogPaths),@('expected',$ExpectedTaskSources))){
         foreach($path in @($group[1])){$descriptors.Add([pscustomobject]@{Kind=$group[0];Path=[IO.Path]::GetFullPath($path)})}
     }
-    foreach($pattern in @('*.usage.json','*.profile.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')){
-        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -ceq '*.usage.json'){'ledger'}elseif($pattern -ceq '*.profile.json'){'profile'}else{'execution'});Path=$file.FullName})}
+    foreach($pattern in @('*.usage.json','*.pending-usage.json','*.profile.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json','capture-binding-*.json')){
+        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -cin @('*.usage.json','*.pending-usage.json')){'ledger'}elseif($pattern -ceq '*.profile.json'){'profile'}else{'execution'});Path=$file.FullName})}
     }
     if($descriptors.Count -gt 4096){throw 'InputCountLimit'}
     $missing=@($descriptors|Where-Object{-not [IO.File]::Exists($_.Path)}|ForEach-Object Path)
@@ -452,7 +459,7 @@ function Invoke-OriginalUsageAccountingCaller {
     }
     $finals=@(Get-OriginalFinalUsageRecords @($snapshots|Where-Object Kind -ceq 'native'))
     $originalBindings=@(foreach($s in $snapshots){
-        if($s.Kind -in @('job','ledger','execution')){[Text.UTF8Encoding]::new($false,$true).GetString($s.PublicBytes)|ConvertFrom-Json}
+        if($s.Kind -in @('job','ledger','execution','capture')){[Text.UTF8Encoding]::new($false,$true).GetString($s.PublicBytes)|ConvertFrom-Json}
         elseif($s.Kind -ceq 'expected'){$doc=[Text.UTF8Encoding]::new($false,$true).GetString($s.PublicBytes)|ConvertFrom-Json;$doc.tasks}
     })
     $genuineTask=$false;$genuineScope=$false
@@ -468,7 +475,7 @@ function Invoke-OriginalUsageAccountingCaller {
     $id=Get-OriginalUsageSha256 (ConvertTo-PublicBytes $index);$base="retained/$id";$items=[Collections.Generic.List[object]]::new();$map=@{job=@();native=@();events=@();expected=@()}
     foreach($s in $snapshots){
         $slot=Get-OriginalUsageSha256 ([Text.UTF8Encoding]::new($false).GetBytes($s.Path));$name=[IO.Path]::GetFileName($s.Path)
-        $relative=if($s.Kind -in @('ledger','execution','profile')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
+        $relative=if($s.Kind -ceq 'capture'){"$base/accounting/capture-binding-$slot.json"}elseif($s.Kind -in @('ledger','execution','profile')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
         $source=[ordered]@{path=$s.Path;observedLength=[long]$s.Bytes.Length;observedSha256=$s.Sha256;tailOffset=$s.TailOffset;tailLength=$s.TailLength;originalReceipt=$s.OriginalReceipt}
         if($s.Kind -ceq 'native'){
             $source.ranges=@($s.Native.Ranges|ForEach-Object{[ordered]@{ordinal=$_.ordinal;offset=$_.offset;length=$_.length;rangeSha256=$_.rangeSha256;originalPath=$_.originalPath;originalThreadId=$_.originalThreadId;originalTurnId=$_.originalTurnId;rawRangeAvailable=$_.rawRangeAvailable;rawUnavailableReason=$_.rawUnavailableReason;threadId=$_.threadId;turnId=$_.turnId;nativeFinalIdentity=$_.nativeFinalIdentity}})
@@ -478,6 +485,7 @@ function Invoke-OriginalUsageAccountingCaller {
         }
         $items.Add([pscustomobject]@{Relative=$relative;Bytes=$s.PublicBytes;Source=$source})
         if($map.ContainsKey($s.Kind)){$map[$s.Kind]+=@([IO.Path]::GetFullPath((Join-Path $ArchiveDirectory $relative)))}
+        if($s.Kind -ceq 'capture'){$map.job+=@([IO.Path]::GetFullPath((Join-Path $ArchiveDirectory $relative)))}
     }
     foreach($f in $finals){$items.Add([pscustomobject]@{Relative=$f.Relative;Bytes=$f.Bytes;Source=$f.Source});foreach($observation in $f.Observations){$items.Add($observation)}}
     $registrations=@($finals|ForEach-Object{[ordered]@{path=$_.Relative;sha256=(Get-OriginalUsageSha256 $_.Bytes)}})

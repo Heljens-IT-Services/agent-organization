@@ -46,7 +46,9 @@ $executionBindings=@(foreach ($execution in $preNativeExecutions.Values) {
     if ($execution.initialTurns.Count -eq 0) { New-AccountingBinding $execution $execution.sources }
     else { foreach ($turn in $execution.initialTurns) { $binding=New-AccountingBinding $execution $execution.sources; $binding.turnId=$turn; $binding } }
 })
-$supplementalBindings=@($family.tasks)+@($entries | ForEach-Object { New-AccountingBinding $_.identity $_.paths })+@($executionBindings)
+$captures=@(Read-OriginalUsageCaptures $AccountingDirectory)
+$turnExpectations=@(Read-OriginalUsageTurnExpectations $AccountingDirectory)
+$supplementalBindings=@($family.tasks)+@($captures | ForEach-Object binding)+@($turnExpectations)+@($entries | ForEach-Object { New-AccountingBinding $_.identity $_.paths })+@($executionBindings)
 $observedFamily = Read-ObservedAccountingFamily @($ExpectedJobArtifacts) @($NativeRolloutPaths) @() @($NativeEventLogPaths) $supplementalBindings
 $nativeMerge = Merge-NativeAccountingMeasurements $entries $observedFamily.measurements
 $entries = @($nativeMerge.entries)
@@ -159,6 +161,40 @@ $ownCoverageComplete=($ownClosure.complete -and $ownKnown.Count -gt 0 -and $root
     $rootGaps.Count -eq 0 -and $rootMissing.Count -eq 0 -and $rootIncomplete.Count -eq 0 -and
     @($ownEntries | Where-Object { -not $_.identity.final -or $null -eq $_.identity.tokenUsage -or $nativeConflictKeys -ccontains $_.native_key }).Count -eq 0)
 $tokenCoverageComplete = $false
+# A per-node projection follows every WorkItem edge, independently of task
+# depth. Every subtree sum uses deduplicated own native entries directly;
+# inclusive child projections are never inputs to another parent's sum.
+$nodeTokens=@(foreach ($id in @($selected.Keys | Sort-Object)) {
+    $nodeIds=New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    $nodeIds[$id]=$true
+    do {
+        $expanded=$false
+        foreach ($item in $items) {
+            if ($null -ne $item.parentId -and $nodeIds.ContainsKey($item.parentId) -and -not $nodeIds.ContainsKey($item.id)) {
+                $nodeIds[$item.id]=$true; $expanded=$true
+            }
+        }
+    } while ($expanded)
+    $nodeEntries=@($selectedEntries | Where-Object { $nodeIds.ContainsKey($_.identity.workItemId) })
+    $nodeScope=@($scopedExpectations | Where-Object { $null -ne $_.workItemId -and $nodeIds.ContainsKey($_.workItemId) })
+    $nodeClosure=Get-AccountingExpectedClosure $nodeScope $nodeEntries $allNativeConflicts
+    $nodeOwnEntries=@($nodeEntries | Where-Object { $_.identity.workItemId -ceq $id })
+    $nodeOwnScope=@($nodeScope | Where-Object { $_.workItemId -ceq $id })
+    $nodeOwnClosure=Get-AccountingExpectedClosure $nodeOwnScope $nodeOwnEntries $allNativeConflicts
+    $nodeOwnPartial=Get-UsageSum @($nodeOwnClosure.known)
+    $nodeOwnComplete=($nodeOwnClosure.complete -and $nodeOwnClosure.known.Count -gt 0 -and
+        @($bindingGaps | Where-Object workItemId -ceq $id).Count -eq 0 -and
+        @($conflicts | Where-Object { $_.executionId -in @($expected | Where-Object workItemId -ceq $id | ForEach-Object executionId) }).Count -eq 0 -and
+        @($incompleteTransfers | Where-Object workItemId -ceq $id).Count -eq 0 -and
+        @($expectedMissing | Where-Object workItemId -ceq $id).Count -eq 0 -and
+        @($nodeOwnEntries | Where-Object { -not $_.identity.final -or $null -eq $_.identity.tokenUsage -or $nativeConflictKeys -ccontains $_.native_key }).Count -eq 0)
+    [pscustomobject]@{workItemId=$id;includedWorkItemIds=@($nodeIds.Keys | Sort-Object);
+        own=$(if ($nodeOwnComplete) { $nodeOwnPartial } else { $null });ownKnownPartial=$nodeOwnPartial;
+        ownCoverageComplete=$nodeOwnComplete;inclusive=$null;known_partial=(Get-UsageSum @($nodeClosure.known));
+        descendantOwnKnownPartial=(Get-UsageSum @($nodeClosure.known | Where-Object { $_.identity.workItemId -cne $id }));
+        expectedNativeTurns=@($nodeScope);missingExpectedNativeTurns=@($nodeClosure.missing);
+        familyCompletenessProven=$false;familyCompletenessReason=$observedFamily.completenessReason}
+})
 $lifecycle = @(); $measurements = @(); $goalDecisions = @(); $measurementGaps = @(); $criterionDecisions = @(); $measurementConflicts = @()
 foreach ($item in $items) {
     if (-not $selected.ContainsKey($item.id)) { continue }
@@ -220,6 +256,7 @@ $tokenHistory | Add-Member -NotePropertyName projectionGeneratedAtUTC -NotePrope
     tokenUsage=[pscustomobject]@{
         own=$(if ($ownCoverageComplete) { $ownPartial } else { $null }); ownKnownPartial=$ownPartial; ownCoverageComplete=$ownCoverageComplete
         inclusive=$null; known_partial=$partial
+        perWorkItem=$nodeTokens
         missingExpectedExecutions=$expectedMissing; missingUsageRecords=$missingUsage; provisionalUsageRecords=$provisional
         familyCompletenessProven=$false; familyCompletenessReason=$observedFamily.completenessReason; familyConflicts=@($family.conflicts)+@($observedFamily.conflicts)+@($nativeMerge.conflicts); accountingDiagnostics=@($observedFamily.diagnostics)+@($nativeMerge.diagnostics); expectedFamilyTasks=$expectedFamilyTasks; missingExpectedNativeTurns=$missingNativeTurns
         incompleteTransfers=$incompleteTransfers; bindingGaps=$bindingGaps; parentBindingGaps=$parentGaps

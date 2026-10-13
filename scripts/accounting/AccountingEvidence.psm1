@@ -172,6 +172,49 @@ function Read-UsageEntries([string]$Directory, [switch]$HistoryDiagnostics) {
     }
     return @($native.Values)
 }
+function Get-UsageSourceHash([byte[]]$Bytes) {
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-','').ToLowerInvariant() }
+    finally { $sha.Dispose() }
+}
+function Read-OriginalUsageCaptures([string]$Directory) {
+    $captures=@()
+    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter '*.capture.json' -File -ErrorAction SilentlyContinue) {
+        $record=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ((Get-Field $record 'schema') -cne 'original-usage-capture/v1') { throw 'Unknown original capture schema.' }
+        $binding=New-AccountingBinding $record @($file.FullName)
+        if ($null -eq $binding.taskId -or $null -eq $binding.threadId -or $null -eq $binding.turnId) { throw 'Original capture identity missing.' }
+        $documents=@{}
+        foreach ($name in @('job','nativeAck','turnAck')) {
+            $path=Get-Field $record ($name+'Path'); $hash=Get-Field $record ($name+'Sha256')
+            if ($hash -isnot [string] -or $hash -cnotmatch '^[0-9a-f]{64}$') { throw 'Original capture pin missing.' }
+            $full=Get-CanonicalPath $path
+            $bytes=[IO.File]::ReadAllBytes($full)
+            if ((Get-UsageSourceHash $bytes) -cne $hash) { throw 'Original capture source changed; preserve capture.' }
+            $documents[$name]=[Text.UTF8Encoding]::new($false,$true).GetString($bytes) | ConvertFrom-Json
+            $binding.sources+=@($full)
+        }
+        $job=New-AccountingBinding $documents.job @()
+        foreach ($field in @('taskId','parentTaskId','parentThreadId','parentTurnId','workItemId','executionId','storePath')) {
+            if ($job.$field -cne $binding.$field) { throw 'Original capture job binding conflict.' }
+        }
+        $ack=$documents.nativeAck
+        if ((Get-CanonicalId $ack.taskId) -cne $binding.taskId -or (Get-CanonicalId $ack.threadId) -cne $binding.threadId -or
+            (Get-CanonicalId $ack.reply.thread.id) -cne $binding.threadId -or (Get-CanonicalId $documents.turnAck.turn.id) -cne $binding.turnId -or
+            $ack.origin -cne $record.provider -or $ack.generation -cne $record.generation) { throw 'Original capture native ACK conflict.' }
+        $captures+=@([pscustomobject]@{binding=$binding;path=$file.FullName;jobPath=$record.jobPath;role=$documents.job.role;record=$record})
+    }
+    return $captures
+}
+function Read-OriginalUsageTurnExpectations([string]$Directory) {
+    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter '*.turn-expectation.json' -File -ErrorAction SilentlyContinue) {
+        $record=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ((Get-Field $record 'schema') -cne 'observed-usage-turn/v1') { throw 'Unknown observed turn expectation.' }
+        $binding=New-AccountingBinding $record @($file.FullName)
+        if ($null -eq $binding.taskId -or $null -eq $binding.threadId -or $null -eq $binding.turnId) { throw 'Observed turn binding missing.' }
+        $binding
+    }
+}
 function Read-ExpectedTaskFamily([string[]]$SourcePaths) {
     # Each source declares an exact root set and a complete snapshot bound to a
     # real evidence file. Rows represent task-turn identities, not one row per task.
@@ -669,7 +712,7 @@ function Add-ExecutionEvidence($State, $Identity, [string]$Kind, [string]$Source
     } else {
         $execution.artifactCount++
         # Reservation and transfer carry initial identities; current may point at a later turn.
-        if ($Kind -in @('reservation','transfer') -and $null -ne $Identity.turnId) {
+        if ($Kind -in @('reservation','transfer','capture_initial') -and $null -ne $Identity.turnId) {
             $execution.initialTurns += @($Identity.turnId)
         }
         if ($Kind -ceq 'transfer' -and ($Complete -isnot [bool] -or -not $Complete)) {
@@ -680,6 +723,21 @@ function Add-ExecutionEvidence($State, $Identity, [string]$Kind, [string]$Source
 }
 function Read-ExecutionEvidence([string]$Directory, $Entries) {
     $state = New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($capture in @(Read-OriginalUsageCaptures $Directory)) {
+        if ($null -eq $capture.binding.executionId) { continue }
+        $kind=if ((Get-Field $capture.record 'initial_execution_turn') -ceq $true) { 'capture_initial' } else { 'current' }
+        Add-ExecutionEvidence $state $capture.binding $kind $capture.path $null
+    }
+    # Public retained bindings have no live-source/auth capability. Their bytes
+    # are checked by the retention caller's receipts before and after reading.
+    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter 'capture-binding-*.json' -File -ErrorAction SilentlyContinue) {
+        $record=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ((Get-Field $record 'schema') -cne 'retained-capture-binding/v1') { throw 'Unknown retained capture binding.' }
+        $binding=New-AccountingBinding $record @($file.FullName)
+        if ($null -eq $binding.executionId) { continue }
+        $kind=if ((Get-Field $record 'initial_execution_turn') -ceq $true) { 'capture_initial' } else { 'current' }
+        Add-ExecutionEvidence $state $binding $kind $file.FullName $null
+    }
     foreach ($pattern in @('execution-*.json','workitem-transfer-*.json','workitem-current-*.json')) {
         foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter $pattern -File -ErrorAction SilentlyContinue) {
             $record = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -701,6 +759,8 @@ function Read-ExecutionEvidence([string]$Directory, $Entries) {
     }
     foreach ($entry in @($Entries)) {
         foreach ($record in $entry.records) {
+            # Counter-free PR112 enrichment does not declare execution identity.
+            if ((Get-Field $record 'schema') -ceq 'native-token-profile/v1') { continue }
             $identity = Get-UsageIdentity $record
             if ($null -eq $identity.executionId) { continue }
             # Aliases for ONE native measurement are legitimate task aliases. Preserve
