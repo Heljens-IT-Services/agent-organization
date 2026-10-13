@@ -1,0 +1,38 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"urn:heljens:productmanagement:1",
+  "title":"Owner supplied solution configuration",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schemaVersion","solutions"],
+  "properties":{
+    "schemaVersion":{"const":"1.0"},
+    "inventory":{"type":"array","description":"Observed inventory only; never a runtime identity or routing authority","items":{"type":"object"}},
+    "solutions":{"type":"array","items":{"$ref":"#/$defs/solution"}}
+  },
+  "$defs":{
+    "id":{"type":"string","pattern":"^[a-z0-9][a-z0-9_-]{0,127}$"},
+    "solution":{
+      "type":"object","additionalProperties":false,
+      "required":["solutionId","pmIdentity","ownerId","workspaceRoot","documents","workItemIds"],
+      "properties":{
+        "solutionId":{"$ref":"#/$defs/id"},
+        "pmIdentity":{"$ref":"#/$defs/id"},
+        "ownerId":{"$ref":"#/$defs/id"},
+        "workspaceRoot":{"type":"string","minLength":1},
+        "workItemIds":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/id"}},
+        "activationDocumentIds":{"type":"array","uniqueItems":true,"maxItems":8,"items":{"$ref":"#/$defs/id"}},
+        "activationDecisionIds":{"type":"array","uniqueItems":true,"maxItems":20,"items":{"$ref":"#/$defs/id"}},
+        "documents":{"type":"array","items":{
+          "type":"object","additionalProperties":false,"required":["id","kind","path","hash"],
+          "properties":{
+            "id":{"$ref":"#/$defs/id"},
+            "kind":{"enum":["vision","strategy","roadmap","idea","assumption","decision","source"]},
+            "path":{"type":"string","minLength":1},
+            "hash":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+          }
+        }}
+      }
+    }
+  }
+}

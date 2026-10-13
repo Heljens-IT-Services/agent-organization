@@ -49,6 +49,11 @@ try {
     $CoordinatorJobPath=[IO.Path]::GetFullPath($CoordinatorJobPath);$CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)
     $rootJob=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorJobPath
     $launch=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorLaunchConfigPath
+    $productReference=Get-CoordinatorConfigValue $launch 'productManagement'
+    if ($productReference) {
+        Import-Module (Join-Path $PSScriptRoot 'productmanagement/ProductManagement.psm1')
+        [void](Read-ProductConfiguration $productReference)
+    }
     foreach($name in $callerInputs.Keys){$supplied=$callerInputs[$name];$expected=switch($name){'DataDirectory'{$rootJob.coordinator_launch.dataDirectory};'WorkingDirectory'{$rootJob.cwd};'RuntimeExecutable'{$launch.runtimeExecutable};'AccountingDirectory'{$rootJob.accounting_directory};'WorkItemStorePath'{$launch.workItemStorePath};'EventJournalPath'{$launch.eventJournalPath};'ResultDirectories'{$launch.resultDirectories};'RegistryDirectory'{$launch.registryDirectory};'NativeInventoryPath'{$launch.nativeInventoryPath};'CompleteEpoch'{$launch.completeEpoch};'AutomationCapacity'{$rootJob.admission_capacity};'RuntimeArguments'{$launch.runtimeArguments}}
         if($name -in @('ResultDirectories','RuntimeArguments')){$equal=(ConvertTo-Json -InputObject @($supplied) -Depth 10 -Compress) -ceq (ConvertTo-Json -InputObject @($expected) -Depth 10 -Compress)}elseif($name -in @('AutomationCapacity')){$equal=[int]$supplied -eq [int]$expected}elseif($expected -and $supplied){$equal=[IO.Path]::GetFullPath([string]$supplied) -ceq [IO.Path]::GetFullPath([string]$expected)}else{$equal=([string]$supplied) -ceq ([string]$expected)}
         if(-not $equal){throw ('BlockedRecovery: caller-supplied root input mismatch: '+$name)}
@@ -76,6 +81,13 @@ try {
         if(-not $session.PSObject.Properties[$pair[0]]) { $session | Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] }
     }
     if ($session.PSObject.Properties.Name -notcontains 'NativeThreadId') { throw 'BlockedRecovery: Session contract incomplete.' }
+    $savedProductReference=Get-CoordinatorConfigValue $session 'ProductManagement'
+    if ($savedProductReference -and (ConvertTo-Json -InputObject $savedProductReference -Compress) -cne (ConvertTo-Json -InputObject $productReference -Compress)) { throw 'BlockedRecovery: Product configuration changed; explicit recovery required.' }
+    if ($productReference -and -not $savedProductReference) {
+        if ($session.NativeThreadId) { throw 'BlockedRecovery: Existing host requires reviewed product configuration migration.' }
+        $session | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference
+        Write-CoordinatorAtomicJson $path $session
+    }
     if ($null -ne $session.RuntimePid) {
         $validatedRuntimePid=0
         if (-not [int]::TryParse([string]$session.RuntimePid,[ref]$validatedRuntimePid) -or $validatedRuntimePid -le 0) { throw 'BlockedRecovery: persisted runtime PID is invalid; no process was stopped.' }
@@ -185,6 +197,7 @@ try {
         # Production host remains resident; callers use the single local dispatcher.
         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq 'completed'}|Select-Object -Last 1)
         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties['retryBaseSeconds']){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties['retryCeilingSeconds']){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties['retryAttemptCeiling']){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties['eventBatchLimit']){[int]$launch.eventBatchLimit}else{256})}
+        $automationConfig | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference
         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)
             if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}
             $response=Invoke-CoordinatorTurn $runtime $session $path $request

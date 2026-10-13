@@ -107,6 +107,14 @@
       ],
       "leader_id": "teamleiter_administratoren",
       "role_file": "teamleiter_administratoren.toml"
+    },
+    {
+      "team_id":"produktmanagement",
+      "name":"Produktmanagement",
+      "description":"Produktstrategie und priorisierte Solution-Backlogs.",
+      "tasks":["Produktstrategie und Roadmaps erarbeiten","Backlogs und Akzeptanzkriterien pflegen","Ergebnisse und offene Punkte bündeln"],
+      "leader_id":"teamleiter_produktmanagement",
+      "role_file":"teamleiter_produktmanagement.toml"
     }
   ]
 }

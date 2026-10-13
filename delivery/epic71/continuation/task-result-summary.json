@@ -1,0 +1,325 @@
+{
+    "asOf":  "2026-10-13T07:51:17.8838096Z",
+    "records":  [
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/bestand.json",
+                        "copiedWhole":  false,
+                        "task_id":  "72bd38e280934960b9029a886d9539f1",
+                        "thread_id":  "01a133d1-ddb9-7da1-956d-658bca3346c8",
+                        "turn_id":  "01a133d1-e6b2-7092-8a4a-44742141326c",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  1565214
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  1554333
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  1407488
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  10881
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  2055
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/qa-completion-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "6c69008f113344599282f57f1655472c",
+                        "thread_id":  "01a1341a-60fb-7542-97e5-d7288f71f411",
+                        "turn_id":  "01a1341a-630c-7ab3-9879-e5692104a7e0",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  943042
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  927469
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  837504
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  15573
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  1318
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/contract-rework-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "98563bc4af134927adc92259fb4975cf",
+                        "thread_id":  "01a13427-14d9-7f23-9978-ae21e4ad7319",
+                        "turn_id":  "01a13427-1d8c-7093-a4b4-8b237ea06f3b",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  211985
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  206554
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  160896
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  5431
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  468
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/qa-contract-final-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "c9daa9492d604340896208d50f49ba8f",
+                        "thread_id":  "01a1342f-22f0-7f51-8c1c-0c6b9863b650",
+                        "turn_id":  "01a1342f-290e-7ed3-9f1a-da8c50d7d319",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  266590
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  259681
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  206080
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  6909
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  251
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/index-completion-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "86b408aaf6284195a8d992544e9c6053",
+                        "thread_id":  "01a13422-8dab-7113-93fb-caa035114230",
+                        "turn_id":  "01a13422-91ff-78e3-b73e-e06f2e2defd5",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  955367
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  941493
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  872704
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  13874
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  1527
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/develop-completion-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "fc6acac6e0ec42e0ad8c919579dbfd42",
+                        "thread_id":  "01a1342f-ef55-7e63-8d16-f2d0512472a4",
+                        "turn_id":  "01a1342f-f4d1-7ee1-afbf-9da4d5fa7970",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  678264
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  667290
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  596352
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  10974
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  2066
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/retry-observation-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "bd20de86e07e4c418cdcbfedee712d3f",
+                        "thread_id":  "01a1341a-36a4-73c1-b745-4b4d95939f47",
+                        "turn_id":  "01a1341a-38b8-7501-a0bf-e94802646df5",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  193223
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  190334
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  146176
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  2889
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  302
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    },
+                    {
+                        "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/retry-thread-read-result.json",
+                        "copiedWhole":  false,
+                        "task_id":  "a0ace125a5ea4cb39dcca1840a5ceddc",
+                        "thread_id":  "01a1341f-961c-7803-b4a3-cf362e9934b1",
+                        "turn_id":  "01a1341f-9a60-7041-9fa1-7d333c80f1e7",
+                        "terminal_outcome":  "completed",
+                        "error":  null,
+                        "usage_finalized":  true,
+                        "nativeOwnTokenUsage":  [
+                                                    {
+                                                        "metric":  "totalTokens",
+                                                        "measuredValue":  365589
+                                                    },
+                                                    {
+                                                        "metric":  "inputTokens",
+                                                        "measuredValue":  360463
+                                                    },
+                                                    {
+                                                        "metric":  "cachedInputTokens",
+                                                        "measuredValue":  309504
+                                                    },
+                                                    {
+                                                        "metric":  "cacheWriteInputTokens",
+                                                        "measuredValue":  0
+                                                    },
+                                                    {
+                                                        "metric":  "outputTokens",
+                                                        "measuredValue":  5126
+                                                    },
+                                                    {
+                                                        "metric":  "reasoningOutputTokens",
+                                                        "measuredValue":  712
+                                                    }
+                                                ],
+                        "limit":  "Task terminal state is not review pass or product acceptance. Native usage is per task, not summed or adopted as packaging own usage."
+                    }
+                ],
+    "retry":  {
+                  "task_id":  "68ddc64dc2904cbf9b7454a9b723b57c",
+                  "thread_id":  "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+                  "turn_id":  "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+                  "terminal":  "interrupted",
+                  "error":  null,
+                  "completedAt":  null,
+                  "durationMs":  null,
+                  "runnerPIDAtPriorObservation":  29688,
+                  "windowHandle":  1907400,
+                  "cost":  null,
+                  "cause":  "unknown",
+                  "evidence":  [
+                                   "retry-observation.json",
+                                   "retry-thread-read.md"
+                               ],
+                  "fullRpcJsonCopied":  false
+              },
+    "packagingOwnMeasuredTokenUsage":  null,
+    "costCurrency":  null,
+    "noInventedMonetaryCost":  true,
+    "noInclusiveTotalsSummed":  true,
+    "independentReviews":  "pending_review_per_handoff_no_terminal_assumption",
+    "reservedOriginalsUntouched":  true
+}

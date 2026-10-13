@@ -1,0 +1,277 @@
+diff --git "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\scripts\\delegation\\Start-DelegatedCodexTask.ps1" b/scripts/delegation/Start-DelegatedCodexTask.ps1
+index b6a01b6..2f437a7 100644
+--- "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\scripts\\delegation\\Start-DelegatedCodexTask.ps1"
++++ b/scripts/delegation/Start-DelegatedCodexTask.ps1
+@@ -871,6 +871,7 @@ $evidence = [ordered]@{
+     start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash
+     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
+     roleId=$job.role; modelId=$null; reasoningEffort=$null; measurementUTC=$null; measurementObservedAtUTC=$null; metadataSources=@()
++    usage_source='app_server_fresh_thread_single_turn'
+ }
+ $notifications = New-Object System.Collections.Generic.List[object]
+ $progressState = New-ProgressState
+@@ -883,6 +884,8 @@ function Update-NativeUsage($Notification) {
+     if ($Notification.method -eq 'thread/tokenUsage/updated' -and
+         $evidence.thread_id -and $evidence.turn_id -and
+         $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {
++        # Resumed PM totals include earlier turns; no proven current-turn measurement.
++        if ($evidence.usage_source -cne 'app_server_fresh_thread_single_turn') { return }
+         # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.
+         $evidence.token_usage = $Notification.params.tokenUsage.total
+         # Observation of the actual own native measurement, before publication.
+@@ -1060,17 +1063,24 @@ try {
+         }
+     } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }
+     if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {
++        # Until a thread/start receipt proves freshness, PM usage remains unknown.
++        $evidence.usage_source = 'app_server_pm_thread_unknown_current_turn'
+         # This remains the existing visible, admitted specialist runner.
+         $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}
+         $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc
++        if ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/start') {
++            $evidence.usage_source = 'app_server_fresh_thread_single_turn'
++        } elseif ((Get-AdmissionField $productActivation.rpc 'method') -ceq 'thread/resume') {
++            $evidence.usage_source = 'app_server_resumed_pm_thread_unknown_current_turn'
++        }
+         $thread=$productActivation.reply
+     } else {
+         Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
+         $thread = Wait-Rpc 2
+     }
+     $evidence.thread_id = $thread.thread.id
+-    # Resolved thread/start response, never requested/current TOML settings.
+-    # This runner starts exactly one turn on a fresh thread, without overrides.
++    # Resolved thread ACK (start or PM resume), never requested/current TOML settings.
++    # One new turn; a resumed PM thread can already contain earlier turns.
+     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
+     $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}
+     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
+@@ -1080,7 +1090,8 @@ try {
+         if($null -ne $property -and $property.Value -is [string] -and $property.Value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') {
+             $target=if($field -ceq 'model'){'modelId'}else{'reasoningEffort'}
+             $evidence[$target]=$property.Value
+-            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis='resolved fresh thread defaults; turn/start has no model or effort override'})
++            $ackBasis=if($evidence.usage_source -ceq 'app_server_fresh_thread_single_turn'){'resolved fresh thread defaults; turn/start has no model or effort override'}else{'resolved PM thread ACK; freshness/current-turn usage unproven; turn/start has no model or effort override'}
++            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis=$ackBasis})
+         }
+     }
+     if ($job.registry_directory) {
+@@ -1153,7 +1164,7 @@ try {
+     $deadline = [DateTime]::UtcNow.AddSeconds(10)
+     Send-Rpc 'thread/read' @{ threadId = $evidence.thread_id; includeTurns = $false } 5
+     [void](Wait-Rpc 5)
+-    $evidence.usage_finalized = $true
++    $evidence.usage_finalized = ($evidence.usage_source -ceq 'app_server_fresh_thread_single_turn')
+     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
+     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
+     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }
+@@ -1179,7 +1190,7 @@ try {
+             measurementUTC=$evidence.measurementUTC; importedAtUTC=[DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
+             measurementObservedAtUTC=$evidence['measurementObservedAtUTC']; measurementTimeBasis='native_time_unknown_notification_observation_only'
+             requestedProfile=[ordered]@{modelId=$job.model;reasoningEffort=$job.config.model_reasoning_effort;source=$JobFile;effective=$false}
+-            metadataSources=$evidence.metadataSources; source='app_server_fresh_thread_single_turn'; counter_kind='turn_token_usage'
++            metadataSources=$evidence.metadataSources; source=$evidence.usage_source; counter_kind='turn_token_usage'
+             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
+         })
+         $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
+diff --git "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\README.md" b/delivery/epic71/README.md
+index 3c4ddf6..aad2637 100644
+--- "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\README.md"
++++ b/delivery/epic71/README.md
+@@ -1,13 +1,13 @@
+ # Epic #71 – aktueller Einstieg der Quellenlieferung
+ 
+-Adressat: teamleiter_agent_ressources. WorkItem: epic71-current-delivery-evidence unter epic71-source-delivery. Dieser Einstieg bündelt den aktuellen Quellen- und Reviewstand; **Indexreview und Integrationsreview: pending_review. Eigene Elternabnahme und GesamtEpicabnahme sind offen. Inhalt ist kein Funktionsbeweis.**
++Adressat: teamleiter_agent_ressources. WorkItem: epic71-final-delta-rework unter epic71-source-delivery. Dieser Einstieg bündelt den aktuellen Quellen- und Reviewstand; **Indexreview: uebergebener Quellen-Pass und eigene Teamleiterentscheidung accepted_source_scope. Integration: Rework D1-D3, neue unabhaengige QA pending_review. Eigene Elternabnahme der Quellenlieferung und GesamtEpicabnahme sind offen. Inhalt ist kein Funktionsbeweis.**
+ 
+ ## Aktueller Stand und verbindliche Grenzen
+ 
+ - R1–R3: Pass im gezielten unabhängigen Inhaltsreview, belegt durch [qa-completion-review.md](continuation/qa-completion-review.md) und JSON. Der dortige R4-Vertragsbefund ist historisch.
+ - R4-Technik und R4Hash-Vertrag: Pass durch [qa-contract-final-review.md](continuation/qa-contract-final-review.md) und JSON nach [contract-rework-report.md](continuation/contract-rework-report.md), Manifest und Einzeilendiff. Die vier Initialfehler sind technisch geschlossen. Kein aktueller Laufzeitnachweis.
+-- Indexverbindung sowie PR110/111: Quellenlieferung in [index-completion-report.md](continuation/index-completion-report.md), JSON, Manifest und Diff. Dessen damaliger PR112-Drift ist durch die spätere Quellenlieferung dokumentiert; **unabhängiger Indexreview bleibt pending_review**. Keine neue Indexlesung in diesem Paketauftrag.
+-- PR112: Quellenlieferung in [develop-completion-report.md](continuation/develop-completion-report.md), JSON, Manifest und Diff, gepinnt auf develop 50191757d0e8bb9bed956d89c42afbac5ef0674d. **Unabhängiger Integrationsreview bleibt pending_review**. Kein Pass oder späterer Status angenommen.
++- Indexverbindung sowie PR110/111: Quellenlieferung in [index-completion-report.md](continuation/index-completion-report.md), JSON, Manifest und Diff. Dessen damaliger PR112-Drift ist durch die spätere Quellenlieferung dokumentiert; **unabhaengiger Index-Quellenreview: uebergebener Pass; eigene begrenzte Teamleiterentscheidung accepted_source_scope laut finalization-coordination.json**. Keine neue Indexlesung in diesem Paketauftrag.
++- PR112: Quellenlieferung in [develop-completion-report.md](continuation/develop-completion-report.md), JSON, Manifest und Diff, gepinnt auf develop 50191757d0e8bb9bed956d89c42afbac5ef0674d. **Integration: Rework D1-D3 laut final-delta-review.json; neue unabhaengige QA nach dieser Korrektur pending_review**. Kein Integrations-Pass angenommen.
+ - Owner, Provider, reale Produkt-/Outcomeabnahme, Ground und Laufzeit bleiben getrennt offen. Keine GesamtEpicabnahme aus technischem QA-Pass, Quellenintegration oder Kinderabschluss ableiten.
+ 
+ [Aktuelle Kriterien](continuation/criteria.json), [Issue-Empfehlungen #72/#76/#79](continuation/issue-completion-proposal.md) und [gezielte Task-/Kostenbelege](continuation/task-result-summary.json) gehören zu diesem Stand. Gemessener Eigenverbrauch dieses Paketauftrags ist unbekannt (null); keine Unteraufträge.
+@@ -17,6 +17,8 @@ Adressat: teamleiter_agent_ressources. WorkItem: epic71-current-delivery-evidenc
+ Originalworktree: C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/implementation.
+ Branch: feature/epic71-product-management-20261013.
+ Originalbasis und HEAD: 907cbc71f10729beaff9ea3634644ff4043d3791.
++Lokaler Ref refs/heads/develop: 50191757d0e8bb9bed956d89c42afbac5ef0674d.
++Aktueller Bindungszeitpunkt und komplette maschinenlesbare Bindung: [final-rework-report.json](continuation/final-rework-report.json).
+ Gepinnter latestdevelop: 50191757d0e8bb9bed956d89c42afbac5ef0674d.
+ 
+ Dies ist eine uncommittete Quellenlieferung im erhaltenen isolierten Worktree. Der vorhandene develop-Bericht dokumentiert seinen damaligen Fetch. Dieser Paketauftrag liest nur den lokalen Ref zurück und führt keinen neuen Fetch aus. Für eine spätere ausdrücklich autorisierte Gitlieferung ist der dann aktuelle develop-Stand neu zu binden.
+@@ -37,6 +39,7 @@ Autoritative Planquelle: C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-p
+ 
+ ## Nachweisumfang
+ 
+-Neue Lieferdateien sind bytegleich kopiert; aktueller Inhalt, Diff, Referenzen und SHA256 sind im Temp-Bericht delivery-packaging-report.md/JSON und delivery-packaging-manifest.json gebunden. Nur Nicht-Indexquellen werden aktuell gehasht. Kopierte Indexberichte/Manifeste/Diffs sind übergebene Evidenzartefakte, keine neu gelesenen Organisationsindizes.
++Die damalige Paketkopie ist im Temp-Bericht delivery-packaging-report.md/JSON und delivery-packaging-manifest.json historisch dokumentiert; dessen null-Bindung bleibt unveraendert. Der aktuelle D1-D3-Nachtrag mit kompletter Bindung, Vorher-/Nachherhashes und engem Diff liegt in [final-rework-report.md](continuation/final-rework-report.md)/JSON, final-rework-manifest.json und final-rework.diff; gleichnamige Originale liegen im Temp-Paket. Nur Nicht-Indexquellen werden aktuell gehasht. Kopierte Indexberichte/Manifeste/Diffs sind übergebene Evidenzartefakte, keine neu gelesenen Organisationsindizes.
+ 
+-Keine Tests, Parser-/Validatorläufe, Runtime-/native-/Browserproduktproben, Fixtures, Modulimporte, Installation, Aktivierung, Actions, Gitstage, Commit, Push, PR, Issuewrite oder Delegation. Reviewbefunde, Funktionen und Elternabnahmen bleiben getrennt.
+\ No newline at end of file
++Keine Tests, Parser-/Validatorläufe, Runtime-/native-/Browserproduktproben, Fixtures, Modulimporte, Installation, Aktivierung, Actions, Gitstage, Commit, Push, PR, Issuewrite oder Delegation. Reviewbefunde, Funktionen und Elternabnahmen bleiben getrennt.
++Ground-Zuordnung aktuell unbekannt (null); keine Pfade abgeleitet. Formale Abnahme, nicht erhobene Laufzeit und verbotene Tests werden nicht als zusaetzliche Issueblocker gesetzt.
+diff --git "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\criteria.json" b/delivery/epic71/continuation/criteria.json
+index 6596222..7e41cf1 100644
+--- "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\criteria.json"
++++ b/delivery/epic71/continuation/criteria.json
+@@ -1,12 +1,12 @@
+ {
+-    "workItemId":  "epic71-current-delivery-evidence",
++    "workItemId":  "epic71-final-delta-rework",
+     "parentWorkItemId":  "epic71-source-delivery",
+-    "asOf":  "2026-10-13T07:51:17.8838096Z",
+-    "status":  "pending_review",
++    "asOf":  "2026-10-13T08:24:35.0507980Z",
++    "status":  "rework_implemented_pending_independent_qa",
+     "evidenceKind":  "content_diff_references_and_sha256_only",
+     "runtimeEvidence":  false,
+-    "independentIndexReview":  "pending_review",
+-    "independentIntegrationReview":  "pending_review",
++    "independentIndexReview":  "Pass_supplied_source_scope",
++    "independentIntegrationReview":  "Rework_D1_D3_new_independent_qa_pending",
+     "parentAcceptance":  "pending_review",
+     "overallEpicAcceptance":  "not_granted",
+     "originalWorktree":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation",
+@@ -145,5 +145,15 @@
+     "ownTokenUsage":  null,
+     "subtasks":  [
+ 
+-                 ]
++                 ],
++    "indexTeamLeaderDecision":  "accepted_source_scope",
++    "groundMapping":  null,
++    "statusEvidence":  {
++                           "indexReviewOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.md",
++                           "indexReviewJsonOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.json",
++                           "teamLeaderDecisionOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/finalization-coordination.json",
++                           "integrationReviewOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/final-delta-review.json",
++                           "currentRework":  "final-rework-report.json"
++                       },
++    "issueBlockerPolicy":  "No additional formal acceptance, runtime or prohibited-test issue blockers; actual original issue criteria require their source wording. No issue mutation or full completion inferred."
+ }
+\ No newline at end of file
+diff --git "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.json" b/delivery/epic71/continuation/issue-completion-proposal.json
+index 4330b6f..746d024 100644
+--- "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.json"
++++ b/delivery/epic71/continuation/issue-completion-proposal.json
+@@ -1,6 +1,6 @@
+ {
+     "recipient":  "teamleiter_agent_ressources",
+-    "workItem":  "epic71-current-delivery-evidence",
++    "workItem":  "epic71-final-delta-rework",
+     "originalBodiesAvailable":  false,
+     "inventoryClaimedBodiesRead":  true,
+     "fullySatisfiedIssueProposals":  [
+@@ -9,22 +9,20 @@
+     "issues":  [
+                    {
+                        "issue":  72,
+-                       "proposal":  "conditional_source_scope_candidate_keep_open",
++                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                        "evidence":  [
+                                         "../inventory.md",
+                                         "index-completion-report.md",
+                                         "../architecture.md"
+                                     ],
+                        "missing":  [
+-                                       "full_original_issue_body",
+-                                       "independent_index_review",
+-                                       "own_parent_acceptance",
+-                                       "personal_installation_not_evidenced"
+-                                   ]
++                                       "full_original_issue_body"
++                                   ],
++                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                    },
+                    {
+                        "issue":  76,
+-                       "proposal":  "conditional_source_scope_candidate_keep_open",
++                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                        "evidence":  [
+                                         "../inventory.md",
+                                         "index-completion-report.md",
+@@ -32,15 +30,13 @@
+                                         "index-completion.diff"
+                                     ],
+                        "missing":  [
+-                                       "full_original_issue_body",
+-                                       "independent_index_review",
+-                                       "own_parent_acceptance",
+-                                       "original_copy_criteria_unresolved_current_tests_prohibited"
+-                                   ]
++                                       "full_original_issue_body"
++                                   ],
++                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                    },
+                    {
+                        "issue":  79,
+-                       "proposal":  "source_form_delivered_keep_issue_open",
++                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                        "evidence":  [
+                                         "../inventory.md",
+                                         "qa-contract-final-review.md",
+@@ -48,12 +44,22 @@
+                                     ],
+                        "missing":  [
+                                        "full_original_issue_body",
+-                                       "real_decisions_and_reviews",
+-                                       "restart_reconstruction",
+-                                       "owner_product_runtime_evidence"
+-                                   ]
++                                       "real_decisions_and_reviews"
++                                   ],
++                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                    }
+                ],
+     "issueWrites":  false,
+-    "runtimeEvidence":  false
++    "runtimeEvidence":  false,
++    "asOf":  "2026-10-13T08:24:35.0998849Z",
++    "independentIndexReview":  "Pass_supplied_source_scope",
++    "indexTeamLeaderDecision":  "accepted_source_scope",
++    "independentIntegrationReview":  "Rework_D1_D3_new_independent_qa_pending",
++    "groundMapping":  null,
++    "indexEvidenceOriginals":  [
++                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.md",
++                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.json",
++                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/finalization-coordination.json"
++                               ],
++    "issueBlockerPolicy":  "Formal acceptance, runtime and prohibited tests are not added as issue blockers. Actual original issue criteria remain to be bound by the team leader."
+ }
+\ No newline at end of file
+diff --git "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.md" b/delivery/epic71/continuation/issue-completion-proposal.md
+index 9a76088..a5fdf98 100644
+--- "a/C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.md"
++++ b/delivery/epic71/continuation/issue-completion-proposal.md
+@@ -1,13 +1,15 @@
+-# Vorschlag an teamleiter_agent_ressources: #72 / #76 / #79
++# Aktueller Quellenbeitrag zu #72 / #76 / #79
+ 
+-Prüfgrundlage: erhaltene bestand.json, bestandsanalyse-epic71.md/JSON und delivery/epic71/inventory-result.json, gezielt auf #72/#76/#79. Keine neue Body-/Kommentare-API und keine globale Recherche. Die JSON-Inventur nennt issueBodiesRead und der MD-Beitrag fasst Anforderungen zusammen. bestand.json enthält den Bestandsagentenabschluss und gemessene Taskkosten, aber keinen vollständigen Original-Issuebody. In diesen erlaubten Quellen sind die vollständigen ursprünglichen Bodytexte für die drei Issues nicht erhalten. Deshalb kann die vollständige Erfüllung gegen den Originalwortlaut nicht belastbar bestätigt werden.
++Adressat: teamleiter_agent_ressources. WorkItem: epic71-final-delta-rework unter epic71-source-delivery.
+ 
+-| Issue | Konkrete vorhandene Erfüllungsbelege | Fehlende Evidenz / Grenze | Vorschlag |
+-| --- | --- | --- | --- |
+-| #72 | Bestandsbeitrag beschreibt PM-Strategie und PO-Backlog als Geschwister unter Teamleitung, genehmigungsfähigen Entwurf und menschlichen Änderungspfad. index-completion-report.md/JSON berichtet über gelieferte Teamverbindung und passende Profilreferenzen; historische Architektur wird wiederverwendet. | Vollständiger Originalbody fehlt. Aktueller unabhängiger Indexreview pending_review; eigene Elternabnahme offen. Keine Installation/Aktivierung aus Quellen ableiten; ob das Issue diese fordert, gegen erhaltenen Originalwortlaut durch Teamleitung klären. | Konkreter Kandidat für Abschluss des Entwurfs-/Quellenscopes nach positivem Indexreview und eigener Elternbewertung; jetzt offen lassen. |
+-| #76 | Derselbe Bestandsbeitrag nennt wiederverwendbaren angenommenen Draft, nachvollziehbare Rollen-/Indexlieferung und Organisationsgrenzen. index-completion-report samt Manifest/Diff dokumentiert die gelieferte Verbindung. | Vollständiger Originalbody fehlt. Unabhängiger Indexreview pending_review und eigene Elternabnahme offen. Historische Anforderung an Indexkopien/lokale Tests ist nur zusammengefasst; aktuelle Repositoryregel verbietet Tests. Persönliche Installation/Kopien nicht belegt. | Konkreter Kandidat für nachvollziehbare autorisierte Quellenumsetzung; jetzt offen lassen. Teamleitung muss Restkriterien des Originalbodys und Abnahmegrenzen klären. |
+-| #79 | Zusammengefasste Kriterien: Datum, Kontext, Gründe, Alternativen, Folgen, Status, selektive Dokumentlesung und nachvollziehbare Revisionen. ProductManagement.psm1:221–263 verlangt/speichert diese Felder, bindet Quellen, supersedes und unveränderliche Entscheidungsbelege; :129–151 bildet Entscheidungsindex und explizite Auswahl. Save-ProductDecision.ps1:14–20 bindet Solution/Konfiguration. R4-Vertragsreview belegt den Umschlaghash. | Vollständiger Originalbody fehlt. Keine realen Produktentscheidungen/angenommenen Reviews oder Rekonstruktion nach Neustart geliefert. R4-Pass allein prüft keinen vollständigen #79-Umfang. Owner/Produkt-/Laufzeitbelege offen. | Entscheidungsform ist als konkreter Quellenbeitrag geliefert. Vollständigen Issueabschluss jetzt nicht empfehlen; Produkt-/Rekonstruktionskriterien und Originalbody fehlen. |
++Der uebergebene unabhaengige Indexreview index-review-continuation.md/JSON meldet Pass fuer den begrenzten Quellenstand. finalization-coordination.json uebernimmt mit accepted_source_scope die eigene Teamleiterentscheidung fuer epic71-index-integration. Keine neue Indexlesung und keine globale Installation. Das Quellenurteil bleibt getrennt vom fehlenden Runnerfinal.
+ 
+-**Vollständig erfüllt und zum unmittelbaren Issueabschluss belastbar vorgeschlagen: keine.** #72/#76 sind konkrete bedingte Quellenscope-Kandidaten; #79 bleibt mit den benannten Produkt-/Rekonstruktionsgrenzen offen. Keine Issueänderung oder Statusannahme. Die vier initialen QA-Fehler sind technisch geschlossen; das ist keine Issue- oder GesamtEpicabnahme.
++| Issue | Vorhandener Quellenbeitrag | Aktuelle Grenze |
++| --- | --- | --- |
++| #72 | Bestands-/Architekturbeitrag, gelieferte Teamverbindung und Profilreferenzen; uebergebener unabhaengiger Index-Pass und begrenzte eigene Teamleiterannahme. | Vollstaendiger Originalbody in den uebergebenen Belegen nicht verfuegbar; keine vollstaendige Erfuellung daraus ableitbar. |
++| #76 | Wiederverwendbarer Draft, autorisierte Quellen-/Indexlieferung und Organisationsgrenzen; derselbe Pass und accepted_source_scope. | Originale Kopier-/Lieferkriterien gegen den tatsaechlichen Issuewortlaut durch Teamleitung zu binden. |
++| #79 | Gelieferte Entscheidungsform und Quellen-/Revisionsbindung; vorhandener R4-Vertrags-Pass unveraendert uebernommen. | Vollstaendiger Originalbody und reale Entscheidungs-/Reviewbelege fehlen in den uebergebenen Quellen; keine vollstaendige Issueerfuellung behauptet. |
+ 
+-Owner-, Provider-, Produkt-, Ground-, Laufzeit-, unabhängige Review- und Elternabnahmekriterien werden nicht vermischt. Die vorhandene akzeptierte Bestands-/Architektur-/native Inventur bleibt Basis; fehlende Originaltexte werden an die eigene Teamleitung gemeldet.
+\ No newline at end of file
++Integration bleibt laut final-delta-review.json Rework D1-D3. Der enge Quellenfix liegt in final-rework-report.md/JSON; neue unabhaengige QA pending_review. Eigene Elternabnahme der Quellenlieferung bleibt getrennt offen. Diese Zustaende sowie nicht erhobene Laufzeit und verbotene Tests werden nicht als zusaetzliche formale Issueblocker gesetzt. Kein Issuewrite oder Abschlussvotum ohne gebundene Originalkriterien. Ground-Zuordnung unbekannt (null), keine Pfade erfunden.
++
++Originalbelege im Temp-Paket C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package: index-review-continuation.md/JSON, finalization-coordination.json und final-delta-review.json. Keine neue API-Abfrage oder Kampagne. Historische Inventur und Vertragsnachweise bleiben unveraendert.
+\ No newline at end of file

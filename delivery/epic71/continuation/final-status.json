@@ -1,0 +1,42 @@
+{
+  "workItemId": "epic71-final-publication",
+  "parentWorkItemId": "epic71-source-delivery",
+  "role": "agent_ressources_optimierer",
+  "recipient": "teamleiter_agent_ressources",
+  "sourceAcceptance": "accepted_source_scope_for_publication",
+  "acceptanceSource": "parent-acceptance.md",
+  "independentD1D3": {
+    "verdict": "Pass",
+    "taskId": "8ebe77f4a24d41aa8290cca66a9a032f",
+    "completed": true,
+    "success": true
+  },
+  "upstreamBase": "2132934c85d2081da617300be441d7373fcb7b54",
+  "publication": "prepared_for_commit_push_pr_no_merge",
+  "implemented": [
+    72,
+    76,
+    79,
+    80
+  ],
+  "open": [
+    71,
+    73,
+    74,
+    75,
+    77,
+    78
+  ],
+  "remaining": [
+    "Executable controlled replacement session/thread",
+    "Canonical product mapping and per-product documentation entries; solutions=[]; Ground unknown",
+    "Concrete justified prioritized product feature and handoff"
+  ],
+  "historicalSnapshots": "Historical pending snapshots retain their dated scope; current acceptance and final independent Pass supersede pending status for source publication.",
+  "functionEvidence": "Content/diff/reference evidence only; no current function proof",
+  "testsExecuted": false,
+  "mergeAuthorized": false,
+  "predecessorCost": null,
+  "ownTokenUsage": null,
+  "delegations": []
+}

@@ -1,0 +1,164 @@
+{
+  "recipient": "teamleiter_agent_ressources",
+  "workItems": [
+    "epic71-index-integration",
+    "epic71-current-develop-integration"
+  ],
+  "parentWorkItem": "epic71-source-delivery",
+  "deliveryState": "index_source_complete_PR110_PR111_integrated_current_develop_drift_open",
+  "timestamp": "2026-10-13T07:28:15.996Z",
+  "worktree": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation",
+  "branch": "feature/epic71-product-management-20261013",
+  "originalBase": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "integratedDevelop": "176f3626cc0151fb4bd88b7073fb8075eba46f24",
+  "latestFetchedDevelop": "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+  "head": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "jobBinding": {
+    "taskId": "86b408aaf6284195a8d992544e9c6053",
+    "parentTaskId": "2dec3528cc36495a9e0fd1b7788e9297",
+    "threadId": "01a13422-8dab-7113-93fb-caa035114230",
+    "turnId": "01a13422-91ff-78e3-b73e-e06f2e2defd5",
+    "ruleActuallyLoaded": "Lade Organisationsdateien und -indizes nur, soweit sie im menschlich\nfreigegebenen WorkItem über Koordinator -> zuständigen Teamleiter -> Optimierer\nausdrücklich zur Änderung beauftragt sind, einschließlich koordinator/teams.json.\nLade keine fremden Agentenindizes außerhalb dieses Auftragsscopes und betreibe\nkeine freie Organisationsrecherche; nutze geladene Indizes nicht zum Routing.",
+    "source": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-result.json.job.json",
+    "nativeAcknowledgementClaimed": false,
+    "ssotWorkItemId": null,
+    "ownershipSource": "Explicit task text; job work_item_id is null"
+  },
+  "retry": {
+    "taskId": "68ddc64dc2904cbf9b7454a9b723b57c",
+    "threadId": "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+    "turnId": "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+    "status": "interrupted",
+    "error": null,
+    "cause": null,
+    "runner29688Absent": "Supplied prior observation; no new process probe"
+  },
+  "changes": [
+    {
+      "path": "koordinator/teams.json",
+      "before": "9 existing teams; productmanagement absent",
+      "after": "10 teams; supplied productmanagement entry appended; existing teams preserved",
+      "beforeSha256": "eb37aa613b72351bc42c974d2301af70bd1b03e01996a2be4ebccf7e948c8635",
+      "afterSha256": "3187efc592cb9f0917e27971b40f4cd357e3ab3c0b7ce262ee39123a3abf1ff4"
+    },
+    {
+      "path": "teams/produktmanagement/agenten.json",
+      "before": "Existing correct PM/PO identity and leader binding",
+      "after": "Read back; byte-identical, no artificial rewrite",
+      "beforeSha256": "cf760cee5c675d50029815517b5701625299a9b0fdc8b12656ae29485b9464df",
+      "afterSha256": "cf760cee5c675d50029815517b5701625299a9b0fdc8b12656ae29485b9464df"
+    },
+    {
+      "scope": "17 exact PR110/111 changed paths",
+      "change": "Copied accepted upstream delta using git apply; original PM hooks retained; no intermediate commit or conflicts"
+    }
+  ],
+  "references": [
+    {
+      "path": "koordinator/teams.json",
+      "line": 112,
+      "purpose": "Team entry"
+    },
+    {
+      "path": "teams/produktmanagement/agenten.json",
+      "line": 2,
+      "purpose": "Team and leader binding"
+    },
+    {
+      "path": "teams/produktmanagement/agenten.json",
+      "line": 7,
+      "purpose": "PM and PO role references"
+    },
+    {
+      "path": "teams/produktmanagement/teamleiter.toml",
+      "line": 1,
+      "purpose": "Leader identity"
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_pm_strategie.toml",
+      "line": 1,
+      "purpose": "PM identity"
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml",
+      "line": 1,
+      "purpose": "PO identity"
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorAutomation.psm1",
+      "line": 4,
+      "purpose": "PR110 HumanInteraction reference"
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorAutomation.psm1",
+      "line": 79,
+      "purpose": "PR110 bound human event"
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorAutomation.psm1",
+      "line": 479,
+      "purpose": "Preserved product context"
+    },
+    {
+      "path": "teams/agent_ressources/agenten/optimierer.toml",
+      "line": 15,
+      "purpose": "Exact PR111 rule"
+    }
+  ],
+  "preservation": {
+    "priorUnassignedFiles": 24,
+    "allHashEqual": true,
+    "pmSourcesAndProductContractUnchanged": true,
+    "gitIndexUnchanged": true,
+    "branchAndHeadUnchanged": true,
+    "historicalEvidenceNotReplaced": true
+  },
+  "drift": {
+    "initialFetch": "176f3626cc0151fb4bd88b7073fb8075eba46f24",
+    "finalFetch": "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "latestIsDifferent": true,
+    "additionalCommits": "5019175 Merge pull request #112 from Heljens-IT-Services/feature/ar-108-historical-token-profiles-20261013\n65ed1c6 feat(accounting): project historical token profiles for WorkItem families",
+    "changedPaths": "M\tscripts/accounting/AccountingEvidence.psm1\nM\tscripts/accounting/Get-WorkItemMetrics.ps1\nM\tscripts/accounting/Import-RolloutTaskUsage.ps1\nM\tscripts/accounting/OriginalUsageAccountingCaller.psm1\nM\tscripts/accounting/README.md\nA\tscripts/accounting/TokenHistory.psm1\nM\tscripts/delegation/Start-DelegatedCodexTask.ps1\nM\tscripts/web/Start-LocalWeb.ps1\nM\tweb/app.js\nM\tweb/styles.css\nA\tweb/token-history.js",
+    "contentsRead": false,
+    "integrated": false,
+    "reason": "PR112 needs accounting/web dependencies outside assigned scope. Escalation to own team leader; no partial PR112 integration."
+  },
+  "openPoints": [
+    "PR112/latest develop integration requires expanded assigned scope from own team leader; no current-develop completion claim",
+    "Independent content/reference review and own parent acceptance pending",
+    "Current function behavior, owner/provider/outcome/external acceptance unverified; separate QA task6c69008f113344599282f57f1655472c not touched",
+    "work_item_id=null in job/active record; WorkItem ownership comes from explicit task text, no invented SSOT binding"
+  ],
+  "limits": "Only text, diff, reference and hash readback; no current function evidence.",
+  "constraints": {
+    "testsExecuted": false,
+    "testsCreated": false,
+    "parserTestRuns": false,
+    "validatorsExecuted": false,
+    "moduleImports": false,
+    "runtimeProbes": false,
+    "nativeProbes": false,
+    "browserProbes": false,
+    "fixturesCreated": false,
+    "activation": false,
+    "globalInstallation": false,
+    "actionsChanged": false,
+    "commit": false,
+    "push": false,
+    "prWrite": false,
+    "issueWrite": false,
+    "merge": false,
+    "delegation": false,
+    "stashesChanged": false,
+    "foreignBranchesOrWorktreesChanged": false,
+    "productSourcesOrContractChanged": false
+  },
+  "ownTokenUsage": null,
+  "children": [],
+  "artifacts": [
+    "index-completion-report.md",
+    "index-completion-report.json",
+    "index-completion-manifest.json",
+    "index-completion.diff"
+  ]
+}

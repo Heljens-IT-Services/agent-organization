@@ -1,0 +1,159 @@
+{
+    "workItemId":  "epic71-final-delta-rework",
+    "parentWorkItemId":  "epic71-source-delivery",
+    "asOf":  "2026-10-13T08:24:35.0507980Z",
+    "status":  "rework_implemented_pending_independent_qa",
+    "evidenceKind":  "content_diff_references_and_sha256_only",
+    "runtimeEvidence":  false,
+    "independentIndexReview":  "Pass_supplied_source_scope",
+    "independentIntegrationReview":  "Rework_D1_D3_new_independent_qa_pending",
+    "parentAcceptance":  "pending_review",
+    "overallEpicAcceptance":  "not_granted",
+    "originalWorktree":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation",
+    "branch":  "feature/epic71-product-management-20261013",
+    "head":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+    "originalBase":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+    "pinnedLatestDevelop":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "localDevelopRef":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "freshFetchPerformed":  false,
+    "corrections":  [
+                        {
+                            "id":  "R1",
+                            "status":  "Pass",
+                            "scope":  "independent_content_review",
+                            "evidence":  "qa-completion-review.json"
+                        },
+                        {
+                            "id":  "R2",
+                            "status":  "Pass",
+                            "scope":  "independent_content_review",
+                            "evidence":  "qa-completion-review.json"
+                        },
+                        {
+                            "id":  "R3",
+                            "status":  "Pass",
+                            "scope":  "independent_content_review",
+                            "evidence":  "qa-completion-review.json"
+                        },
+                        {
+                            "id":  "R4",
+                            "status":  "Pass",
+                            "scope":  "technical_binding_and_contract_hash_content_review",
+                            "evidence":  "qa-contract-final-review.json"
+                        }
+                    ],
+    "initialTechnicalDefects":  "closed_from_supplied_independent_content_reviews",
+    "open":  {
+                 "owner":  "identity_original_sources_access_unresolved",
+                 "provider":  "installed_support_and_registry_authorization_unresolved",
+                 "product":  "real_strategy_handoff_outcome_acceptance_and_measurements_missing",
+                 "ground":  "identity_workspace_sources_access_unresolved",
+                 "runtime":  "activation_continuation_recovery_restart_reminders_outbox_CAS_and_partial_publication_not_executed"
+             },
+    "issues":  [
+                   {
+                       "issue":  71,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  72,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  73,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  74,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  75,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  76,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  77,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  78,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  79,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   },
+                   {
+                       "issue":  80,
+                       "fullIssueAcceptance":  "open_not_inferred",
+                       "criterionSource":  "../criteria.json",
+                       "limit":  "Historical criteria retained; current gates in this document take precedence as delivery evidence, no authoritative status mutation."
+                   }
+               ],
+    "issueCompletionProposal":  "issue-completion-proposal.json",
+    "authoritativeWorkItems":  {
+                                   "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package/workitems.json",
+                                   "mode":  "reference_only",
+                                   "loaded":  false,
+                                   "copied":  false,
+                                   "edited":  false,
+                                   "requiresTeamLeaderFinal":  true
+                               },
+    "historicalEvidence":  [
+                               "../inventory.md",
+                               "../inventory-result.json",
+                               "../architecture.md",
+                               "../native-inventory.md",
+                               "../native-inventory.json",
+                               "../native-final-result.json",
+                               "../implementation-report.md",
+                               "../criteria.json",
+                               "../evidence-history.md"
+                           ],
+    "retry":  {
+                  "taskId":  "68ddc64dc2904cbf9b7454a9b723b57c",
+                  "threadId":  "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+                  "turnId":  "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+                  "terminalStatus":  "interrupted",
+                  "error":  null,
+                  "cause":  "unknown",
+                  "source":  "retry-thread-read.md",
+                  "fullRpcJson":  "temp_original_only_not_loaded_or_copied"
+              },
+    "ownTokenUsage":  null,
+    "subtasks":  [
+
+                 ],
+    "indexTeamLeaderDecision":  "accepted_source_scope",
+    "groundMapping":  null,
+    "statusEvidence":  {
+                           "indexReviewOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.md",
+                           "indexReviewJsonOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.json",
+                           "teamLeaderDecisionOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/finalization-coordination.json",
+                           "integrationReviewOriginal":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/final-delta-review.json",
+                           "currentRework":  "final-rework-report.json"
+                       },
+    "issueBlockerPolicy":  "No additional formal acceptance, runtime or prohibited-test issue blockers; actual original issue criteria require their source wording. No issue mutation or full completion inferred."
+}
