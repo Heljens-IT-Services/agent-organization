@@ -66,6 +66,35 @@ Eine native Codex `SKILL.md` beschreibt Anweisungen und ggf. Hilfsdateien.
 Sie ist nicht automatisch ein Skill nach diesem Vertrag: erst ein Metadatensatz
 mit vorhandener Skriptdatei und definiertem Antwortvertrag erfuellt die Form.
 
+## Workflow- und Direktanschluss (#64)
+
+Der bestehende [Workflowindex](../../workflows/INDEX.md) kann als fünfte Spalte
+`Skillreferenzen` kommagetrennte registrierte IDs enthalten. Vier Spalten oder
+eine leere Referenzzelle bleiben gültig. Der Kontextreader gibt `SkillReferences`
+als Liste mit dem selektiven Treffer beziehungsweise dem ausgewählten Workflow
+zurück, ohne Registryinhalte einzubetten oder Code aufzurufen. Referenzen sind
+Hinweise; erst die vorhandene `Find-Skill.ps1`-Discovery löst Metadaten auf und
+`Invoke-Skill.ps1` ruft registrierten Code auf. Direkte Auswahl ist ebenfalls
+zulässig; Workflow und Rolle duplizieren weder Skill noch Interpreterkonfiguration.
+
+Aufrufer erhalten die vollständige JSON-Antwort unverändert und prüfen den
+Erfolgsstatus: Erfolg mit `exception: null` verwendet `result`; Fehler verwendet
+das strukturierte `exception` inklusive Zusatzdetails und erhält auch `result`.
+Keine Freitextinterpretation oder Nutzlast-Neuserialisierung. Der
+[Ergebnisbericht-Workflow](../../workflows/evidence-report.md) beschreibt diesen
+Pfad für `task-token-usage`, gemeinsam für Optimierer und Qualitätsprüfung.
+
+Vor Discovery/Aufruf konkrete Berechtigungen, Voraussetzungen und Seiteneffekte
+des aktuellen Auftrags prüfen. Runnerprotokolle und temporäre Dateien gehören
+zum Aufrufscope. Nicht autorisierte Seiteneffekte und Ausführungsverbote führen
+zur Ablehnung des Aufrufs durch den Agenten und zur Meldung an seinen bestehenden
+Ansprechpartner. Es gibt keine behauptete technische Freigabe-Sandbox des
+Runners. Registryeintrag, Workflowhinweis und Rollenregel sind keine Zustimmung.
+Autorisierte Erstentwicklung des Anschlusses bleibt von konkreten späteren
+Seiteneffektfreigaben getrennt; kein zusätzlicher allgemeiner Freigabehalt.
+Aktuelle Projektverbote haben Vorrang; diese Beschreibung ist keine Aufforderung
+zu Tests, Parserläufen, Validatoren, Runtimeproben oder einer Pilotphase.
+
 ## Historischer Nachweisstand (Task60)
 
 Die folgenden Angaben beschreiben damalige Belege, keine aktuelle
