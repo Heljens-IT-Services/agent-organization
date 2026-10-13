@@ -1128,6 +1128,10 @@ try {
     $evidence.model_started = $true
     $turn = Wait-Rpc 3
     $evidence.turn_id = $turn.turn.id
+    # Persist the actual selected native identity independently of any later
+    # usage. A resumed thread ACK does not prove current-turn consumption.
+    Import-Module (Join-Path $PSScriptRoot '../accounting/OriginalUsageAccountingHandoff.psm1')
+    $evidence['accounting_capture_path']=Save-OriginalUsageAccountingCapture -JobPath $JobFile -NativeAckPath $nativeAckPath -TurnStartReply $turn -CurrentTurnMeasurementBasis $evidence.usage_source
     if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }
     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){
@@ -1185,16 +1189,29 @@ try {
     try {
     try {
         if($terminalContext){$evidence.own_context_path=$terminalContext.path;$evidence.own_context_hash=$terminalContext.hash}
-        Write-Json (Join-Path $job.accounting_directory ($job.task_id + '.usage.json')) ([ordered]@{
+        Import-Module (Join-Path $PSScriptRoot '../accounting/OriginalUsageAccountingHandoff.psm1')
+        $evidence['accounting_ledger_path']=Publish-OriginalUsageLedger -AccountingDirectory $job.accounting_directory -Record ([pscustomobject][ordered]@{
             task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
             roleId=$evidence.roleId; modelId=$evidence.modelId; reasoningEffort=$evidence.reasoningEffort
             measurementUTC=$evidence.measurementUTC; importedAtUTC=[DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
             measurementObservedAtUTC=$evidence['measurementObservedAtUTC']; measurementTimeBasis='native_time_unknown_notification_observation_only'
             requestedProfile=[ordered]@{modelId=$job.model;reasoningEffort=$job.config.model_reasoning_effort;source=$JobFile;effective=$false}
-            metadataSources=$evidence.metadataSources; source=$evidence.usage_source; counter_kind='turn_token_usage'
+            metadataSources=$evidence.metadataSources; source=$evidence.usage_source; counter_kind='turn_token_usage'; final=[bool]$evidence.usage_finalized
             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
         })
-        $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
+        # A real production caller, after own publication and before result
+        # replacement. Retention does not claim root-owner authentication.
+        $accountingArguments=@{TaskId=$job.task_id;AccountingDirectory=$job.accounting_directory;RepositoryRoot=$RepositoryRoot;
+            ArchiveDirectory=(Join-Path $job.accounting_directory 'retention');ExpectedJobArtifacts=@($JobFile);
+            NativeEventLogPaths=@($resultFile+'.events.jsonl')}
+        if ($job.work_item_id -and $job.work_item_store_path) {
+            $accountingArguments.WorkItemId=$job.work_item_id; $accountingArguments.StorePath=$job.work_item_store_path
+        }
+        if ($evidence.Contains('accounting_capture_path')) {
+            $accountingArguments.OriginalInput=New-OwnedUsageHandoffInput -CapturePath $evidence.accounting_capture_path -LedgerPath $evidence.accounting_ledger_path -AccountingDirectory $job.accounting_directory
+        }
+        $evidence['accounting_projection']=& (Join-Path $PSScriptRoot '../accounting/Sync-WorkItemUsage.ps1') @accountingArguments
+        $evidence.token_summary=$evidence.accounting_projection.projection.accounting.TaskProjection
     } catch {
         $evidence.success = $false
         $ledgerError = 'Tokenabrechnung konnte nicht gesichert oder ausgewertet werden: ' + $_.Exception.Message
