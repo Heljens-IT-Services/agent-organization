@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
+. (Join-Path $PSScriptRoot 'HumanInteraction.ps1')
 Set-StrictMode -Version 2
 
 $script:WorkItemStoreLocks = @{}
@@ -384,7 +385,8 @@ function Get-WorkItemStoreEffectReceipt {
 }
 
 function Set-WorkItemStoreEntry {
-    param([string]$Path, [string]$Id, $Item, [bool]$IsNew, [string]$ExpectedRevision, [string]$RepositoryRoot, [int]$TimeoutMilliseconds, $EffectContext=$null)
+    param([string]$Path, [string]$Id, $Item, [bool]$IsNew, [string]$ExpectedRevision, [string]$RepositoryRoot, [int]$TimeoutMilliseconds, $EffectContext=$null, [switch]$HumanResponseWrite)
+    if ($HumanResponseWrite -and $env:AGENT_ORG_PARENT_JOB_FILE) { New-WorkItemStoreError 'AgentCannotAnswerHumanRequest' 'Delegated agent results cannot supply a human response.' }
     try { $Item = ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $Item -Depth 100 -ErrorAction Stop) -ErrorAction Stop } catch { New-WorkItemStoreError 'InvalidCandidate' "WorkItem item is not serializable JSON data: $($_.Exception.Message)" }
     $path = Resolve-WorkItemStorePath $Path $RepositoryRoot
     $lock = Enter-WorkItemStoreLock $path $TimeoutMilliseconds
@@ -419,6 +421,8 @@ function Set-WorkItemStoreEntry {
         if ($IsNew -and $matches.Count -gt 0) { New-WorkItemStoreError 'DuplicateWorkItemId' "WorkItem ID already exists: $Id" }
         if (-not $IsNew -and $matches.Count -ne 1) { New-WorkItemStoreError 'ItemNotFound' "Expected exactly one existing WorkItem with ID '$Id'." }
         if ($Item.id -cne $Id) { New-WorkItemStoreError 'ItemIdMismatch' "Item.id must equal '$Id'." }
+        if ($IsNew -and $null -ne $Item.humanInteraction) { New-WorkItemStoreError 'NewHumanRequestRequiresExistingItem' 'Create the real planned WorkItem before requesting human input.' }
+        if (-not $IsNew) { Assert-HITransition $matches[0] $Item ([bool]$HumanResponseWrite) }
         if ($IsNew -and $Item.status -cne 'planned') { New-WorkItemStoreError 'NewItemMustBePlanned' 'New WorkItems must begin in planned status.' }
         if (-not $IsNew) {
             $oldJson = ConvertTo-Json -InputObject $matches[0] -Depth 100 -Compress
@@ -441,11 +445,17 @@ function Set-WorkItemStoreEntry {
             $previous = $previousForValidator
         }
         New-WorkItemStoreExclusiveFile $candidate $candidateBytes
-        try { $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
+        try { $validation = & (Join-Path $RepositoryRoot 'scripts\workitems\Test-WorkItems.ps1') -Path $candidate -PreviousPath $previousForValidator -RepositoryRoot $RepositoryRoot -HumanResponseWrite:$HumanResponseWrite } catch { New-WorkItemStoreError 'ValidationFailed' "WorkItem transition validation failed: $($_.Exception.Message)" }
         if (-not $validation.valid -or -not $validation.transitionsChecked) { New-WorkItemStoreError 'ValidationFailed' 'Validator did not confirm a valid snapshot and checked transitions.' }
         $newRevision = 'sha256:' + [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create().ComputeHash($candidateBytes))).Replace('-', '').ToLowerInvariant()
         $outbox=Get-WorkItemStoreOutbox $path
         $intent=[pscustomobject]@{intentId=([Guid]::NewGuid().ToString('D'));type='workitem_changed';sourceId=$Id;revision=$newRevision;item=$Item;workItemId=$Id;previousRevision=$snapshot.Revision;candidateRevision=$newRevision;previousPayloadBase64=$(if($snapshot.Exists){[Convert]::ToBase64String($snapshot.Bytes)}else{$null});candidatePayloadBase64=[Convert]::ToBase64String($candidateBytes);state='pending';createdAtUtc=[DateTime]::UtcNow.ToString('o');publishedAtUtc=$null;resolvedAtUtc=$null}
+        # Only the answer CAS carries this immutable event payload. Later status
+        # writes retain the response but must not republish it with another revision.
+        if ($HumanResponseWrite) {
+            $interaction=$Item.humanInteraction
+            $intent | Add-Member -NotePropertyName humanResponseEvent -NotePropertyValue ([pscustomobject][ordered]@{workItemId=$Id;revision=$newRevision;requestId=(Get-HIRequestId $Item);requestedAt=$interaction.requestedAt;proposal=(Get-HIValue $interaction 'proposal');responseHash=(Get-LCHash (Get-LCBytes $interaction.response));response=$interaction.response})
+        }
         if($null -ne $effect){$intent|Add-Member -NotePropertyName effectContext -NotePropertyValue $effect;$intent|Add-Member -NotePropertyName operationHash -NotePropertyValue $operationHash;$intent|Add-Member -NotePropertyName itemPayloadBase64 -NotePropertyValue $itemPayloadBase64}
         $outbox.intents=@($outbox.intents)+@($intent);Write-WorkItemStoreOutbox $path $outbox
         if ($snapshot.Exists) {

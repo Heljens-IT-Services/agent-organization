@@ -120,14 +120,14 @@ function Get-LocalWebSnapshot {
     $lockDiagnostic = Get-LocalWebLockDiagnosticSafely -StorePath ([string]$Configuration.StorePath)
     if (-not [IO.File]::Exists($Configuration.StorePath)) {
         $projection = Get-LocalWebDisplayProjection $Configuration $null
-        return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }; lock = $lockDiagnostic; attentionAssignments = $projection.attentionAssignments; teams = $projection.teams }
+        return [pscustomobject]@{ exists = $false; revision = 'absent'; document = $null; readAt = [DateTime]::UtcNow.ToString('o'); capabilities = [pscustomobject]@{ create = $false; update = $false; humanResponse = $false; humanResponseReason = 'Vorhandener WorkItem-Bestand fehlt' }; lock = $lockDiagnostic; attentionAssignments = $projection.attentionAssignments; teams = $projection.teams }
     }
     $caller = Join-Path $Configuration.RepositoryRoot 'scripts/workitems/Get-WorkItems.ps1'
     $snapshot = & $caller -Path $Configuration.StorePath -RepositoryRoot $Configuration.RepositoryRoot -TimeoutMilliseconds 5000
     $result = [pscustomobject][ordered]@{
         exists = [bool]$snapshot.Exists; revision = [string]$snapshot.Revision; document = $snapshot.Document
         readAt = [DateTime]::UtcNow.ToString('o')
-        capabilities = [pscustomobject]@{ create = $true; update = $true; humanResponse = $false; humanResponseReason = 'AR-TEMP: #20-Vertrag nicht freigegeben' }
+        capabilities = [pscustomobject]@{ create = $true; update = $true; humanResponse = (-not [bool]$env:AGENT_ORG_PARENT_JOB_FILE); humanResponseReason = 'Antwort nur im menschlichen Eingang mit konkreter Anfrage und Originalbeleg' }
         lock = $lockDiagnostic
     }
     $projection = Get-LocalWebDisplayProjection $Configuration $result.document
@@ -388,11 +388,38 @@ function Invoke-LocalWebOperation {
     if ($Request.transportVersion -cne '1' -or $requestId -notmatch '^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$' -or $Request.payload -isnot [System.Management.Automation.PSCustomObject]) {
         return (Get-LocalWebFailure -Code 'MalformedRequest' -Message 'Unsupported transport version, request id or payload.' -StatusCode 400)
     }
-    if ($operation -eq 'humanResponse') { return (Get-LocalWebFailure -Code 'HumanResponseContractBlocked' -Message 'AR-TEMP: Human Response ist bis zur Freigabe des #20-Vertrags gesperrt.' -StatusCode 503) }
-    if ($operation -notin @('read', 'specification', 'metrics', 'create', 'update')) { return (Get-LocalWebFailure -Code 'UnknownOperation' -Message 'Operation ist nicht unterstützt.' -StatusCode 400) }
+    if ($operation -notin @('read', 'specification', 'metrics', 'create', 'update', 'humanResponse')) { return (Get-LocalWebFailure -Code 'UnknownOperation' -Message 'Operation ist nicht unterstützt.' -StatusCode 400) }
 
     try {
         switch ($operation) {
+            'humanResponse' {
+                $allowed=@('workItemId','expectedRevision','requestedAt','requestId','description','respondentId','evidence','decision','proposalSha256')
+                Test-LocalWebAllowedProperties $Request.payload $allowed 'HumanResponsePayload'
+                foreach ($required in @('workItemId','expectedRevision','requestedAt','description','respondentId','evidence','decision')) {
+                    $field=$Request.payload.PSObject.Properties[$required]
+                    if ($null -eq $field -or $field.Value -isnot [string] -or [string]::IsNullOrWhiteSpace($field.Value)) { return (Get-LocalWebFailure -Code 'MalformedHumanResponse' -Message 'Antwort benötigt WorkItem, gelesene Revision, Anfragezeit, Text, Mensch, Eingangsbeleg und Entscheidung.' -StatusCode 422) }
+                }
+                if ($Request.payload.decision -cnotin @('provided','approved','rejected','insufficient')) { return (Get-LocalWebFailure -Code 'MalformedHumanResponse' -Message 'Entscheidung ist ungültig.' -StatusCode 422) }
+                $snapshot=Get-LocalWebSnapshot $Configuration
+                $expected=[string]$Request.payload.expectedRevision
+                if ($snapshot.revision -cne $expected) { return (Get-LocalWebFailure -Code 'RevisionConflict' -Message 'Bestand geändert; Anfrage erneut lesen.' -StatusCode 409 -ExpectedRevision $expected -ActualRevision $snapshot.revision) }
+                $matches=@($snapshot.document.items | Where-Object { $_.id -ceq $Request.payload.workItemId })
+                if ($matches.Count -ne 1) { return (Get-LocalWebFailure -Code 'ItemNotFound' -Message 'WorkItem nicht eindeutig gefunden.' -StatusCode 404) }
+                $interaction=$matches[0].humanInteraction
+                if ($null -eq $interaction) { return (Get-LocalWebFailure -Code 'HumanRequestMissing' -Message 'WorkItem hat keine menschliche Anforderung.' -StatusCode 422) }
+                $arguments=@{Path=$Configuration.StorePath;RepositoryRoot=$Configuration.RepositoryRoot;WorkItemId=[string]$Request.payload.workItemId;RequestedAt=[string]$Request.payload.requestedAt;ExpectedRevision=$expected;Description=[string]$Request.payload.description;RespondentId=[string]$Request.payload.respondentId;Evidence=[string]$Request.payload.evidence;Decision=[string]$Request.payload.decision}
+                if ($Request.payload.PSObject.Properties['requestId']) { $arguments.RequestId=[string]$Request.payload.requestId }
+                if ($Request.payload.PSObject.Properties['proposalSha256']) { $arguments.ProposalSha256=[string]$Request.payload.proposalSha256 }
+                # No client-selected filesystem path: use only this persisted request's proposal.
+                if ($interaction.PSObject.Properties['proposal'] -and $interaction.proposal) {
+                    if (-not $interaction.proposal.PSObject.Properties['path'] -or [string]::IsNullOrWhiteSpace([string]$interaction.proposal.path)) { throw 'Legacy proposal has no byte-source path; explicitly renew the request before answering.' }
+                    $arguments.ProposalPath=[string]$interaction.proposal.path
+                }
+                $caller=Join-Path $Configuration.RepositoryRoot 'scripts/workitems/Set-WorkItemHumanResponse.ps1'
+                $writeAttempt=$true
+                $writeResult=& $caller @arguments
+                $data=$writeResult
+            }
             'read' {
                 if (@($Request.payload.PSObject.Properties).Count -ne 0) { return (Get-LocalWebFailure -Code 'UnknownProperty' -Message 'read erwartet ein leeres payload.' -StatusCode 400) }
                 $data = Get-LocalWebSnapshot $Configuration
@@ -488,8 +515,8 @@ function Invoke-LocalWebOperation {
         }
         return @{ status = 200; response = (New-LocalWebResponse $requestId $operation $true 200 $data $null) }
     } catch {
-        if ($_.Exception.Message -match '^Unknown(CreatePayload|CreateItem|UpdatePayload|UpdateChanges):') { return (Get-LocalWebFailure -Code 'UnknownProperty' -Message 'Payload enthält ein nicht erlaubtes Feld.' -StatusCode 400) }
-        if ($_.Exception.Message -match '^Malformed(CreatePayload|CreateItem|UpdatePayload|UpdateChanges)') { return (Get-LocalWebFailure -Code 'MalformedRequest' -Message 'Payload oder Item hat nicht das erwartete JSON-Objektformat.' -StatusCode 400) }
+        if ($_.Exception.Message -match '^Unknown(CreatePayload|CreateItem|UpdatePayload|UpdateChanges|HumanResponsePayload):') { return (Get-LocalWebFailure -Code 'UnknownProperty' -Message 'Payload enthält ein nicht erlaubtes Feld.' -StatusCode 400) }
+        if ($_.Exception.Message -match '^Malformed(CreatePayload|CreateItem|UpdatePayload|UpdateChanges|HumanResponsePayload)') { return (Get-LocalWebFailure -Code 'MalformedRequest' -Message 'Payload oder Item hat nicht das erwartete JSON-Objektformat.' -StatusCode 400) }
         $id = [string]$_.FullyQualifiedErrorId
         if ($id -match 'SpecificationPathInvalid|SpecificationPathBlocked|SpecificationNotFound') {
             $code = $id.Split(',')[0]
@@ -503,7 +530,7 @@ function Invoke-LocalWebOperation {
                 if ($fresh.exists -and -not [string]::IsNullOrWhiteSpace($fresh.revision)) { $_.Exception.Data['LocalWebFreshRevision'] = $fresh.revision }
             } catch { }
         }
-        $failure = Get-LocalWebCallerError $_ -ExpectedRevision $(if ($operation -in @('create','update')) { [string]$Request.payload.expectedRevision }) -WriteAttempt $writeAttempt
+        $failure = Get-LocalWebCallerError $_ -ExpectedRevision $(if ($operation -in @('create','update','humanResponse')) { [string]$Request.payload.expectedRevision }) -WriteAttempt $writeAttempt
         if ($failure.status -eq 423 -or [string]$failure.error.code -in @('LockOwnerUncertain','LockIdentityUnavailable')) { $diag = Get-LocalWebLockDiagnosticSafely -StorePath ([string]$Configuration.StorePath); $failure.error | Add-Member -NotePropertyName lockDiagnostic -NotePropertyValue $diag }
         return $failure
     }

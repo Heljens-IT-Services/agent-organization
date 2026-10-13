@@ -8,6 +8,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
+. (Join-Path $PSScriptRoot 'HumanInteraction.ps1')
 $utf8 = New-Object Text.UTF8Encoding($false, $true)
 function Assert-PropertySet($Object, [string[]]$Allowed, [string[]]$Required, [string]$Label) {
     if ($null -eq $Object -or $Object -isnot [pscustomobject]) { throw "$Label must be a JSON object." }
@@ -95,8 +96,18 @@ if ($technical.final_answer) {
             if ($payload.result.summary -isnot [string] -or $payload.result.evidence -isnot [array] -or @($payload.result.evidence | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_) }).Count) { throw 'Invalid result summary/evidence types.' }
             if ($payload.result.PSObject.Properties['openPoints'] -and $payload.result.openPoints -isnot [array]) { throw 'openPoints must be a JSON array.' }
             if ($null -ne $payload.result.humanInteraction) {
-                Assert-PropertySet $payload.result.humanInteraction @('kind','description') @('kind','description') 'Result humanInteraction'
+                Assert-PropertySet $payload.result.humanInteraction @('kind','description','humanId','proposal') @('kind','description') 'Result humanInteraction'
                 if ($payload.result.humanInteraction.kind -notin @('clarification','approval','action') -or $payload.result.humanInteraction.description -isnot [string] -or [string]::IsNullOrWhiteSpace($payload.result.humanInteraction.description)) { throw 'Invalid humanInteraction kind/description.' }
+                $humanPayload=$payload.result.humanInteraction
+                if (Get-HIValue $humanPayload 'humanId') {
+                    if ([string](Get-HIValue $humanPayload 'humanId') -cnotmatch '^[a-z0-9][a-z0-9_-]{0,127}$') { throw 'Invalid responsible human ID.' }
+                    $proposalPayload=Get-HIValue $humanPayload 'proposal'
+                    if ($humanPayload.kind -ceq 'approval' -or $proposalPayload) {
+                        Assert-PropertySet $proposalPayload @('reference','sha256','path') @('reference','sha256','path') 'Human proposal'
+                        Assert-HIProposal $proposalPayload
+                        Assert-HIProposalCurrent $humanPayload
+                    }
+                } elseif (Get-HIValue $humanPayload 'proposal') { throw 'A bound proposal needs a responsible human.' }
             }
         }
         $outcome = [string]$payload.outcome; $reason = [string]$payload.reason
@@ -108,6 +119,8 @@ if ($outcome -eq 'delivered') {
     if (-not $payload.result -or [string]::IsNullOrWhiteSpace([string]$payload.result.summary) -or @($payload.result.evidence).Count -eq 0 -or $null -ne $payload.result.humanInteraction) {
         $outcome = 'failed'; $reason = 'Delivered result lacks valid summary/evidence or includes a human request.'; $payload = $null
     }
+} elseif ($outcome -ceq 'blocked' -and $null -ne $payload.result.humanInteraction -and $null -eq $payload.reason) {
+    $reason=$null # Explicit sole human waiting in the existing nullable reason contract.
 } elseif ([string]::IsNullOrWhiteSpace($reason)) { $reason = 'Structured blocked/failed result did not provide a reason.' }
 $openPoints = @()
 if ($null -ne $payload.result -and $null -ne $payload.result.openPoints) { $openPoints = @($payload.result.openPoints) }
@@ -117,7 +130,7 @@ if ($outcome -eq 'delivered') {
     $summary = [string]$payload.result.summary; $evidence = @($payload.result.evidence)
     if ($openPoints.Count) { $evidence += $openPath }
 }
-elseif ($openPoints.Count) { $summary = $reason; $evidence = @($openPath) }
+elseif ($openPoints.Count) { $summary = if ($null -eq $reason) { [string]$payload.result.summary } else { $reason }; $evidence = @($openPath) }
 $contractResult = if ($summary -and $evidence.Count) { [pscustomobject]@{ summary=$summary; evidence=$evidence } } else { $null }
 $ltc = [pscustomobject][ordered]@{ kind='result'; workItemId=$WorkItemId; executionId=$ExecutionId; outcome=$outcome; result=$(if ($null -ne $contractResult) { $contractResult } else { $null }); reason=$(if ($outcome -eq 'delivered') { $null } else { $reason }) }
 $ltcPath = $resultPath + '.workitem-result.json'
@@ -194,7 +207,8 @@ for ($attempt = 0; $attempt -lt 3; $attempt++) {
     if (-not $parentFound) { throw 'Persisted parent job WorkItem is not an ancestor of the transferred WorkItem.' }
     if ($item.status -in @('accepted','cancelled')) { throw "WorkItem is terminal: $($item.status)" }
     if ($outcome -ne 'delivered' -and $item.status -eq 'blocked' -and $item.blockReason -ceq $reason -and (-not $payload.result.humanInteraction) -and (-not $contractResult -or (ConvertTo-Json -InputObject $item.result -Depth 25 -Compress) -ceq (ConvertTo-Json -InputObject $contractResult -Depth 25 -Compress))) { return $ltc }
-    if ($null -ne $item.humanInteraction -and $null -eq $item.humanInteraction.response -and $outcome -eq 'delivered') { throw 'Pending humanInteraction cannot be removed by delivery.' }
+    if ($outcome -eq 'delivered' -and -not (Test-HISatisfied $item.humanInteraction)) { throw 'Unresolved humanInteraction cannot be fulfilled by delivery.' }
+    if ($outcome -eq 'delivered') { Assert-HIProposalCurrent $item.humanInteraction }
     $now = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ')
     if ($outcome -eq 'delivered') {
         $startingStatus = [string]$currentBinding.startingSnapshot.status
@@ -208,13 +222,33 @@ for ($attempt = 0; $attempt -lt 3; $attempt++) {
     } else {
         if ($item.status -eq 'planned') { $item.status = 'blocked' }
         elseif ($item.status -ne 'blocked') { $item.status = 'blocked' }
-        $item.blockReason = $reason
+        $nextBlockReason=$reason
+        # reason:null explicitly declares sole human waiting. Preserve any existing
+        # independent obstacle, even when the returned result requests human input.
+        if ($null -ne $payload.result.humanInteraction -and $null -ne $item.blockReason -and $item.blockReason -cne (Get-HIResponseBlockReason $item.humanInteraction)) {
+            if ($null -ne $nextBlockReason -and $nextBlockReason -cne $item.blockReason) { $nextBlockReason=$item.blockReason + ' | ' + $nextBlockReason }
+            else { $nextBlockReason=$item.blockReason }
+        }
+        $item.blockReason = $nextBlockReason
         if ($null -ne $payload.result.humanInteraction) {
             $human = $payload.result.humanInteraction
             if ($human.kind -notin @('clarification','approval','action') -or [string]::IsNullOrWhiteSpace([string]$human.description)) { throw 'Invalid humanInteraction request.' }
-            if ($null -ne $item.humanInteraction) { throw 'An existing humanInteraction request is immutable and cannot be replaced.' }
-            $item.humanInteraction = [pscustomobject]@{ kind=[string]$human.kind; description=[string]$human.description; requestedAt=$now; response=$null }
-            $item.blockReason = $null
+            if ($null -ne $item.humanInteraction) {
+                if ($null -eq $item.humanInteraction.response) { throw 'An open human request needs explicit renewal, not an agent result overwrite.' }
+                $history=@(Get-HIValue $item 'humanInteractionHistory' @()) + @($item.humanInteraction)
+                $item | Add-Member -NotePropertyName humanInteractionHistory -NotePropertyValue $history -Force
+            }
+            $responsible=Get-HIValue $human 'humanId'
+            if ($responsible) {
+                $item.humanInteraction=New-HIRequest ([string]$human.kind) ([string]$human.description) ([string]$responsible) (Get-HIValue $human 'proposal') $now
+                Assert-HIProposalCurrent $item.humanInteraction
+            } else {
+                # Preserve the old producer contract. Human request setup can renew this
+                # incomplete legacy request with a real owner/proposal, without consent.
+                $item.humanInteraction = [pscustomobject]@{ kind=[string]$human.kind; description=[string]$human.description; requestedAt=$now; response=$null }
+                if (@(Get-HIValue $item 'humanInteractionHistory' @()).Count) { throw 'Renewed requests must include the responsible human.' }
+            }
+            # A human request does not prove that the producer's other reason vanished.
         }
         if ($contractResult) { $item.result = $contractResult }
     }

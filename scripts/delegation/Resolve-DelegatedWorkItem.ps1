@@ -12,6 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\coordinator\Lifecycle.Persistence.ps1')
+. (Join-Path $PSScriptRoot '..\workitems\HumanInteraction.ps1')
 $utf8 = New-Object Text.UTF8Encoding($false, $true)
 function Read-StrictJson([string]$File) {
     return ConvertFrom-Json -InputObject $utf8.GetString([IO.File]::ReadAllBytes($File)) -ErrorAction Stop
@@ -129,7 +130,8 @@ if ($isCoordinator) {
     if ($referenced -cne $expected -or -not (Test-Path -LiteralPath $referenced -PathType Leaf)) { throw 'Ziel role_file-Referenz fehlt, liegt ausserhalb des Teams oder passt nicht zur Rolle.' }
 }
 if ($item.status -notin @('planned','in_progress','rework','blocked')) { throw "WorkItem ist nicht ausfuehrbar: $($item.status)" }
-if ($null -ne $item.humanInteraction -and $null -eq $item.humanInteraction.response) { throw 'Unbeantwortete humanInteraction blockiert Resume.' }
+if (-not (Test-HISatisfied $item.humanInteraction)) { throw 'Unaufgeloeste humanInteraction blockiert Resume.' }
+Assert-HIProposalCurrent $item.humanInteraction
 if($item.status -ceq 'blocked'){throw 'Blocked WorkItem remains locked until a terminal propose_resume CAS decision.'}
 [void](Assert-LCResume $ResumeAssessment $item $snapshot.Revision $storePath $RepositoryRoot)
 foreach ($dependency in $item.dependencies) {

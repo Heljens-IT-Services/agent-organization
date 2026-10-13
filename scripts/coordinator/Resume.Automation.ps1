@@ -1,3 +1,4 @@
+. (Join-Path $PSScriptRoot '..\workitems\HumanInteraction.ps1')
 function Get-LCNoSpawnResumePrior($Config,$Prior,$Registered,$Command,$Plan,$Session,$TerminalContext,$DecisionRef) {
     $directory=Join-Path $Config.DataDirectory 'resume-receipts'
     $binder=Join-Path $directory ($Command.effectId+'.prior-nospawn.ref.json')
@@ -37,6 +38,13 @@ function Apply-LCResume($Config,$Dispatch,$Plan,$Command,$Session) {
     if([string]$requested -cne [string]$Command.requestedAt -or $responseHash -cne $Command.responseHash -or ($interaction -and $null -eq $response)){throw 'ResumeResponseBindingConflict'}
     if([string](Get-LCValue $Dispatch.input.payload 'workItemId') -cne $item.id){throw 'ResumeTriggerItemConflict'}
     if($Dispatch.input.kind -notin @('human_response','reminder_due','workitem_changed','return_received')){throw 'ResumeTriggerUnsupported'}
+    if ($Dispatch.input.kind -ceq 'human_response') {
+        $eventPayload=$Dispatch.input.payload
+        if ((Get-HIValue $eventPayload 'requestId') -and (Get-HIValue $eventPayload 'requestId') -cne (Get-HIRequestId $item)) { throw 'ResumeHumanRequestConflict' }
+        if ((Get-HIValue $eventPayload 'requestedAt') -and (Get-HIValue $eventPayload 'requestedAt') -cne $requested) { throw 'ResumeHumanRequestTimeConflict' }
+        if ((Get-LCHash (Get-LCBytes (Get-HIValue $eventPayload 'response'))) -cne $responseHash) { throw 'ResumeHumanEventResponseConflict' }
+        if ((Get-HIValue $eventPayload 'requestId') -and (Get-LCHash (Get-LCBytes (Get-HIValue $eventPayload 'proposal'))) -cne (Get-LCHash (Get-LCBytes (Get-HIValue $interaction 'proposal')))) { throw 'ResumeHumanProposalConflict' }
+    }
     if($Dispatch.input.kind -ceq 'reminder_due'){
         $due=Get-LCValue $Dispatch.input.payload 'dueAt';if(-not $due -or [DateTimeOffset]::Parse([string]$due).UtcDateTime -gt [DateTime]::UtcNow -or [string]$due -cne [string](Get-LCValue $item 'dueAt')){throw 'ResumeDueBindingConflict'}
     }
@@ -52,9 +60,11 @@ function Apply-LCResume($Config,$Dispatch,$Plan,$Command,$Session) {
     $generationModule=Get-AutomationStoreModule $Config
     $cas=Get-AutomationStoreEffectReceipt $Config ([string]$Command.effectId)
     if($Command.disposition -ceq 'resume'){
+        if (-not (Test-HISatisfied $interaction)) { throw 'ResumeHumanRequestNotSatisfied' }
+        Assert-HIProposalCurrent $interaction
+        if ($Dispatch.input.kind -ceq 'human_response' -and $null -ne $item.blockReason -and $item.blockReason -cne (Get-HIResponseBlockReason $interaction)) { throw 'ResumeAdditionalBlockReasonRequiresSeparateAssessment' }
         foreach($dep in @($item.dependencies)){$match=@($Dispatch.input.workItems|Where-Object{$_.id -ceq $dep});if($match.Count -ne 1 -or $match[0].status -cne 'accepted'){throw 'ResumeDependencyNotAccepted'}}
-        $root=Get-AutomationRoot @($Dispatch.input.workItems) $item
-        $rootInteraction=Get-LCValue $root 'humanInteraction';if($rootInteraction -and $null -eq (Get-LCValue $rootInteraction 'response')){throw 'ResumeRootHumanResponseMissing'}
+        # Explicit dependencies, rather than a shared root, delimit human blocking.
         if($generation -gt 0){
             # A real model transfer or separately verified NoSpawn closure is required.
             $dm=Import-Module (Join-Path $PSScriptRoot 'CoordinatorDispatch.psm1') -PassThru -Force
@@ -131,13 +141,16 @@ function Get-LCResumeForStart($Config,$Item,[string]$ExecutionId,[int]$Generatio
 function Complete-LCConsumedTrigger($Config,$Event) {
     if($Event.kind -notin @('human_response','workitem_changed')){return $false}
     $workItemId=[string](Get-LCValue $Event.payload 'workItemId');$revision=[string](Get-LCValue $Event.payload 'revision')
-    if(-not $workItemId -or -not $revision){return $false}
+    if(-not $workItemId -or (-not $revision -and $Event.kind -cne 'human_response')){return $false}
     $state=Get-AutomationEffectState $Config
     foreach($effect in @($state.Data.executions)){
         if($effect.state -cne 'Complete'){continue}
         foreach($receipt in @($effect.receipts)){
             $ref=Get-LCValue $receipt 'reference';if(-not $ref){continue};$r=Read-LCReceipt $ref
-            if($r.kind -cne 'terminal-resume-decision-v1' -or $r.workItemId -cne $workItemId -or $r.sourceRevision -cne $revision){continue}
+            if($r.kind -cne 'terminal-resume-decision-v1' -or $r.workItemId -cne $workItemId){continue}
+            if ($Event.kind -ceq 'human_response') {
+                if ([string](Get-HIValue $Event.payload 'requestedAt') -cne [string]$r.requestedAt) { continue }
+            } elseif ($r.sourceRevision -cne $revision) { continue }
             $item=Get-LCValue $Event.payload 'item';$response=if($Event.kind -ceq 'human_response'){Get-LCValue $Event.payload 'response'}else{Get-LCValue (Get-LCValue $item 'humanInteraction') 'response'}
             if($r.responseHash -cne (Get-LCHash (Get-LCBytes $response))){continue}
             $cas=Get-AutomationStoreEffectReceipt $Config ([string]$r.effectId)

@@ -1,6 +1,7 @@
 . (Join-Path $PSScriptRoot 'Resume.Automation.ps1')
 . (Join-Path $PSScriptRoot 'Failure.Automation.ps1')
 . (Join-Path $PSScriptRoot 'Lifecycle.Persistence.ps1')
+. (Join-Path $PSScriptRoot '..\workitems\HumanInteraction.ps1')
 Import-Module (Join-Path $PSScriptRoot 'CoordinatorHost.Core.psm1')
 Import-Module (Join-Path $PSScriptRoot 'CoordinatorEvents.psm1')
 Set-StrictMode -Version Latest
@@ -73,10 +74,16 @@ function Import-CoordinatorWorkItemOutbox($Config) {
             $source = [string](Get-AutomationValue $intent 'intentId')
             if (-not $source) { $source = 'workitem:' + $id + ':' + $revision }
             Add-CoordinatorEvent -Path $Config.EventJournalPath -Kind workitem_changed -SourceId $source -Payload @{ workItemId = $id; revision = $revision; item = $item } | Out-Null
-            $response = Get-AutomationValue (Get-AutomationValue $item 'humanInteraction') 'response'
-            if ($response) {
+            $interaction = Get-AutomationValue $item 'humanInteraction'
+            $response = Get-AutomationValue $interaction 'response'
+            $humanEvent=Get-AutomationValue $intent 'humanResponseEvent'
+            if ($humanEvent) {
+                Add-CoordinatorEvent -Path $Config.EventJournalPath -Kind human_response -SourceId ('human:' + $id + ':' + $humanEvent.requestId + ':' + $humanEvent.responseHash) -Payload $humanEvent | Out-Null
+            } elseif ($response -and -not (Get-HIValue $interaction 'requestId')) {
                 $responseHash = Get-AutomationHash (ConvertTo-Json -InputObject $response -Depth 30 -Compress)
-                Add-CoordinatorEvent -Path $Config.EventJournalPath -Kind human_response -SourceId ('human:' + $id + ':' + $revision + ':' + $responseHash) -Payload @{ workItemId = $id; revision = $revision; response = $response } | Out-Null
+                $humanRequestId=Get-HIRequestId $item
+                # Legacy outbox intents remain importable without fabricated approval.
+                Add-CoordinatorEvent -Path $Config.EventJournalPath -Kind human_response -SourceId ('human:' + $id + ':' + $humanRequestId + ':' + $responseHash) -Payload ([pscustomobject][ordered]@{ workItemId=$id; requestId=$humanRequestId; requestedAt=$interaction.requestedAt; proposal=(Get-AutomationValue $interaction 'proposal'); responseHash=$responseHash; response=$response }) | Out-Null
             }
             Complete-LCSourceFailure $Config $sourceKey
             }catch{Save-LCSourceFailure $Config $sourceKey $sourceHash $_;continue}

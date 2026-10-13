@@ -69,6 +69,11 @@
         "kind": {"enum": ["clarification", "approval", "action"]},
         "description": {"$ref": "#/$defs/text"},
         "requestedAt": {"$ref": "#/$defs/timestamp"},
+        "requestId": {"$ref": "#/$defs/id"},
+        "required": {"const": true},
+        "humanId": {"$ref": "#/$defs/id"},
+        "proposal": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/humanProposal"}, {"$ref": "#/$defs/legacyHumanProposal"}]},
+        "resolution": {"anyOf": [{"type": "null"}, {"enum": ["satisfied", "rejected", "insufficient"]}]},
         "response": {
           "anyOf": [
             {"type": "null"},
@@ -78,12 +83,27 @@
               "properties": {
                 "description": {"$ref": "#/$defs/text"},
                 "respondedAt": {"$ref": "#/$defs/timestamp"},
-                "respondentId": {"$ref": "#/$defs/id"}
+                "respondentId": {"$ref": "#/$defs/id"},
+                "requestId": {"$ref": "#/$defs/id"},
+                "decision": {"enum": ["provided", "approved", "rejected", "insufficient"]},
+                "evidence": {"$ref": "#/$defs/text"},
+                "proposalSha256": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[a-f0-9]{64}$"}]}
               }
             }
           ]
         }
       }
+    },
+    "humanProposal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reference", "sha256", "path"],
+      "properties": {"reference": {"$ref": "#/$defs/text"}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "path": {"$ref": "#/$defs/text"}}
+    },
+    "legacyHumanProposal": {
+      "$comment": "Read-only compatibility for pathless snapshots/history. New or renewed bindings must use humanProposal; production transition guards enforce this write contract.",
+      "type": "object", "additionalProperties": false,
+      "required": ["reference", "sha256"],
+      "properties": {"reference": {"$ref": "#/$defs/text"}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
     },
     "workItem": {
       "type": "object", "additionalProperties": false,
@@ -117,6 +137,7 @@
         "result": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/result"}]},
         "verifications": {"type": "array", "items": {"$ref": "#/$defs/verification"}},
         "humanInteraction": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/humanInteraction"}]},
+        "humanInteractionHistory": {"type": "array", "items": {"$ref": "#/$defs/humanInteraction"}},
         "blockReason": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/text"}]},
         "createdAt": {"$ref": "#/$defs/timestamp"},
         "updatedAt": {"$ref": "#/$defs/timestamp"},

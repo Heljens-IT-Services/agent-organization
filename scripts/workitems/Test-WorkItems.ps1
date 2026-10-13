@@ -2,11 +2,13 @@
 param(
     [Parameter(Mandatory = $true)][string]$Path,
     [string]$PreviousPath,
-    [string]$RepositoryRoot
+    [string]$RepositoryRoot,
+    [switch]$HumanResponseWrite
 )
 $ErrorActionPreference = 'Stop'
 if (-not $PSBoundParameters.ContainsKey('RepositoryRoot')) { $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 . (Join-Path $PSScriptRoot '../contracts/ContractValidation.ps1')
+. (Join-Path $PSScriptRoot 'HumanInteraction.ps1')
 $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 $schemaPath = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'schemas\workitems.schema.json'
 $schema = Read-ContractJson $schemaPath
@@ -94,6 +96,11 @@ function Assert-WorkItemSnapshot($Document) {
             }
         }
         $pendingHuman = $null -ne $item.humanInteraction -and $null -eq $item.humanInteraction.response
+        Assert-HIInteraction $item.humanInteraction
+        $humanId=Get-HIValue $item.humanInteraction 'humanId'
+        if ($humanId -and $availableRoles.ContainsKey($humanId)) { throw "Human request cannot assign an agent role as respondent: $($item.id)" }
+        foreach ($historical in @(Get-HIValue $item 'humanInteractionHistory' @())) { Assert-HIInteraction $historical }
+        if ((Get-HIValue $item.humanInteraction 'requestId') -and -not (Test-HISatisfied $item.humanInteraction) -and $item.status -cnotin @('blocked','cancelled')) { throw "Unresolved human request: $($item.id)" }
         if ($pendingHuman -and $item.status -cnotin @('blocked','cancelled')) { throw "Pending human interaction: $($item.id)" }
         if ($item.status -ceq 'blocked' -and -not $pendingHuman -and $null -eq $item.blockReason) { throw "Missing block reason: $($item.id)" }
         if ($item.status -cnotin @('blocked','cancelled') -and $null -ne $item.blockReason) { throw "Stale block reason: $($item.id)" }
@@ -170,12 +177,7 @@ if ($PreviousPath) {
                 if ((Get-ContractCanonicalJson $old.$field) -cne (Get-ContractCanonicalJson $new.$field)) { throw "Specification change requires rework first: $id/$field" }
             }
         }
-        if ($null -ne $old.humanInteraction -and $null -eq $old.humanInteraction.response -and $new.status -cne 'cancelled') {
-            if ($null -eq $new.humanInteraction) { throw "Human request removed: $id" }
-            foreach ($field in @('kind','description','requestedAt')) {
-                if ($old.humanInteraction.$field -cne $new.humanInteraction.$field) { throw "Pending human request changed: $id" }
-            }
-        }
+        Assert-HITransition $old $new ([bool]$HumanResponseWrite)
     }
     foreach ($id in $current.Keys) {
         if (-not $previous.ContainsKey($id) -and $current[$id].status -cne 'planned') { throw "New WorkItem must start planned: $id" }
