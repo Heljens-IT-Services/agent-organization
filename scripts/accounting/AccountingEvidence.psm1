@@ -125,7 +125,8 @@ function Get-NativeSignature($Identity) {
         (Get-TaskBindingSignature $Identity), $Identity.tokenUsage, $Identity.final
     )
 }
-function Read-UsageEntries([string]$Directory) {
+function Read-UsageEntries([string]$Directory, [switch]$HistoryDiagnostics) {
+    if ($HistoryDiagnostics) { return Read-HistoryAccountingEvidence $Directory }
     $native = @{}
     $tasks = @{}
     foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter '*.usage.json' -File -ErrorAction SilentlyContinue) {
@@ -748,5 +749,282 @@ function Get-CanonicalJson($Value) {
     }
     if ($Value -is [array]) { return '[' + (@($Value | ForEach-Object { Get-CanonicalJson $_ }) -join ',') + ']' }
     return ConvertTo-Json -InputObject $Value -Compress -Depth 20
+}
+# Additive diagnostic reader. Strict family readers above keep their defaults.
+function Read-HistoryAccountingEvidence([string]$Directory) {
+    $native=@{}; $blocked=@{}; $taskThreads=@{}; $taskBindings=@{}; $taskFamilyClaims=@{}; $blockedTasks=@{}
+    $diagnostics=@(); $sources=@(); $artifacts=@()
+    $executions=New-Object System.Collections.Hashtable ([StringComparer]::Ordinal)
+    # Failure of the root is unavailable, never an observed zero inventory.
+    $root=Get-Item -LiteralPath $Directory -ErrorAction Stop
+    if (-not $root.PSIsContainer) { throw 'Accounting root unavailable.' }
+    $patterns=@('*.usage.json','*.profile.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')
+    foreach ($pattern in $patterns) {
+        $files=@(Get-ChildItem -LiteralPath $Directory -Filter $pattern -File -ErrorAction Stop | Sort-Object FullName)
+        foreach ($file in $files) {
+            $sources+=@($file.FullName); $record=$null; $key=$null
+            try {
+                $record=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                if ($record -isnot [pscustomobject]) { throw 'Invalid record.' }
+                # Recover a trustworthy key even when another field is invalid.
+                try {
+                    $thread=Get-CanonicalId (Get-PairedField $record 'thread_id' 'threadId')
+                    $turn=Get-CanonicalId (Get-PairedField $record 'turn_id' 'turnId')
+                    $key=$thread+'/'+$turn
+                } catch { $key=$null }
+                if ($pattern -ceq '*.usage.json') {
+                    # Reuse strict native/counter normalization with family fields
+                    # removed. Nullable family claims never establish own usage.
+                    $plain=[ordered]@{}
+                    foreach ($property in $record.PSObject.Properties) { $plain[$property.Name]=$property.Value }
+                    foreach ($field in @('work_item_id','execution_id','work_item_store_path')) { $plain[$field]=$null }
+                    $plain['role']='unknown'
+                    foreach ($pair in @(@('task_id','taskId'),@('thread_id','threadId'),@('turn_id','turnId'),@('parent_task_id','parentTaskId'),@('parent_thread_id','parentThreadId'),@('parent_turn_id','parentTurnId'))) {
+                        $plain[$pair[0]]=Get-PairedField $record $pair[0] $pair[1]
+                    }
+                    $identity=Get-UsageIdentity ([pscustomobject]$plain)
+                    if ($null -eq $identity.threadId -or $null -eq $identity.turnId) {
+                        $diagnostics+=@([pscustomobject]@{reason='native_identity_missing';source=$file.FullName;nativeKey=$null}); continue
+                    }
+                    $key=$identity.threadId+'/'+$identity.turnId
+                    $claim=Get-HistoryFamilyClaim $record $file.FullName
+                    $diagnostics+=@($claim.diagnostics)
+                    if (-not $taskFamilyClaims.ContainsKey($identity.taskId)) { $taskFamilyClaims[$identity.taskId]=@() }
+                    $taskFamilyClaims[$identity.taskId]+=@($claim)
+                    $kind=Get-LedgerCounterKind ([pscustomobject]@{records=@($record)})
+                    if ($kind -cne 'turn_token_usage') {
+                        $diagnostics+=@([pscustomobject]@{reason='not_comparable_to_native_turn_counter';nativeKey=$key;counterKind=$kind;tokenUsage=$identity.tokenUsage;source=$file.FullName})
+                    }
+                    $finalMeasurementRecords=@()
+                    if ($kind -ceq 'turn_token_usage' -and $identity.final -and $null -ne $identity.tokenUsage) { $finalMeasurementRecords=@($record) }
+                    if ($taskThreads.ContainsKey($identity.taskId) -and $taskThreads[$identity.taskId] -cne $identity.threadId) { $blockedTasks[$identity.taskId]=$true }
+                    else { $taskThreads[$identity.taskId]=$identity.threadId }
+                    if (-not $taskBindings.ContainsKey($identity.taskId)) {
+                        $taskBindings[$identity.taskId]=[pscustomobject]@{parentTaskId=$identity.parentTaskId;parentThreadId=$identity.parentThreadId;parentTurnId=$identity.parentTurnId}
+                    } else {
+                        foreach ($field in @('parentTaskId','parentThreadId','parentTurnId')) {
+                            $priorBinding=$taskBindings[$identity.taskId]
+                            if ($null -ne $priorBinding.$field -and $null -ne $identity.$field -and $priorBinding.$field -cne $identity.$field) { $blockedTasks[$identity.taskId]=$true }
+                            elseif ($null -eq $priorBinding.$field) { $priorBinding.$field=$identity.$field }
+                        }
+                    }
+                    if (-not $native.ContainsKey($key)) {
+                        $native[$key]=[pscustomobject]@{native_key=$key;identity=$identity;counterKind=$kind;AliasTaskIds=@($identity.taskId);paths=@($file.FullName);records=@($record);finalMeasurementRecords=$finalMeasurementRecords;familyClaims=@($claim);familyEligible=$false;familyDiagnostics=@()}
+                    } else {
+                        $prior=$native[$key]; $old=$prior.identity
+                        # Aliases are accepted only with consistent native/parent
+                        # evidence, as in the existing strict native signature.
+                        foreach ($field in @('parentTaskId','parentThreadId','parentTurnId')) {
+                            if ($null -ne $old.$field -and $null -ne $identity.$field -and $old.$field -cne $identity.$field) { $blocked[$key]=$true }
+                            elseif ($null -eq $old.$field) { $old.$field=$identity.$field }
+                        }
+                        # Only proven own counters are comparable. Legacy observations
+                        # retain identity/metadata claims but cannot replace or veto own.
+                        if ($kind -ceq 'turn_token_usage' -and $prior.counterKind -cne 'turn_token_usage') {
+                            foreach ($field in @('parentTaskId','parentThreadId','parentTurnId')) {
+                                if ($null -eq $identity.$field) { $identity.$field=$old.$field }
+                            }
+                            $prior.identity=$identity; $prior.counterKind=$kind
+                        } elseif ($kind -ceq 'turn_token_usage' -and $prior.counterKind -ceq 'turn_token_usage') {
+                        if ($null -ne $old.tokenUsage -and $null -ne $identity.tokenUsage) {
+                            if ($old.final -and $identity.final) {
+                                if (-not (Compare-AccountingUsage $old.tokenUsage $identity.tokenUsage)) { $blocked[$key]=$true }
+                            } elseif ($old.final) {
+                                if (-not (Compare-AccountingUsage $old.tokenUsage $identity.tokenUsage -Dominates)) { $blocked[$key]=$true }
+                            } elseif ($identity.final) {
+                                if (-not (Compare-AccountingUsage $identity.tokenUsage $old.tokenUsage -Dominates)) { $blocked[$key]=$true }
+                                $prior.identity=$identity
+                            } elseif (Compare-AccountingUsage $identity.tokenUsage $old.tokenUsage -Dominates) { $prior.identity=$identity }
+                            elseif (-not (Compare-AccountingUsage $old.tokenUsage $identity.tokenUsage -Dominates)) { $blocked[$key]=$true }
+                        } elseif ($null -ne $identity.tokenUsage -and (-not $old.final -or $identity.final)) { $prior.identity=$identity }
+                        elseif ($identity.final -and $null -eq $old.tokenUsage) { $prior.identity=$identity }
+                        }
+                        $prior.finalMeasurementRecords+=@($finalMeasurementRecords)
+                        $prior.AliasTaskIds=@(@($prior.AliasTaskIds)+@($identity.taskId) | Sort-Object -Unique)
+                        $prior.paths+=@($file.FullName); $prior.records+=@($record); $prior.familyClaims+=@($claim)
+                    }
+                } elseif ($pattern -ceq '*.profile.json') {
+                    if ((Get-Field $record 'schema') -cne 'native-token-profile/v1') { throw 'Unsupported profile.' }
+                    $task=Get-CanonicalId (Get-PairedField $record 'task_id' 'taskId')
+                    if ($null -eq $key -or -not $native.ContainsKey($key) -or $native[$key].AliasTaskIds -cnotcontains $task) {
+                        $diagnostics+=@([pscustomobject]@{reason='profile_without_measurement_anchor';source=$file.FullName;nativeKey=$key}); continue
+                    }
+                    $native[$key].records+=@($record); $native[$key].paths+=@($file.FullName)
+                    # Exact native profiles remain independent final-time evidence.
+                    $native[$key].finalMeasurementRecords+=@($record)
+                } else {
+                    # Partial execution artifacts are metadata/claims, never counters.
+                    $claim=Get-HistoryFamilyClaim $record $file.FullName
+                    $diagnostics+=@($claim.diagnostics)
+                    $nativeRecord=[ordered]@{}
+                    foreach ($property in $record.PSObject.Properties) {
+                        if ($property.Name -cnotin @('work_item_id','workItemId','execution_id','executionId','work_item_store_path','store_path','storePath')) { $nativeRecord[$property.Name]=$property.Value }
+                    }
+                    $binding=New-AccountingBinding ([pscustomobject]$nativeRecord) @($file.FullName)
+                    $artifacts+=@([pscustomobject]@{binding=$binding;claim=$claim;record=$record;source=$file.FullName;kind=$pattern;complete=(Get-Field $record 'complete')})
+                }
+            } catch {
+                $reason=if ($null -eq $record) { 'source_unavailable' } else { 'invalid_record' }
+                $diagnostics+=@([pscustomobject]@{reason=$reason;code='read_or_normalization_failed';source=$file.FullName;nativeKey=$key})
+                # Broken sidecars cannot invalidate independently proven counters.
+                if ($pattern -ceq '*.usage.json' -and $null -ne $key) { $blocked[$key]=$true }
+                if ($pattern -cne '*.profile.json' -and $null -ne $record) {
+                    # Contradictory spellings quarantine every recoverable key,
+                    # including a key also present in an otherwise valid alias.
+                    foreach ($threadField in @('thread_id','threadId')) {
+                        foreach ($turnField in @('turn_id','turnId')) {
+                            try {
+                                $badThread=Get-CanonicalId (Get-Field $record $threadField)
+                                $badTurn=Get-CanonicalId (Get-Field $record $turnField)
+                                $blocked[$badThread+'/'+$badTurn]=$true
+                            } catch { }
+                        }
+                    }
+                    $taskAmbiguous=$false
+                    try { $null=Get-PairedField $record 'task_id' 'taskId' } catch { $taskAmbiguous=$true }
+                    if ($null -eq $key -or $taskAmbiguous) {
+                        foreach ($taskField in @('task_id','taskId')) {
+                            try { $badTask=Get-CanonicalId (Get-Field $record $taskField); $blockedTasks[$badTask]=$true } catch { }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    # Correlate against the entire source set before family selection. Execution
+    # reuse/transfer gaps block family admission only, not an independent own turn.
+    foreach ($artifact in $artifacts) {
+        $b=$artifact.binding; $eid=$artifact.claim.executionId; $matched=$false
+        if ($null -ne $eid) {
+            if (-not $executions.ContainsKey($eid)) { $executions[$eid]=@() }
+            $executions[$eid]+=@($artifact)
+        }
+        foreach ($entry in $native.Values) {
+            $id=$entry.identity
+            $taskMatch=$null -ne $b.taskId -and $entry.AliasTaskIds -ccontains $b.taskId
+            $nativeMatch=$null -ne $b.threadId -and $null -ne $b.turnId -and $entry.native_key -ceq ($b.threadId+'/'+$b.turnId)
+            if ($taskMatch -and $null -ne $b.threadId -and $b.threadId -cne $id.threadId) { $blockedTasks[$b.taskId]=$true }
+            if ($taskMatch) {
+                $taskFamilyClaims[$b.taskId]+=@($artifact.claim)
+                foreach ($field in @('parentTaskId','parentThreadId','parentTurnId')) {
+                    $priorBinding=$taskBindings[$b.taskId]
+                    if ($null -ne $b.$field -and $null -ne $priorBinding.$field -and $b.$field -cne $priorBinding.$field) { $blockedTasks[$b.taskId]=$true }
+                    elseif ($null -eq $priorBinding.$field) { $priorBinding.$field=$b.$field }
+                }
+            }
+            if ($nativeMatch -and $null -ne $b.taskId -and -not $taskMatch) { $blocked[$entry.native_key]=$true }
+            if ($taskMatch -or $nativeMatch) {
+                $matched=$true
+                $entry.familyClaims+=@($artifact.claim); $entry.paths+=@($artifact.source)
+                # Recorded role assignment may enrich a task-bound turn. Effective
+                # model/effort/time evidence requires an exact native turn anchor;
+                # a reservation's first turn must not profile later turns.
+                if ($nativeMatch) {
+                    $entry.records+=@($artifact.record)
+                    if ((Get-Field $artifact.record 'final') -ceq $true) { $entry.finalMeasurementRecords+=@($artifact.record) }
+                }
+                elseif ($taskMatch) { $entry.records+=@([pscustomobject]@{role=(Get-Field $artifact.record 'role');roleId=(Get-Field $artifact.record 'roleId');metadataSources=@($artifact.source)}) }
+                if ($artifact.kind -ceq 'workitem-transfer-*.json' -and ($artifact.complete -isnot [bool] -or -not $artifact.complete)) {
+                    $entry.familyDiagnostics+=@('incomplete_transfer')
+                }
+            }
+        }
+        if (-not $matched) {
+            $diagnostics+=@([pscustomobject]@{
+                reason='artifact_without_measurement_anchor';source=$artifact.source;kind=$artifact.kind
+                nativeKey=$(if ($null -ne $b.threadId -and $null -ne $b.turnId) { $b.threadId+'/'+$b.turnId } else { $null })
+                taskId=$b.taskId;threadId=$b.threadId;turnId=$b.turnId
+                parentTaskId=$b.parentTaskId;parentThreadId=$b.parentThreadId;parentTurnId=$b.parentTurnId
+                workItemId=$artifact.claim.workItemId;executionId=$eid;storePath=$artifact.claim.storePath
+            })
+        }
+    }
+    foreach ($task in $taskBindings.Keys) {
+        $seen=@{}; $cursor=$task
+        while ($null -ne $cursor -and $taskBindings.ContainsKey($cursor)) {
+            if ($seen.ContainsKey($cursor)) { foreach ($member in $seen.Keys) { $blockedTasks[$member]=$true }; break }
+            $seen[$cursor]=$true; $cursor=$taskBindings[$cursor].parentTaskId
+        }
+    }
+    # Include usage-only execution claims in global execution uniqueness checks.
+    foreach ($entry in $native.Values) {
+        foreach ($claim in $entry.familyClaims) {
+            if ($null -eq $claim.executionId) { continue }
+            if (-not $executions.ContainsKey($claim.executionId)) { $executions[$claim.executionId]=@() }
+            $executions[$claim.executionId]+=@([pscustomobject]@{binding=$entry.identity;claim=$claim;kind='usage';source=$claim.source})
+        }
+    }
+    foreach ($entry in $native.Values) {
+        $id=$entry.identity
+        foreach ($alias in $entry.AliasTaskIds) {
+            foreach ($field in @('workItemId','executionId','storePath')) {
+                $values=@($taskFamilyClaims[$alias] | ForEach-Object { $_.$field } | Where-Object { $null -ne $_ } | Sort-Object -Unique -CaseSensitive)
+                if ($values.Count -gt 1) { $entry.familyDiagnostics+=@('conflicting_task_family_'+$field) }
+            }
+        }
+        foreach ($field in @('workItemId','executionId','storePath')) {
+            $values=@($entry.familyClaims | ForEach-Object { $_.$field } | Where-Object { $null -ne $_ } | Sort-Object -Unique -CaseSensitive)
+            if ($values.Count -eq 1) { $id.$field=$values[0] }
+            elseif ($values.Count -gt 1) { $id.$field=$null; $entry.familyDiagnostics+=@('conflicting_'+$field) }
+        }
+        if (@($entry.familyClaims | Where-Object { $_.diagnostics.Count -gt 0 }).Count -gt 0) { $entry.familyDiagnostics+=@('invalid_family_claim') }
+        if ($null -ne $id.executionId) {
+            $rows=@($executions[$id.executionId])
+            foreach ($field in @('workItemId','storePath')) {
+                $values=@($rows | ForEach-Object { $_.claim.$field } | Where-Object { $null -ne $_ } | Sort-Object -Unique -CaseSensitive)
+                if ($values.Count -gt 1) { $id.$field=$null; $entry.familyDiagnostics+=@('conflicting_execution_'+$field) }
+                elseif ($values.Count -eq 1 -and $null -eq $id.$field -and $entry.familyDiagnostics -cnotcontains ('conflicting_'+$field)) { $id.$field=$values[0] }
+            }
+            if (@($rows | Where-Object { $_.claim.diagnostics.Count -gt 0 }).Count -gt 0) { $entry.familyDiagnostics+=@('invalid_execution_family_claim') }
+            if (@($rows | Where-Object { $_.kind -ceq 'workitem-transfer-*.json' -and ((Get-Field $_ 'complete') -isnot [bool] -or -not (Get-Field $_ 'complete')) }).Count -gt 0) { $entry.familyDiagnostics+=@('incomplete_transfer') }
+            $threads=@($rows | ForEach-Object { $_.binding.threadId } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
+            $foreignTasks=@($rows | Where-Object { $null -ne $_.binding.taskId -and $entry.AliasTaskIds -cnotcontains $_.binding.taskId })
+            $initial=@($rows | Where-Object { $_.kind -cin @('execution-*.json','workitem-transfer-*.json') } | ForEach-Object { $_.binding.turnId } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
+            if ($threads.Count -gt 1 -or $foreignTasks.Count -gt 0 -or $initial.Count -gt 1) { $entry.familyDiagnostics+=@('execution_identity_conflict') }
+        }
+        $entry.familyEligible=($null -ne $id.workItemId -and $null -ne $id.executionId -and $null -ne $id.storePath -and $entry.familyDiagnostics.Count -eq 0)
+        if ($null -ne $id.parentTaskId -and -not $taskBindings.ContainsKey($id.parentTaskId)) {
+            $diagnostics+=@([pscustomobject]@{reason='parent_binding_unregistered';nativeKey=$entry.native_key;parentTaskId=$id.parentTaskId;sources=@($entry.paths)})
+        }
+        if (-not $entry.familyEligible) {
+            foreach ($field in @('workItemId','executionId','storePath')) { if ($null -eq $id.$field) { $entry.familyDiagnostics+=@('missing_'+$field) } }
+            $diagnostics+=@([pscustomobject]@{reason='family_binding_unresolved';nativeKey=$entry.native_key;sources=@($entry.paths);details=@($entry.familyDiagnostics)})
+        }
+        if ($blocked.ContainsKey($entry.native_key) -or @($entry.AliasTaskIds | Where-Object { $blockedTasks.ContainsKey($_) }).Count -gt 0) {
+            $blocked[$entry.native_key]=$true
+            $diagnostics+=@([pscustomobject]@{reason='native_task_or_counter_conflict';nativeKey=$entry.native_key;sources=@($entry.paths)})
+        }
+        $entry.paths=@($entry.paths | Sort-Object -Unique -CaseSensitive)
+        $entry.familyDiagnostics=@($entry.familyDiagnostics | Sort-Object -Unique -CaseSensitive)
+    }
+    # Reuse the shared accounting mask. Only true own/native/task conflicts enter
+    # it; family claim conflicts above remain separately diagnostic.
+    $ownConflicts=@()
+    foreach ($nativeKey in $blocked.Keys) {
+        $parts=$nativeKey.Split('/')
+        $ownConflicts+=@(New-AccountingConflict ([pscustomobject]@{threadId=$parts[0];turnId=$parts[1]}) 'history_native_conflict' @())
+    }
+    foreach ($task in $blockedTasks.Keys) { $ownConflicts+=@(New-AccountingConflict ([pscustomobject]@{taskId=$task}) 'conflicting_task_history_binding' @()) }
+    $mask=Get-AccountingConflictMask @() @($native.Values) $ownConflicts
+    $diagnostics=@($diagnostics | Sort-Object { Get-Field $_ 'reason' }, { Get-Field $_ 'nativeKey' }, { Get-Field $_ 'source' })
+    return [pscustomobject]@{entries=@($native.Values | Sort-Object native_key);eligibleNativeKeys=@($native.Keys | Where-Object { $mask.nativeKeys -cnotcontains $_ } | Sort-Object);diagnostics=$diagnostics;sourcePaths=$sources;sourcePatterns=$patterns}
+}
+function Get-HistoryFamilyClaim($Record, [string]$Source) {
+    $claim=[ordered]@{workItemId=$null;executionId=$null;storePath=$null;source=$Source;diagnostics=@()}
+    foreach ($pair in @(@('workItemId','work_item_id','workItemId'),@('executionId','execution_id','executionId'))) {
+        try {
+            $value=Get-PairedField $Record $pair[1] $pair[2]
+            $claim[$pair[0]]=Get-Text $value -Optional
+        } catch { $claim.diagnostics+=@([pscustomobject]@{reason='invalid_family_claim';field=$pair[0];source=$Source}) }
+    }
+    $stores=@()
+    foreach ($field in @('work_item_store_path','store_path','storePath')) {
+        try { $value=Get-CanonicalPath (Get-Field $Record $field) -Optional; if ($null -ne $value) { $stores+=@($value) } }
+        catch { $claim.diagnostics+=@([pscustomobject]@{reason='invalid_family_claim';field='storePath';source=$Source}) }
+    }
+    $stores=@($stores | Sort-Object -Unique -CaseSensitive)
+    if ($stores.Count -eq 1) { $claim.storePath=$stores[0] }
+    elseif ($stores.Count -gt 1) { $claim.diagnostics+=@([pscustomobject]@{reason='invalid_family_claim';field='storePath';source=$Source}) }
+    return [pscustomobject]$claim
 }
 Export-ModuleMember -Function *

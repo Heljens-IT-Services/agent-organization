@@ -49,7 +49,7 @@ function summaryCells(group) {
 }
 function periodText(bucket) { return `[${new Date(bucket.clipStart ?? bucket.start).toISOString()}, ${new Date(bucket.clipEnd ?? bucket.end).toISOString()})${bucket.partial ? " · Teilintervall" : ""}`; }
 function tooltipText(bucket, series, sum, records) {
-  return `${periodText(bucket)} · Rolle ${label(series.roleId)} · Modell ${label(series.modelId)} · Reasoning ${label(series.reasoningEffort)} · Gesamt ${count(sum.totalTokens)}, Input ${count(sum.inputTokens)}, Output ${count(sum.outputTokens)} · Cached Input ${count(sum.cachedInputTokens)} (Teilmenge), Reasoning Output ${count(sum.reasoningOutputTokens)} (Teilmenge) · ${records.length} native Messungen · WorkItems ${[...new Set(records.map(row => row.workItemId))].map(label).join(", ")} · Verbrauch nach finalem Messzeitpunkt (UTC); Familienvollständigkeit unbekannt`;
+  return `${periodText(bucket)} · Rolle ${label(series.roleId)} · Modell ${label(series.modelId)} · Reasoning ${label(series.reasoningEffort)} · Gesamt ${count(sum.totalTokens)}, Input ${count(sum.inputTokens)}, Output ${count(sum.outputTokens)} · Cached Input ${count(sum.cachedInputTokens)} (Teilmenge), Reasoning Output ${count(sum.reasoningOutputTokens)} (Teilmenge) · ${records.length} native Messungen · WorkItems ${[...new Set(records.map(row => row.workItemId))].map(label).join(", ")} · Verbrauch nach finalem Messzeitpunkt (UTC); Inventar- und Familienvollständigkeit unbekannt`;
 }
 export function renderTokenHistory(host, projection, scope) {
   if (!projection || projection.version !== 1 || !Array.isArray(projection.records)) {
@@ -112,6 +112,9 @@ export function renderTokenHistory(host, projection, scope) {
     return `<tr><th scope="row">${esc(periodText(bucket))} · ${esc(label(s.modelId))} · ${esc(label(s.reasoningEffort))}</th>${summaryCells({sum:value.sum,measured:value.records.length})}<td>${value.records.length}</td></tr>`;
   }).join("")).join("");
   const coverage = projection.coverage ?? {};
+  const organizationScope = projection.scope?.kind === "organization_observed";
+  const scopeText = organizationScope ? "Gesamtübersicht · konfigurierter Quellenumfang" : `WorkItemfamilie ${projection.scope?.workItemId ?? scope} · ${(projection.scope?.includedWorkItemIds ?? []).join(", ")}`;
+  const scopeDiagnostics = `<p class="notice">${organizationScope ? "Gesamtinventar" : "Familieninventar"}: Vollständigkeit unbekannt · ${esc(coverage.status ?? "known_partial")} · Originalrooterfassung ${esc(projection.scope?.originalRootCapture ?? "nicht bewiesen")}. Familienlücken ${coverage.bindingGaps?.length ?? unknown} · Quellenfehler ${coverage.sourceFailures?.length ?? unknown}. Diese Diagnosen bleiben unabhängig von Serien- und Zeitraumfiltern erhalten.</p><details class="projection-meta"><summary>Quellenumfang, Revision und Lesefenster</summary><pre>${esc(JSON.stringify({ scope: projection.scope, projectionRevision: projection.projectionRevision, generatedAt: projection.projectionGeneratedAtUTC, readWindow: projection.readWindow, diagnostics: coverage.diagnostics }, null, 2))}</pre></details>`;
   const missing = all.filter(row => !usageOf(row)).length;
   const noTime = all.filter(row => measurementTime(row) == null).length;
   const noMetadata = all.filter(row => [row.roleId, row.modelId, row.reasoningEffort].some(value => value == null)).length;
@@ -119,7 +122,7 @@ export function renderTokenHistory(host, projection, scope) {
   const statusCounts = ["provisional", "measurement_missing", "accounting_identity_or_correlation_conflict", "own_native_counter_semantics_unproven"].map(reason => `${reason}: ${all.filter(row => row.exclusionReason === reason).length}`).join(" · ");
   const fieldGaps = ["roleId","modelId","reasoningEffort","measurementUTC"].map(field => `${field}: unknown ${all.filter(row => row[field] == null).length}, conflict ${all.filter(row => row.metadataConflicts?.includes(field)).length}`).join(" · ");
   const coverageMissing = ["missingExpectedExecutions", "missingExpectedNativeTurns", "executionSetUnknownWorkItemIds", "bindingGaps", "parentBindingGaps", "correlationConflicts", "nativeConflicts", "incompleteTransfers"].map(key => `${key}: ${Array.isArray(coverage[key]) ? coverage[key].length : unknown}`).join(" · ");
-  host.innerHTML = `<h4>Historischer Tokenverbrauch nach Rolle</h4><p class="metric-scope">Umfang: WorkItemfamilie ${esc(projection.scope?.workItemId ?? scope)} · ${esc((projection.scope?.includedWorkItemIds ?? []).join(", "))}. ${esc(projection.semantics)} Zeiten und Intervalle in UTC. Gezeigte Summen sind bekannte Teilsummen; ohne Messung steht „Unbekannt“.</p>
+  host.innerHTML = `<h4>Historischer Tokenverbrauch nach Rolle</h4><p class="metric-scope">Umfang: ${esc(scopeText)}. ${esc(projection.semantics)} Zeiten und Intervalle in UTC. Gezeigte Summen sind bekannte Teilsummen; ohne Messung steht „Unbekannt“.</p>${scopeDiagnostics}
     <p class="notice">${missing} Records ohne verwendbare eigene Messung · ${noMetadata} mit fehlenden Rollen-/Modell-/Reasoningwerten · ${noTime} ohne Verbrauchszeit · ${conflicts} Metadatenkonflikte. Erwartungsmenge: ${projection.scope?.expectedSetComplete === true ? "belegt" : "nicht vollständig belegt"}; ${projection.scope?.expectedNativeKeys?.length ?? unknown} erwartete native Schlüssel beobachtet. Familienabdeckung: ${coverage.familyCompletenessProven === true ? "belegt" : "unbekannt / unvollständig"} (${esc(coverage.familyCompletenessReason)}). ${esc(coverageMissing)}</p>
     <div class="history-filters"><label>Intervall<select data-history-control="interval"><option value="day"${settings.interval === "day" ? " selected" : ""}>Tag</option><option value="week"${settings.interval === "week" ? " selected" : ""}>Woche (Montag)</option><option value="month"${settings.interval === "month" ? " selected" : ""}>Monat</option></select></label>
     <label>Von (UTC)<input type="date" data-history-control="from" value="${esc(settings.from)}"></label><label>Bis einschließlich (UTC)<input type="date" data-history-control="to" value="${esc(settings.to)}"></label>
@@ -135,7 +138,7 @@ export function renderTokenHistory(host, projection, scope) {
     <div class="history-chart" tabindex="0" aria-label="Gestapelte Zeit-Säulen, horizontal scrollbar"></div><p class="history-tooltip" role="status">Säule mit Maus oder Tastatur auswählen: Zeitraum, Zuordnung und Tokens.</p>
     <div class="history-table-scroll" tabindex="0" aria-label="Tabellenalternative der Zeitreihe"><table class="history-table"><caption>Verbrauch nach finalem Messzeitpunkt (UTC) · ${esc(selected ? label(selected.roleId) : unknown)} · gleiche Schnittintervalle und Serien wie im Diagramm; Vollständigkeit unbekannt</caption><thead><tr><th scope="col">UTC-Intervall / Modell / Reasoning</th><th scope="col">Gesamt</th><th scope="col">Input</th><th scope="col">Output</th><th scope="col">Messungen</th></tr></thead><tbody>${bucketTable || `<tr><td colspan="5">Keine zeitlich zuordenbare Messung; Verbrauch unbekannt.</td></tr>`}</tbody></table></div>
     <details class="metric-field"><summary>Messdaten, Metadatenquellen und Importzeit</summary><p>measurementUTC ist Verbrauchs-/Messzeit. importedAtUTC ist Import-/Publikationszeit und verschiebt die Zeitreihe nicht.</p><pre>${esc(JSON.stringify({ records: rows, excluded: projection.excluded, coverage }, null, 2))}</pre></details>`;
-  drawChart(host, orderedBuckets, orderedSeries, settings);
+  drawChart(host, orderedBuckets, orderedSeries, settings, scope);
   // Integrate with the existing polling focus restoration, with stable identities.
   host.querySelectorAll("[data-history-control]").forEach(control => { control.dataset.focusKey = `history:${scope}:control:${control.dataset.historyControl}`; });
   host.querySelectorAll("[data-history-role]").forEach(button => { button.dataset.focusKey = `history:${scope}:role:${sortedRoles[Number(button.dataset.historyRole)].key}`; });
@@ -162,7 +165,7 @@ export function renderTokenHistory(host, projection, scope) {
     Object.assign(settings, { from: "", to: "", model: null, reasoning: null, hidden: new Set() }); renderTokenHistory(host, projection, scope); host.querySelector("[data-history-reset]")?.focus();
   });
 }
-function drawChart(host, buckets, series, settings) {
+function drawChart(host, buckets, series, settings, scope) {
   const chart = host.querySelector(".history-chart");
   if (!buckets.length) { chart.innerHTML = `<p class="placeholder">Keine zeitlich zuordenbaren eigenen Messungen für die ausgewählten Serien. Verbrauch unbekannt.</p>`; return; }
   const totals = buckets.map(bucket => [...bucket.series.values()].reduce((sum,s) => sum + s.sum.totalTokens, 0n));
@@ -176,7 +179,7 @@ function drawChart(host, buckets, series, settings) {
     const segments = series.filter(s => !settings.hidden.has(s.key) && bucket.series.has(s.key)).map(s => {
       const value = bucket.series.get(s.key); const pixels = Number(value.sum.totalTokens * 1000000n / scaleMax) / 1000000 * plotHeight;
       y -= pixels; const tip = tooltipText(bucket, s, value.sum, value.records); const tipIndex = tooltips.push(tip) - 1;
-      return `<g tabindex="0" role="img" aria-label="${esc(tip)}" data-focus-key="history:bar:${esc(bucket.key)}:${esc(JSON.stringify([s.roleId,s.modelId,s.reasoningEffort]))}" data-history-tooltip="${tipIndex}"><title>${esc(tip)}</title><rect x="${x}" y="${value.sum.totalTokens === 0n ? baseline - 2 : y}" width="${Math.max(12,columnWidth - 20)}" height="${value.sum.totalTokens === 0n ? 2 : Math.max(0.5,pixels)}" fill="${seriesColor(s.key)}" stroke="var(--surface)" stroke-width="1"/></g>`;
+      return `<g tabindex="0" role="img" aria-label="${esc(tip)}" data-focus-key="history:${esc(scope)}:bar:${esc(bucket.key)}:${esc(JSON.stringify([s.roleId,s.modelId,s.reasoningEffort]))}" data-history-tooltip="${tipIndex}"><title>${esc(tip)}</title><rect x="${x}" y="${value.sum.totalTokens === 0n ? baseline - 2 : y}" width="${Math.max(12,columnWidth - 20)}" height="${value.sum.totalTokens === 0n ? 2 : Math.max(0.5,pixels)}" fill="${seriesColor(s.key)}" stroke="var(--surface)" stroke-width="1"/></g>`;
     }).join("");
     return `${segments}<text x="${x}" y="275" class="history-axis">${esc(bucket.key)}</text>`;
   }).join("");
