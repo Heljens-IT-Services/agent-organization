@@ -31,6 +31,11 @@ function Get-WorkContextIndexRows {
         $cells = if ($hasOuterPipes -and $trimmed.Length -gt 2) { @($trimmed.Substring(1, $trimmed.Length - 2).Split('|') | ForEach-Object { $_.Trim() }) } elseif ($hasOuterPipes) { @() } else { @() }
         if (-not $headerFound) {
             if ($trimmed -match '^\|\s*(Thema\s*/\s*Produkt|Workflow)(\s*\||\s*$)') {
+                # The fifth workflow column is optional; retain existing four-column indexes.
+                if ($Kind -eq 'workflow' -and $cells.Count -eq 5 -and $cells[4] -ceq 'Skillreferenzen') {
+                    $expectedHeaders = @('Workflow', 'Zweck und Suchworte', 'Anwendbarkeit', 'Pfad', 'Skillreferenzen')
+                    $expectedCells = 5
+                }
                 $normalized = @($cells | ForEach-Object { ($_ -replace '\s+', ' ').Trim() })
                 $expectedNormalized = @($expectedHeaders | ForEach-Object { ($_ -replace '\s+', ' ').Trim() })
                 if ($hasOuterPipes -and $normalized.Count -eq $expectedCells -and [string]::Join("`n", $normalized) -ceq [string]::Join("`n", $expectedNormalized)) { $headerFound = $true; continue }
@@ -62,7 +67,14 @@ function Get-WorkContextIndexRows {
         else {
             $link = [regex]::Match($cells[3], '^\[[^\]]+\]\(([^)]+)\)$')
             if (-not $link.Success) { $diagnostics += "${indexPath}:$($lineNumber + 1): damaged_path_link"; continue }
-            $rows += [pscustomobject]@{ Kind = $Kind; Name = $cells[0]; Terms = $cells[1]; Context = $cells[2]; Source = $null; Classification = $null; RelativePath = $link.Groups[1].Value; IndexPath = $indexPath }
+            $skillReferences = @()
+            if ($expectedCells -eq 5 -and -not [string]::IsNullOrWhiteSpace($cells[4])) {
+                $skillReferences = @($cells[4].Split(',') | ForEach-Object { $_.Trim() })
+                if (@($skillReferences | Where-Object { $_ -cnotmatch '^[a-z0-9][a-z0-9_-]{0,127}$' }).Count -gt 0 -or @($skillReferences | Select-Object -Unique).Count -ne $skillReferences.Count) {
+                    $diagnostics += "${indexPath}:$($lineNumber + 1): damaged_skill_references"; continue
+                }
+            }
+            $rows += [pscustomobject]@{ Kind = $Kind; Name = $cells[0]; Terms = $cells[1]; Context = $cells[2]; Source = $null; Classification = $null; RelativePath = $link.Groups[1].Value; IndexPath = $indexPath; SkillReferences = @($skillReferences) }
         }
     }
     if (-not $headerFound) { $diagnostics += "${indexPath}: expected_header_missing" }
@@ -141,9 +153,10 @@ function Find-WorkContext {
         if ($result.Incomplete) { [pscustomobject]@{ Kind = $selectedKind; Diagnostic = 'discovery_incomplete'; IndexPath = $result.IndexPath; Details = $result.Diagnostics } }
         foreach ($row in $result.Rows) {
             $haystack = @($row.Name, $row.Terms, $row.Context, $row.Source, $row.Classification) -join "`n"
+            if ($row.Kind -eq 'workflow') { $haystack += "`n" + (@($row.SkillReferences) -join ' ') }
             $matched = @($Terms | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $haystack.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -ge 0 })
             if ($matched.Count -gt 0) {
-                [pscustomobject]@{ Kind = $row.Kind; Name = $row.Name; Terms = $row.Terms; Context = $row.Context; Source = $row.Source; Classification = $row.Classification; RelativePath = $row.RelativePath; IndexPath = $row.IndexPath; MatchedTerms = @($matched | Select-Object -Unique) }
+                [pscustomobject]@{ Kind = $row.Kind; Name = $row.Name; Terms = $row.Terms; Context = $row.Context; Source = $row.Source; Classification = $row.Classification; RelativePath = $row.RelativePath; IndexPath = $row.IndexPath; MatchedTerms = @($matched | Select-Object -Unique); SkillReferences = @(if ($row.Kind -eq 'workflow') { $row.SkillReferences }) }
             }
         }
     }
@@ -166,7 +179,7 @@ function Read-WorkContext {
     $selected = @($index.Rows | Where-Object { $_.RelativePath -ceq $Path })
     if ($selected.Count -ne 1) { throw 'PathMustMatchExactlyOneIndexedEntry' }
     $fullPath = Resolve-WorkContextIndexedPath -RepositoryRoot $root -Kind $Kind -RelativePath $selected[0].RelativePath
-    [pscustomobject]@{ Kind = $Kind; Name = $selected[0].Name; RelativePath = $selected[0].RelativePath; IndexPath = $selected[0].IndexPath; Content = [IO.File]::ReadAllText($fullPath, [Text.Encoding]::UTF8) }
+    [pscustomobject]@{ Kind = $Kind; Name = $selected[0].Name; RelativePath = $selected[0].RelativePath; IndexPath = $selected[0].IndexPath; Content = [IO.File]::ReadAllText($fullPath, [Text.Encoding]::UTF8); SkillReferences = @(if ($Kind -eq 'workflow') { $selected[0].SkillReferences }) }
 }
 
 Export-ModuleMember -Function Find-WorkContext, Read-WorkContext

@@ -17,6 +17,16 @@ freigegebenen WorkItem über Koordinator -> zuständigen Teamleiter -> Optimiere
 ausdrücklich zur Änderung beauftragt sind, einschließlich koordinator/teams.json.
 Lade keine fremden Agentenindizes außerhalb dieses Auftragsscopes und betreibe
 keine freie Organisationsrecherche; nutze geladene Indizes nicht zum Routing.
+Für benötigte Tokenbelege darfst du denselben zentralen ausführbaren Skill
+task-token-usage wie die Qualitätsprüfung selektiv über scripts/skills/Find-Skill.ps1
+und scripts/skills/Invoke-Skill.ps1 nutzen, direkt oder nach der Anweisung
+workflows/evidence-report.md. Lade nur auftragsbezogene Skillmetadaten und einen
+passenden Workflow über scripts/context/Get-WorkContext.ps1; keine Rollenindizes.
+Es gelten docs/contracts/SKILLS.md, konkrete Seiteneffektfreigaben und aktuelle
+Ausführungsverbote. Keine Zustimmung aus Workflow oder Registry ableiten.
+Die vollständige JSON-Antwort unverändert erhalten: isSuccessful prüfen,
+bei Erfolg mit exception=null result verwenden; bei Fehler exception als
+strukturiertes Objekt berichten und result erhalten. Kein Freitext-Parsing.
 '''
 
 model = "gpt-6.1-sol"
