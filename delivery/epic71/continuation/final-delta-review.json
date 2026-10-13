@@ -1,0 +1,598 @@
+﻿{
+    "recipient":  "teamleiter_agent_ressources",
+    "role":  "agent_ressources_qualitaetspruefung",
+    "work_item":  "epic71-final-thread-adoption",
+    "parent":  "epic71-source-delivery",
+    "asOf":  "2026-10-13T08:19:06.2121636Z",
+    "condition":  "Exact integration thread/read returns interrupted; integration-independent-review.md/json absent",
+    "verdict":  "Rework",
+    "basis":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "branch":  "feature/epic71-product-management-20261013",
+    "head":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+    "localDevelop":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "results":  {
+                    "Host":  "Pass bounded source delta",
+                    "Event":  "Pass bounded source delta",
+                    "Starter":  "Rework D1",
+                    "HumanPreservation":  "Pass structural delta only",
+                    "TokenPreservation":  "Upstream text preserved, PM resume semantics Rework D1",
+                    "Delivery":  "Rework D2-D3"
+                },
+    "defects":  [
+                    {
+                        "id":  "D1",
+                        "severity":  "high",
+                        "kind":  "implementation",
+                        "scope":  "PM Starter / token semantics",
+                        "evidence":  [
+                                         "ProductManagement.psm1:177-182 existing thread resume",
+                                         "Start-DelegatedCodexTask.ps1:1064-1075 common resumed ACK",
+                                         "Start-DelegatedCodexTask.ps1:882-889 tokenUsage.total assigned as own measurement",
+                                         "Start-DelegatedCodexTask.ps1:1153-1156 finalized",
+                                         "Start-DelegatedCodexTask.ps1:95-97 and 1182-1183 publication"
+                                     ],
+                        "finding":  "A resumed PM thread can contain prior turns. Exact current turn notification matching does not make cumulative thread total a current-turn measurement. Prior token totals can be attributed again to the new task; ledger source still claims app_server_fresh_thread_single_turn.",
+                        "example":  "If prior thread total is 1000 and this turn adds 100, the path records cumulative 1100 as own usage instead of 100. Arithmetic illustration, not a runtime observation.",
+                        "required":  "Use an exact current-turn native measurement or a proven baseline/delta with identity and completeness; otherwise preserve unknown/null. Distinguish resumed thread evidence from fresh-thread source metadata. No fix authorized here."
+                    },
+                    {
+                        "id":  "D2",
+                        "severity":  "medium",
+                        "kind":  "delivery_evidence",
+                        "scope":  "Packaging report/manifest",
+                        "evidence":  [
+                                         "delivery-packaging-report.json:11-19 sourceBinding",
+                                         "delivery-packaging-manifest.json:10-18 binding",
+                                         "README.md isolation section",
+                                         "continuation/criteria.json:13-19"
+                                     ],
+                        "finding":  "All seven machine-readable sourceBinding/binding fields are null despite concrete binding in README and criteria. Thus packaging metadata is incomplete, not evidence of absent source implementation.",
+                        "required":  "Teamleitung must have the delivery binding completed by an authorized writer; retain existing files in this task."
+                    },
+                    {
+                        "id":  "D3",
+                        "severity":  "medium",
+                        "kind":  "delivery_evidence",
+                        "scope":  "README / continuation current status",
+                        "evidence":  [
+                                         "README.md:3,9-10",
+                                         "continuation/criteria.json:8-9",
+                                         "continuation/issue-completion-proposal.json missing independent_index_review",
+                                         "index-review-continuation.md Pass",
+                                         "final-thread-adoption.json exact interrupted turns"
+                                     ],
+                        "finding":  "Current entry still says independent index review pending. Received index source Pass exists even though runner result/final answer is missing. Integration now has a narrow Rework finding, not a completed Pass. Packaging snapshot must be retained and supplemented for current handoff.",
+                        "required":  "Adopt index source Pass with boundaries; report integration Rework and own parent acceptance separately. No issue status mutation."
+                    }
+                ],
+    "diffs":  [
+                  {
+                      "path":  "scripts/Start-CoordinatorHost.ps1",
+                      "basis":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                      "diff":  "diff --git a/scripts/Start-CoordinatorHost.ps1 b/scripts/Start-CoordinatorHost.ps1\nindex fce2084..79fe0aa 100644\n--- a/scripts/Start-CoordinatorHost.ps1\n+++ b/scripts/Start-CoordinatorHost.ps1\n@@ -44,16 +44,21 @@ $session=$null\n $runtimePid=$null; $runtimeStartedAtUtc=$null\n $hostOutcome=[pscustomobject]@{Classification=\u0027Running\u0027;RetryAllowed=$false;Reason=$null;CleanupConfirmed=$false}\n $callerInputs=[ordered]@{}\n foreach($name in @(\u0027DataDirectory\u0027,\u0027WorkingDirectory\u0027,\u0027RuntimeExecutable\u0027,\u0027AccountingDirectory\u0027,\u0027WorkItemStorePath\u0027,\u0027EventJournalPath\u0027,\u0027ResultDirectories\u0027,\u0027RegistryDirectory\u0027,\u0027NativeInventoryPath\u0027,\u0027CompleteEpoch\u0027,\u0027AutomationCapacity\u0027,\u0027RuntimeArguments\u0027)){if($PSBoundParameters.ContainsKey($name)){$callerInputs[$name]=Get-Variable -Name $name -ValueOnly}}\n try {\n     $CoordinatorJobPath=[IO.Path]::GetFullPath($CoordinatorJobPath);$CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)\n     $rootJob=\u0026 $contextModule {param($p)Read-ContextJson $p} $CoordinatorJobPath\n     $launch=\u0026 $contextModule {param($p)Read-ContextJson $p} $CoordinatorLaunchConfigPath\n+    $productReference=Get-CoordinatorConfigValue $launch \u0027productManagement\u0027\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot \u0027productmanagement/ProductManagement.psm1\u0027)\n+        [void](Read-ProductConfiguration $productReference)\n+    }\n     foreach($name in $callerInputs.Keys){$supplied=$callerInputs[$name];$expected=switch($name){\u0027DataDirectory\u0027{$rootJob.coordinator_launch.dataDirectory};\u0027WorkingDirectory\u0027{$rootJob.cwd};\u0027RuntimeExecutable\u0027{$launch.runtimeExecutable};\u0027AccountingDirectory\u0027{$rootJob.accounting_directory};\u0027WorkItemStorePath\u0027{$launch.workItemStorePath};\u0027EventJournalPath\u0027{$launch.eventJournalPath};\u0027ResultDirectories\u0027{$launch.resultDirectories};\u0027RegistryDirectory\u0027{$launch.registryDirectory};\u0027NativeInventoryPath\u0027{$launch.nativeInventoryPath};\u0027CompleteEpoch\u0027{$launch.completeEpoch};\u0027AutomationCapacity\u0027{$rootJob.admission_capacity};\u0027RuntimeArguments\u0027{$launch.runtimeArguments}}\n         if($name -in @(\u0027ResultDirectories\u0027,\u0027RuntimeArguments\u0027)){$equal=(ConvertTo-Json -InputObject @($supplied) -Depth 10 -Compress) -ceq (ConvertTo-Json -InputObject @($expected) -Depth 10 -Compress)}elseif($name -in @(\u0027AutomationCapacity\u0027)){$equal=[int]$supplied -eq [int]$expected}elseif($expected -and $supplied){$equal=[IO.Path]::GetFullPath([string]$supplied) -ceq [IO.Path]::GetFullPath([string]$expected)}else{$equal=([string]$supplied) -ceq ([string]$expected)}\n         if(-not $equal){throw (\u0027BlockedRecovery: caller-supplied root input mismatch: \u0027+$name)}\n     }\n     if(-not $TaskId -or $rootJob.role -cne \u0027koordinator\u0027 -or $rootJob.parent_task_id -or $rootJob.parent_job_path -or $rootJob.work_item_id -or $rootJob.execution_id -or $rootJob.work_item_request_path -or $rootJob.task_id -cne $TaskId -or (\u0026 $contextModule {param($j)Get-ExecutionJobHash $j} $rootJob) -cne $CoordinatorJobHash -or $rootJob.coordinator_launch.inputPath -cne $CoordinatorLaunchConfigPath -or $rootJob.coordinator_launch.inputHash -cne $CoordinatorLaunchConfigHash -or (\u0026 $contextModule {param($b)Get-ContextHash $b} ([IO.File]::ReadAllBytes($CoordinatorLaunchConfigPath))) -cne $CoordinatorLaunchConfigHash){throw \u0027BlockedRecovery: root ownership or launch input mismatch.\u0027}\n     if(-not $AccountingDirectory -or [IO.Path]::GetFullPath($AccountingDirectory) -cne [IO.Path]::GetFullPath($rootJob.accounting_directory) -or [IO.Path]::GetFullPath($WorkingDirectory) -cne [IO.Path]::GetFullPath($rootJob.cwd) -or [IO.Path]::GetFullPath($rootJob.coordinator_launch.dataDirectory) -cne [IO.Path]::GetFullPath($DataDirectory) -or [int]$rootJob.coordinator_launch.capacity -ne [int]$rootJob.admission_capacity){throw \u0027BlockedRecovery: root job accounting/CWD/data/capacity mismatch.\u0027}\n     if(-not $PinnedDataDirectory -or [IO.Path]::GetFullPath($PinnedDataDirectory) -cne [IO.Path]::GetFullPath($DataDirectory) -or [IO.Path]::GetFullPath($PinnedWorkingDirectory) -cne [IO.Path]::GetFullPath($WorkingDirectory) -or [int]$PinnedCapacity -ne [int]$rootJob.admission_capacity -or [IO.Path]::GetFullPath($PinnedAccountingDirectory) -cne [IO.Path]::GetFullPath($AccountingDirectory) -or [IO.Path]::GetFullPath($PinnedRuntimeExecutable) -cne [IO.Path]::GetFullPath($launch.runtimeExecutable) -or [IO.Path]::GetFullPath($PinnedCodexHome) -cne [IO.Path]::GetFullPath($launch.codexHome) -or (ConvertTo-Json -InputObject @($RuntimeArguments) -Compress) -cne (ConvertTo-Json -InputObject @($launch.runtimeArguments) -Compress)){throw \u0027BlockedRecovery: supervisor root launch group differs from pinned launch input.\u0027}\n     $WorkItemStorePath=[IO.Path]::GetFullPath($launch.workItemStorePath);$EventJournalPath=[IO.Path]::GetFullPath($launch.eventJournalPath);$RegistryDirectory=[IO.Path]::GetFullPath($launch.registryDirectory);$ResultDirectories=@($launch.resultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});$NativeInventoryPath=$launch.nativeInventoryPath;$CompleteEpoch=$launch.completeEpoch;$AutomationCapacity=[int]$rootJob.admission_capacity\n@@ -71,16 +76,23 @@ try {\n     if ($null -eq $session) {\n         $session=[pscustomobject]@{SchemaVersion=1;LogicalSessionId=[guid]::NewGuid().ToString(\u0027N\u0027);NativeThreadId=$null;State=\u0027BlockedRecovery\u0027;Revision=0;LastRequestId=$null;LastTurnId=$null;LastOutcome=$null;LastError=\u0027Controlled first handoff required\u0027;ResumeAttempts=0;RequestHistory=@();LastUsage=$null;AccountingError=$null;RuntimePid=$null;RuntimeStartedAtUtc=$null;Cwd=[IO.Path]::GetFullPath($WorkingDirectory);RuntimeExecutable=$null;CodexHome=$null;HistoryBase=$null;AllowProvisioning=[bool]$TestMode;OwnerPid=$PID;OwnerStartedUtc=$owner.OwnerStartedUtc;RootTaskId=$rootJob.task_id;CoordinatorJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;CoordinatorLaunchConfigPath=$CoordinatorLaunchConfigPath;CoordinatorLaunchConfigHash=$CoordinatorLaunchConfigHash;StorePath=$WorkItemStorePath;AccountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory);EventJournalPath=$EventJournalPath;RegistryDirectory=$RegistryDirectory;ResultDirectories=@($ResultDirectories);NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AutomationCapacity=$AutomationCapacity;RuntimeArguments=@($launch.runtimeArguments);CreatedAtUtc=[DateTime]::UtcNow.ToString(\u0027o\u0027)}\n         Write-CoordinatorAtomicJson $path $session\n     }\n     foreach($pair in @(@(\u0027ResumeAttempts\u0027,0),@(\u0027LastUsage\u0027,$null),@(\u0027RequestHistory\u0027,@()),@(\u0027AccountingError\u0027,$null),@(\u0027RuntimePid\u0027,$null),@(\u0027RuntimeStartedAtUtc\u0027,$null),@(\u0027RuntimeExecutable\u0027,$null),@(\u0027CodexHome\u0027,$null),@(\u0027HistoryBase\u0027,$null))) {\n         if(-not $session.PSObject.Properties[$pair[0]]) { $session | Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] }\n     }\n     if ($session.PSObject.Properties.Name -notcontains \u0027NativeThreadId\u0027) { throw \u0027BlockedRecovery: Session contract incomplete.\u0027 }\n+    $savedProductReference=Get-CoordinatorConfigValue $session \u0027ProductManagement\u0027\n+    if ($savedProductReference -and (ConvertTo-Json -InputObject $savedProductReference -Compress) -cne (ConvertTo-Json -InputObject $productReference -Compress)) { throw \u0027BlockedRecovery: Product configuration changed; explicit recovery required.\u0027 }\n+    if ($productReference -and -not $savedProductReference) {\n+        if ($session.NativeThreadId) { throw \u0027BlockedRecovery: Existing host requires reviewed product configuration migration.\u0027 }\n+        $session | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n+        Write-CoordinatorAtomicJson $path $session\n+    }\n     if ($null -ne $session.RuntimePid) {\n         $validatedRuntimePid=0\n         if (-not [int]::TryParse([string]$session.RuntimePid,[ref]$validatedRuntimePid) -or $validatedRuntimePid -le 0) { throw \u0027BlockedRecovery: persisted runtime PID is invalid; no process was stopped.\u0027 }\n         $old=$null\n         $missing=$false\n         try { $old=[Diagnostics.Process]::GetProcessById($validatedRuntimePid) }\n         catch {\n             $exception=$_.Exception\n@@ -180,16 +192,17 @@ try {\n             try { if (-not $line -or $utf8.GetByteCount($line) -gt 1048576) { throw \u0027Bad request\u0027 };$request=$line|ConvertFrom-Json -ErrorAction Stop;if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory};$response=Invoke-CoordinatorTurn $runtime $session $path $request }\n             catch { $response=@{status=\u0027Rejected\u0027;message=$_.Exception.Message} }\n             $writer=New-Object IO.StreamWriter($server,$utf8,4096,$true);$writer.AutoFlush=$true;$writer.WriteLine((ConvertTo-Json -InputObject $response -Depth 20 -Compress));$writer.Dispose();$reader.Dispose();$server.Dispose()\n         }\n     } else {\n         # Production host remains resident; callers use the single local dispatcher.\n         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq \u0027completed\u0027}|Select-Object -Last 1)\n         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties[\u0027retryBaseSeconds\u0027]){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties[\u0027retryCeilingSeconds\u0027]){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties[\u0027retryAttemptCeiling\u0027]){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties[\u0027eventBatchLimit\u0027]){[int]$launch.eventBatchLimit}else{256})}\n+        $automationConfig | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)\n             if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}\n             $response=Invoke-CoordinatorTurn $runtime $session $path $request\n             $requestHistory=@((Get-CoordinatorHistory $session)|Where-Object{$_.requestId -ceq [string]$request.requestId})\n             if($requestHistory.Count -eq 1 -and $requestHistory[0].outcome -ceq \u0027completed\u0027 -and $requestHistory[0].decision -and $requestHistory[0].decision.outcome -ceq \u0027completed\u0027){\n                 try { Update-CoordinatorAutomationParentContext $automationConfig $session ([string]$request.requestId) \u0027completed\u0027 }\n                 catch { Write-Warning (\u0027Coordinator parent context refresh failed for completed request \u0027+[string]$request.requestId+\u0027: \u0027+$_.Exception.Message) }\n             }",
+                      "sha256Utf8WithoutTrailingNewline":  "3a001d7650666019cc5d093348280a9fd39bfa5309a0d634896adc7997dd1518"
+                  },
+                  {
+                      "path":  "scripts/coordinator/CoordinatorAutomation.psm1",
+                      "basis":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                      "diff":  "diff --git a/scripts/coordinator/CoordinatorAutomation.psm1 b/scripts/coordinator/CoordinatorAutomation.psm1\nindex efeb052..0326a70 100644\n--- a/scripts/coordinator/CoordinatorAutomation.psm1\n+++ b/scripts/coordinator/CoordinatorAutomation.psm1\n@@ -471,26 +471,36 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho\n     if ($bound.Count -gt 1) { throw \u0027EventDispatchBindingConflict\u0027 }\n     $dispatch = $null\n     $purpose = \u0027coordinator-event\u0027\n     $workId = \u0027event-\u0027 + [string]$Event.id\n     if ($bound.Count -eq 1) {\n         $dispatch = \u0026 $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath ([string]$bound[0].executionId)\n         if (-not $dispatch -or @($dispatch.eventIds | Where-Object { $_ -ceq [string]$Event.id }).Count -eq 0 -or [string](Get-AutomationValue $dispatch.input \u0027eventId\u0027) -cne [string]$Event.id) { throw \u0027EventDispatchBindingConflict\u0027 }\n     } else {\n+        $productContext=$null\n+        $productReference=Get-AutomationValue $Config \u0027ProductManagement\u0027\n+        if ($productReference) {\n+            Import-Module (Join-Path $PSScriptRoot \u0027../productmanagement/ProductManagement.psm1\u0027)\n+            $productBinding=Get-ProductBinding $productReference ([string](Get-AutomationValue $Event.payload \u0027workItemId\u0027)) @($Snapshot.Document.items)\n+            if ($productBinding) {\n+                $productContext=Get-ProductContext $productBinding $Config.DataDirectory @((Get-AutomationValue $Event.payload \u0027documentIds\u0027 @())) @((Get-AutomationValue $Event.payload \u0027decisionIds\u0027 @()))\n+            }\n+        }\n         $turnInput = [ordered]@{\n             eventId = [string]$Event.id; kind = [string]$Event.kind; sourceId = [string]$Event.sourceId; payload = $Event.payload\n             storeRevision = [string]$Snapshot.Revision; workItems = @($Snapshot.Document.items); logicalSessionId = $LogicalSessionId\n             resumeSources = @(Get-LCResumePromptBindings $Config $Event $Snapshot)\n             effectProtocol = @{\n                 version = \u00271\u0027; disposition = \u0027apply|no_change\u0027; finalResponse = \u0027Emit exactly one final agentMessage JSON object; no markdown.\u0027\n                 schema = @{ version = \u00271\u0027; disposition = \u0027apply|no_change\u0027; reason = \u0027non-empty string\u0027; commands = @(\u0027set_workitem{id,isNew,item}\u0027, \u0027request_rework{workItemId,purpose,priorExecutionId,priorGeneration,reason}\u0027, \u0027propose_resume{workItemId,triggerEventId,requestedAt,responseHash,sourceRevision,priorExecutionId,priorGeneration,disposition:resume|keep_blocked,reason,assessmentText}\u0027) }\n                 rules = @(\u0027no_change requires commands=[] and an event-specific reason\u0027, \u0027apply requires at least one command\u0027, \u0027Only these command kinds are allowed\u0027, \u0027blocked transitions require propose_resume as first command; bind eventId and storeRevision exactly, requestedAt=null without humanInteraction; responseHash is SHA256 UTF8 compact JSON response including null; priorGeneration=0 and priorExecutionId=null only before any execution; otherwise use the exact returned prior execution and generation; keep_blocked consumes this trigger without starting work; wake IDs are not authority\u0027, \u0027Do not execute store or filesystem writes; report intended effects as commands only\u0027)\n             }\n         }\n+        if ($productContext) { $turnInput.productContext=$productContext }\n         $dispatch = \u0026 $DispatchModule { param($p, $id, $pur, $gen, $input, $events) Start-CoordinatorDispatch -JournalPath $p -WorkItemId $id -Purpose $pur -Generation $gen -Input $input -EventIds $events } $dispatchPath $workId $purpose 1 $turnInput @([string]$Event.id)\n     }\n     $serialized = ConvertTo-Json -InputObject $dispatch.input -Depth 50 -Compress\n     if ((Get-AutomationHash $serialized) -cne [string]$dispatch.inputHash) { throw \u0027DispatchInputIntegrityMismatch\u0027 }\n     return $dispatch\n }\n \n function Invoke-CoordinatorEventTurn($Config, $Runtime, $Session, [string]$SessionPath, $Event, $Snapshot, $DispatchModule) {",
+                      "sha256Utf8WithoutTrailingNewline":  "60ee316fd6364039626fdfff7c75cd998feacddd09bbcdf3c134348cc8c677d6"
+                  },
+                  {
+                      "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                      "basis":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                      "diff":  "diff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1\nindex a4066bc..b6a01b6 100644\n--- a/scripts/delegation/Start-DelegatedCodexTask.ps1\n+++ b/scripts/delegation/Start-DelegatedCodexTask.ps1\n@@ -870,16 +870,20 @@ $evidence = [ordered]@{\n     parent_context_path=$job.parent_context_path;parent_context_hash=$job.parent_context_hash;request_hash=$job.request_hash\n     start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash\n     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false\n     roleId=$job.role; modelId=$null; reasoningEffort=$null; measurementUTC=$null; measurementObservedAtUTC=$null; metadataSources=@()\n }\n $notifications = New-Object System.Collections.Generic.List[object]\n $progressState = New-ProgressState\n $process = $null\n+$productActivation = $null\n+$productBinding = $null\n+$productContext = $null\n+$productReleaseConfirmed = $false\n function Update-NativeUsage($Notification) {\n     if ($Notification.method -eq \u0027thread/tokenUsage/updated\u0027 -and\n         $evidence.thread_id -and $evidence.turn_id -and\n         $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {\n         # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.\n         $evidence.token_usage = $Notification.params.tokenUsage.total\n         # Observation of the actual own native measurement, before publication.\n         $evidence[\u0027measurementObservedAtUTC\u0027] = [DateTime]::UtcNow.ToString(\"yyyy-MM-dd\u0027T\u0027HH:mm:ss.fffffff\u0027Z\u0027\")\n@@ -1030,23 +1034,50 @@ try {\n     $runnerAdmissionPolicy=Get-AdmissionField $pinnedRootLaunch \u0027admissionPolicy\u0027\n     $runnerScanBudgetValue=Get-AdmissionField $runnerAdmissionPolicy \u0027scanBudgetMilliseconds\u0027 $null\n     if($null -eq $runnerScanBudgetValue -or [int]$runnerScanBudgetValue -le 0){throw \u0027AdmissionPolicyInvalid\u0027}\n     $runnerScanBudget=[int]$runnerScanBudgetValue\n     $setDiagnosticOwnership={param($hash)$script:admissionDiagnosticRequestHash=$hash}\n     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot \u0027..\\coordinator\\Register-CoordinatorExecution.ps1\u0027) $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)\n     $capability=Get-AdmissionInstalledContract $script:admissionProvider\n     if(-not $capability.api -or $capability.completionMode -eq \u0027Unknown\u0027){throw (\u0027AdmissionUnknown: MissingExternalAccess:\u0027+($capability.missing -join \u0027,\u0027))}\n-    Send-Rpc \u0027thread/start\u0027 @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n-    $thread = Wait-Rpc 2\n+    $productReference=Get-AdmissionField $pinnedRootLaunch \u0027productManagement\u0027\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot \u0027../productmanagement/ProductManagement.psm1\u0027)\n+        $productItems=@()\n+        if ($jobSsotMode) {\n+            $productSnapshot=\u0026 (Join-Path $PSScriptRoot \u0027../workitems/Get-WorkItems.ps1\u0027) -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot\n+            $productItems=@($productSnapshot.Document.items)\n+        }\n+        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems\n+        if ($job.role -ceq \u0027produktmanagement_pm_strategie\u0027 -and -not $productBinding) { throw \u0027ProductSolutionAssignmentMissing\u0027 }\n+        if ($job.role -ceq \u0027produktmanagement_pm_strategie\u0027) {\n+            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @(\u0027planned\u0027,\u0027in_progress\u0027,\u0027rework\u0027) })\n+            if ($ownedPM.Count -ne 1) { throw \u0027ProductPMWorkItemOwnerOrStateChanged\u0027 }\n+        }\n+        if ($productBinding) {\n+            $selected=Get-AdmissionField $productBinding.solution \u0027activationDocumentIds\u0027 @()\n+            $selectedDecisions=Get-AdmissionField $productBinding.solution \u0027activationDecisionIds\u0027 @()\n+            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)\n+        }\n+    } elseif ($job.role -ceq \u0027produktmanagement_pm_strategie\u0027) { throw \u0027ProductConfigurationAndOwnerAssignmentMissing\u0027 }\n+    if ($productBinding -and $job.role -ceq \u0027produktmanagement_pm_strategie\u0027) {\n+        # This remains the existing visible, admitted specialist runner.\n+        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}\n+        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc\n+        $thread=$productActivation.reply\n+    } else {\n+        Send-Rpc \u0027thread/start\u0027 @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n+        $thread = Wait-Rpc 2\n+    }\n     $evidence.thread_id = $thread.thread.id\n     # Resolved thread/start response, never requested/current TOML settings.\n     # This runner starts exactly one turn on a fresh thread, without overrides.\n     if(-not $evidence.thread_id){throw \u0027AdmissionUnknown: NativeThreadACKMissing\u0027}\n-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}\n+    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}\n     $nativeAckPath=Join-Path ($JobFile+\u0027.inventory\u0027) ((Get-AdmissionObjectHash $nativeAck)+\u0027.thread-ack.json\u0027)\n     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable\n     foreach($field in @(\u0027model\u0027,\u0027reasoningEffort\u0027)) {\n         $property=$thread.PSObject.Properties[$field]\n         if($null -ne $property -and $property.Value -is [string] -and $property.Value -cmatch \u0027^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$\u0027) {\n             $target=if($field -ceq \u0027model\u0027){\u0027modelId\u0027}else{\u0027reasoningEffort\u0027}\n             $evidence[$target]=$property.Value\n             $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis=\u0027resolved fresh thread defaults; turn/start has no model or effort override\u0027})\n@@ -1075,20 +1106,22 @@ try {\n     $contextCli = \"\u0026 \u0027$contextRootHint\\scripts\\context\\Get-WorkContext.ps1\u0027 -RepositoryRoot \u0027$contextRootHint\u0027\"\n     $text += \"`n`nWissens-/Workflowhinweis (PowerShell; Beispiele gezielt an den Auftrag anpassen):`nSelektive Indexsuche: \" + $contextCli + \" -Kind all -Terms @(\u0027Suchbegriff\u0027)`nNur ausgewaehlte passende Eintraege lesen: \" + $contextCli + \" -Kind knowledge -Path \u0027entries/pfad.md\u0027`nOder Workflow lesen: \" + $contextCli + \" -Kind workflow -Path \u0027pfad.md\u0027`nSuchbegriff durch auftragsbezogene Suchwoerter ersetzen; -Path exakt aus RelativePath des ausgewaehlten Treffers uebernehmen. Apostrophe in Suchwoertern und Pfaden innerhalb einfacher PowerShell-Anfuehrungszeichen verdoppeln. Treffer anhand Quelle, WorkItem, Gueltigkeitskontext und Anwendbarkeit eigenstaendig pruefen; die Auswahl bleibt beim Agenten. Einen passenden Workflow selektiv lesen und im Rahmen des Auftrags verwenden. Ohne Treffer oder passenden Workflow die Arbeit anhand des verbindlichen Auftrags und geltender Projektregeln fortsetzen; keine Wahl erzwingen. Readerdiagnosen sind keine bestaetigte Trefferfreiheit. Workflows erteilen keinerlei Freigaben, ersetzen keine fehlende Spezifikation und umgehen keine erforderliche Freigabe. Bestehende Zustaendigkeiten und Ansprechpartner bleiben unveraendert; fehlende Spezifikation an den bestehenden Ansprechpartner melden.\"\n     if ($jobSsotMode) {\n         $env:AGENT_ORG_PARENT_TASK_ID = [string]$job.task_id\n         $env:AGENT_ORG_PARENT_JOB_FILE = $resultFile + \u0027.job.json\u0027\n         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash\n     }\n     $turnStartRpcId=3\n+    if ($productContext) { $text += \"`n`nSolution context (selected owner documents and reviewed memory):`n\" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }\n     Send-Rpc \u0027turn/start\u0027 @{ threadId = $evidence.thread_id; input = @(@{ type = \u0027text\u0027; text = $text }) } $turnStartRpcId\n     $evidence.model_started = $true\n     $turn = Wait-Rpc 3\n     $evidence.turn_id = $turn.turn.id\n+    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }\n     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null\n     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){\n         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot \u0027..\\workitems\\CoordinatorExecutionContext.psm1\u0027) -PassThru -Force\n         $payloadBytes=[Text.Encoding]::UTF8.GetBytes([string]$job.payload_hash);$turnAuthorityHash=\u0026 $contextModuleRunner {param($b)Get-ContextHash $b} $payloadBytes\n         $ackBytes=$utf8.GetBytes(($turn|ConvertTo-Json -Depth 50 -Compress));$ackHash=\u0026 $contextModuleRunner {param($b)Get-ContextHash $b} $ackBytes\n         $turnRequestId=if($jobSsotMode){[string]$job.execution_id}else{[string]$turnStartRpcId}\n         $turnSessionId=if($jobSsotMode){[string]$job.execution_id}else{[string]$script:admissionProvider.generation}\n         $turnContext=\u0026 $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome Running -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory \u0027contexts\u0027) ($resultFile+\u0027.job.json\u0027) $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $ackHash\n@@ -1105,16 +1138,17 @@ try {\n         Get-PublicProgress $notification $evidence.thread_id $evidence.turn_id $progressState | ForEach-Object { Write-ProgressDisplay $_ }\n     }\n     $completion = $null\n     while ($null -eq $completion) {\n         $completion = $notifications | Where-Object { $_.method -eq \u0027turn/completed\u0027 -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turn.id -ceq $evidence.turn_id } | Select-Object -Last 1\n         if ($null -eq $completion) { [void](Read-Rpc) }\n     }\n     $evidence.terminal_outcome = $completion.params.turn.status\n+    if ($productActivation) { Complete-ProductSession $productActivation $completion }\n     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=\u0026 $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq \u0027completed\u0027){\u0027Completed\u0027}elseif($evidence.terminal_outcome -eq \u0027interrupted\u0027){\u0027Interrupted\u0027}else{\u0027Failed\u0027};$terminalContext=\u0026 $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory \u0027contexts\u0027) ($resultFile+\u0027.job.json\u0027) $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}\n     $evidence.output = ($notifications | Where-Object { $_.method -eq \u0027item/completed\u0027 -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq \u0027agentMessage\u0027 } | ForEach-Object { [string]$_.params.item.text }) -join \"`n\"\n     $finalItems = @($notifications | Where-Object { $_.method -eq \u0027item/completed\u0027 -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq \u0027agentMessage\u0027 -and $_.params.item.phase -eq \u0027final_answer\u0027 })\n     if ($finalItems.Count -eq 1) { $evidence.final_answer = [string]$finalItems[0].params.item.text }\n     # Unterstützter Roundtrip: auch nach turn/completed noch eintreffende Usage lesen.\n \n     $deadline = [DateTime]::UtcNow.AddSeconds(10)\n     Send-Rpc \u0027thread/read\u0027 @{ threadId = $evidence.thread_id; includeTurns = $false } 5\n@@ -1171,29 +1205,34 @@ try {\n                 \u0026 (Join-Path $RepositoryRoot \u0027scripts\\workitems\\Complete-DelegatedWorkItem.ps1\u0027) -StorePath $job.work_item_store_path -RepositoryRoot $RepositoryRoot -WorkItemId $job.work_item_id -ExecutionId $job.execution_id -ResultPath $resultFile\n             }\n         } catch {\n             $evidence | Add-Member -NotePropertyName transfer_error -NotePropertyValue (\u0027WorkItem-Store-Uebernahme fehlgeschlagen: \u0027 + $_.Exception.Message) -Force\n             Write-Json $resultFile $evidence\n         }\n     }\n     if ($job.registry_directory -and $job.registry_dispatch_id) {\n-        try { Complete-BoundRegistryJob $job } catch { Write-Host (\u0027Reservation retained for recovery: \u0027+$_.Exception.Message) }\n+        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host (\u0027Reservation retained for recovery: \u0027+$_.Exception.Message) }\n     }\n     if ($process) {\n         try { $process.StandardInput.Close() } catch { }\n-        [void]$process.WaitForExit(3000)\n+        $processExitConfirmed=$process.WaitForExit(3000)\n+        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence \u0027transfer_error\u0027) -and $productActivation.session.state -ceq \u0027TerminalPendingTransfer\u0027) {\n+            try { Publish-ProductSession $productActivation $resultFile }\n+            catch { Write-Host (\u0027Product session remains recovery-closed: \u0027+$_.Exception.Message) }\n+        }\n         $process.Dispose()\n     }\n     Write-Host (\u0027Resultat gesichert: \u0027 + $resultFile)\n     if (Test-Path -LiteralPath ($resultFile + \u0027.public.txt\u0027)) { Write-Host (\u0027Vollständige maskierte Darstellung: \u0027 + $resultFile + \u0027.public.txt\u0027) }\n     Write-Host ($(if ($evidence.usage_finalized) { \u0027Eigene Tokens: \u0027 } else { \u0027Vorläufig beobachtete eigene Tokens: \u0027 }) + (Format-TokenUsage $evidence.token_usage))\n     if ($evidence.token_summary) {\n         Write-Host (\u0027Inklusive Unteraufträgen: \u0027 + (Format-TokenUsage $evidence.token_summary.inclusive))\n         if ($evidence.token_summary.missing_count) { Write-Host (\u0027Bekannte Teilsumme: \u0027 + (Format-TokenUsage $evidence.token_summary.known_partial) + \u0027; unbekannte Aufgaben: \u0027 + $evidence.token_summary.missing_count) }\n     }\n     } finally {\n+        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }\n         if ($job.role -ceq \u0027koordinator\u0027) { [void](Read-Host \u0027Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen\u0027) }\n         elseif ($job.keep_window_open) { [void](Read-Host \u0027Zum Schließen Enter drücken\u0027) }\n         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,(\u0027AgentOrganizationTask.\u0027+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }\n     }\n }\n if (-not $evidence.success) { exit 2 }",
+                      "sha256Utf8WithoutTrailingNewline":  "83a4255e7010b77a57572e67d69f0fb4bd8997f0079a7c5bef134ba8b598d078"
+                  }
+              ],
+    "sources":  [
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\scripts\\Start-CoordinatorHost.ps1",
+                        "bytes":  29844,
+                        "sha256":  "3d47159f89b587cdda51faa8a57b2360122cea51584f9e0f2707af31a6e39bcb",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\scripts\\coordinator\\CoordinatorAutomation.psm1",
+                        "bytes":  81610,
+                        "sha256":  "37cc1701d6d584e421c876d1407583ddb60880bf2fd71d810df6b965679dc625",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\scripts\\delegation\\Start-DelegatedCodexTask.ps1",
+                        "bytes":  124039,
+                        "sha256":  "b2c22fc57f617c7a6afb9b06707037e26895ecba9da10aa65929b7f23c8aa274",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\scripts\\productmanagement\\ProductManagement.psm1",
+                        "bytes":  21365,
+                        "sha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                        "scope":  "Connection references only; no repeated R1-R4 review"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\README.md",
+                        "bytes":  5545,
+                        "sha256":  "b71771e42d7ff80eac8292fde8ecfe15778d1130cfb3f992f91088c7ecfd7045",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\criteria.json",
+                        "bytes":  8361,
+                        "sha256":  "c273fd13c2d74ca52790e55bb74b0dee771e130288631acc45e2ee6727a0258b",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\issue-completion-proposal.md",
+                        "bytes":  3688,
+                        "sha256":  "97bf5a87efb25c145f81182eeda3c9d4d5f28f37ef42b84cacb60eb3e899f4dc",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\issue-completion-proposal.json",
+                        "bytes":  2885,
+                        "sha256":  "b51f25f42efaab3f6db0e261ad1bb647b5b3bf00b5e9ef532b8807ef1ca96a77",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\task-result-summary.json",
+                        "bytes":  21652,
+                        "sha256":  "7e15d86ca76f8525affc60c6c36752afd36a8917dfa03ec9dd6ed932e3ce9d12",
+                        "scope":  "Assigned connection or delivery content"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-thread-read.md",
+                        "bytes":  1813,
+                        "sha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation.md",
+                        "bytes":  9538,
+                        "sha256":  "6e53da80fabe7378b0d974a0e1c1f1779239997363963b5fb00c463c545d12b3",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation.json",
+                        "bytes":  0,
+                        "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-report.md",
+                        "bytes":  3381,
+                        "sha256":  "84bdb6dfbdc1c2349adb8e2c6a5f21782e5c4797ddd57d4ec41fdecaaf5a9511",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-report.json",
+                        "bytes":  15134,
+                        "sha256":  "0548f4a01e5000036364f539c426972c06490ee3dc1a573d3fb1739dfcb0b343",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-manifest.json",
+                        "bytes":  40194,
+                        "sha256":  "2249eb46627e3298e9c33a26eb4685b01770e778fd8d2aab8c30cca911995d9e",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\develop-completion-report.md",
+                        "bytes":  8446,
+                        "sha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                        "scope":  "Supplied evidence; index reports are reused, no organization index loaded"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation-result.json.job.json",
+                        "bytes":  4864,
+                        "sha256":  "fb98220e440ab7fafcc696593e5ad9e39a01065141f1fa2c40fbdcd61b02b93e",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation-result.json.job.json.active.json",
+                        "bytes":  464,
+                        "sha256":  "d758d6b993e3e8a1b1a33c221ec0aa6ad3f3f0ea7fd18b56fd869614623ac41a",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation-result.json.window.json",
+                        "bytes":  222,
+                        "sha256":  "c379e5dfbebfb615041d2b85506fbc95e65d4753b4f56bfca21c0e4811f568f9",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-review-continuation-result.json.events.jsonl",
+                        "bytes":  2268137,
+                        "sha256":  "fe77f382e65a4363c3ba04391406e70e9e25b819c25e4ee789e8455779885312",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\integration-independent-review-result.json.job.json",
+                        "bytes":  4455,
+                        "sha256":  "0cf6fc99847db203c5e8e644379255276e573a4cc9d7c5e537ddcb7b81d6988d",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\integration-independent-review-result.json.job.json.active.json",
+                        "bytes":  472,
+                        "sha256":  "7e79a81a475920365850a67305b64eaed61a1e29aa9eacfe317938d4536dfb90",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\integration-independent-review-result.json.window.json",
+                        "bytes":  219,
+                        "sha256":  "452a6eacb6fda66aa7de93e236ef2bc3efb8c8f7ec3b83574376335fd5a09377",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\integration-independent-review-result.json.events.jsonl",
+                        "bytes":  3340120,
+                        "sha256":  "76ec8d70eda4cc45a02cd3e8c0f1c8b42888372a429db66183cee95997630c90",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-result.json.job.json",
+                        "bytes":  5557,
+                        "sha256":  "c8a100295da0707aa147402912e476446e0bd0d7db6200dfe166dafa38853491",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-result.json.job.json.active.json",
+                        "bytes":  464,
+                        "sha256":  "9932ffb2662e26580341233b9ce7b341897bdffb621535f5f7cdda67cff0146f",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-result.json.window.json",
+                        "bytes":  203,
+                        "sha256":  "3d4ad8905362a0c6d18af761c4c87e78e39c7963e3514f245151674506dbf66a",
+                        "scope":  "Exact task binding and received event evidence"
+                    },
+                    {
+                        "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\delivery-packaging-result.json.events.jsonl",
+                        "bytes":  3503645,
+                        "sha256":  "2839c66654557d6bdef573ccc53e573ea3a5aa7886df750749ce7b5bf8b4d109",
+                        "scope":  "Exact task binding and received event evidence"
+                    }
+                ],
+    "copiedEvidenceChecks":  [
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\qa-completion-review.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-completion-review.md",
+                                     "originalSha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                     "copySha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\qa-completion-review.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-completion-review.json",
+                                     "originalSha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                     "copySha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\contract-rework-report.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-report.md",
+                                     "originalSha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                     "copySha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\contract-rework-report.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-report.json",
+                                     "originalSha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                     "copySha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\contract-rework-manifest.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-manifest.json",
+                                     "originalSha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                     "copySha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\contract-rework.diff",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework.diff",
+                                     "originalSha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                     "copySha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\qa-contract-final-review.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-contract-final-review.md",
+                                     "originalSha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                     "copySha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\qa-contract-final-review.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-contract-final-review.json",
+                                     "originalSha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                     "copySha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-report.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-report.md",
+                                     "originalSha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                     "copySha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-report.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-report.json",
+                                     "originalSha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                     "copySha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-manifest.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-manifest.json",
+                                     "originalSha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                     "copySha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion.diff",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion.diff",
+                                     "originalSha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                     "copySha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\develop-completion-report.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-report.md",
+                                     "originalSha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                     "copySha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\develop-completion-report.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-report.json",
+                                     "originalSha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                     "copySha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\develop-completion-manifest.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-manifest.json",
+                                     "originalSha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                     "copySha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\develop-completion.diff",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion.diff",
+                                     "originalSha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                     "copySha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-observation.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-observation.md",
+                                     "originalSha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                     "copySha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-observation.json",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-observation.json",
+                                     "originalSha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                     "copySha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 },
+                                 {
+                                     "original":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-thread-read.md",
+                                     "copy":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-thread-read.md",
+                                     "originalSha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                     "copySha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                     "byteEqual":  true,
+                                     "matchesManifest":  true,
+                                     "contentReview":  "opaque evidence byte readback only"
+                                 }
+                             ],
+    "deliveryFileHashChecks":  [
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\README.md",
+                                       "sha256":  "b71771e42d7ff80eac8292fde8ecfe15778d1130cfb3f992f91088c7ecfd7045",
+                                       "manifestSha256":  "b71771e42d7ff80eac8292fde8ecfe15778d1130cfb3f992f91088c7ecfd7045",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-manifest.json",
+                                       "sha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                       "manifestSha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-report.json",
+                                       "sha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                       "manifestSha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework-report.md",
+                                       "sha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                       "manifestSha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\contract-rework.diff",
+                                       "sha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                       "manifestSha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\criteria.json",
+                                       "sha256":  "c273fd13c2d74ca52790e55bb74b0dee771e130288631acc45e2ee6727a0258b",
+                                       "manifestSha256":  "c273fd13c2d74ca52790e55bb74b0dee771e130288631acc45e2ee6727a0258b",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-manifest.json",
+                                       "sha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                       "manifestSha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-report.json",
+                                       "sha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                       "manifestSha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion-report.md",
+                                       "sha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                       "manifestSha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\develop-completion.diff",
+                                       "sha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                       "manifestSha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-manifest.json",
+                                       "sha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                       "manifestSha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-report.json",
+                                       "sha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                       "manifestSha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion-report.md",
+                                       "sha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                       "manifestSha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\index-completion.diff",
+                                       "sha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                       "manifestSha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\issue-completion-proposal.json",
+                                       "sha256":  "b51f25f42efaab3f6db0e261ad1bb647b5b3bf00b5e9ef532b8807ef1ca96a77",
+                                       "manifestSha256":  "b51f25f42efaab3f6db0e261ad1bb647b5b3bf00b5e9ef532b8807ef1ca96a77",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\issue-completion-proposal.md",
+                                       "sha256":  "97bf5a87efb25c145f81182eeda3c9d4d5f28f37ef42b84cacb60eb3e899f4dc",
+                                       "manifestSha256":  "97bf5a87efb25c145f81182eeda3c9d4d5f28f37ef42b84cacb60eb3e899f4dc",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-completion-review.json",
+                                       "sha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                       "manifestSha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-completion-review.md",
+                                       "sha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                       "manifestSha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-contract-final-review.json",
+                                       "sha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                       "manifestSha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\qa-contract-final-review.md",
+                                       "sha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                       "manifestSha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-observation.json",
+                                       "sha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                       "manifestSha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-observation.md",
+                                       "sha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                       "manifestSha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\retry-thread-read.md",
+                                       "sha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                       "manifestSha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                       "matchesManifest":  true
+                                   },
+                                   {
+                                       "path":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation\\delivery\\epic71\\continuation\\task-result-summary.json",
+                                       "sha256":  "7e15d86ca76f8525affc60c6c36752afd36a8917dfa03ec9dd6ed932e3ce9d12",
+                                       "manifestSha256":  "7e15d86ca76f8525affc60c6c36752afd36a8917dfa03ec9dd6ed932e3ce9d12",
+                                       "matchesManifest":  true
+                                   }
+                               ],
+    "inheritedIntegrationCommentary":  "Existing bound integration turn already identified tokenUsage.total resume defect; independently confirmed from current connection references, not accepted as a completed review",
+    "issueClosureRule":  {
+                             "missingFormsTestsRuntime":  "Not independent closure blockers per current explicit task rule",
+                             "missingOriginalBody":  "Evidence observation limit, not proof of missing implementation",
+                             "missingImplementationOrProductAssignment":  "Remain open where concretely unresolved; no closure inferred",
+                             "ground":  "unknown",
+                             "issueWrites":  false
+                         },
+    "parentAcceptance":  "not granted by specialist",
+    "ownMeasuredUsage":  null,
+    "subtasks":  [
+
+                 ],
+    "limitations":  [
+                        "Content/diff/references/SHA256 only; no current product function proof",
+                        "No tests, parser tests, validators, imports, product runtime, native/browser probes, installation, Actions or Git/issue/source writes",
+                        "No organizational indices loaded; supplied index review reused",
+                        "PR112 comparison and accepted R1-R4 including contract QA not repeated",
+                        "No global review, no delegation, no new or resumed or interrupted task",
+                        "Hash readback is a filesystem snapshot without lock; no later remote drift claim"
+                    ]
+}

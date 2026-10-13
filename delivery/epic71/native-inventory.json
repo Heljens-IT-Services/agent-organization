@@ -1,0 +1,118 @@
+{
+    "repository":  "Heljens-IT-Services/agent-organization",
+    "method":  "gh api repos/Heljens-IT-Services/agent-organization/issues/{n}/sub_issues --paginate",
+    "read_only":  true,
+    "coverage":  "Issues 71 through 80, each queried individually; recursion conditional on discovered native children, none discovered.",
+    "issues":  [
+                   {
+                       "issue":  71,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/71/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  72,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/72/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  73,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/73/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  74,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/74/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  75,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/75/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  76,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/76/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  77,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/77/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  78,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/78/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  79,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/79/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   },
+                   {
+                       "issue":  80,
+                       "endpoint":  "GET /repos/Heljens-IT-Services/agent-organization/issues/80/sub_issues --paginate",
+                       "exit_code":  0,
+                       "native_child_ids":  [
+
+                                            ],
+                       "result":  "[]",
+                       "error":  null,
+                       "recursive_followup":  "not applicable: no native children returned"
+                   }
+               ]
+}

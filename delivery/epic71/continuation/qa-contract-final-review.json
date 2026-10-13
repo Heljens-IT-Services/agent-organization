@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "workItemId": "QA71-04-contract-hash",
+  "parentWorkItemId": "epic71-contract-hash-rework",
+  "role": "agent_ressources_qualitaetspruefung",
+  "recipient": "teamleiter_agent_ressources",
+  "reviewDate": "2026-10-13",
+  "status": "targeted_content_review_pass",
+  "r4Verdict": "Pass",
+  "r4TechnicalVerdict": "Pass_preserved_from_previous_qa",
+  "preservedVerdicts": {"R1": "Pass", "R2": "Pass", "R3": "Pass"},
+  "remainingDefectsInAssignedScope": [],
+  "evidenceKind": "content_diff_references_and_original_byte_hashes_only",
+  "runtimeEvidence": false,
+  "parentAcceptance": null,
+  "predecessors": {
+    "qaTask": "6c69008f113344599282f57f1655472c",
+    "writerTask": "98563bc4af134927adc92259fb4975cf",
+    "terminalState": "completed_per_handoff_not_independently_requeried"
+  },
+  "scope": {
+    "delta": "implementation/docs/contracts/PRODUCTMANAGEMENT.md:37",
+    "normativeReference": "implementation/docs/contracts/PRODUCTMANAGEMENT.md:45",
+    "ownedOutputs": ["qa-contract-final-review.md", "qa-contract-final-review.json"],
+    "repeatedR1R3Review": false,
+    "organizationIndexLoaded": false,
+    "integrationReview": false,
+    "gitWrites": false,
+    "reservedResultWritten": false
+  },
+  "contractBinding": {
+    "expectedCurrentSha256": "15c9736cc78d4615b90d95ab1210b46fc8bc40a8bdc83253f602978e8ca11bef",
+    "actualCurrentSha256": "15c9736cc78d4615b90d95ab1210b46fc8bc40a8bdc83253f602978e8ca11bef",
+    "previousPrimarySha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+    "reverseSingleLineReplacementSha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+    "currentBytes": 12240,
+    "reconstructedPreviousBytes": 12128,
+    "diffLineCount": 5,
+    "diffHunk": "@@ -37 +37 @@",
+    "diffNewLineEqualsCurrentLine37": true,
+    "newFullLineOccurrences": 1,
+    "utf8RoundtripMatchesOriginalByteHash": true,
+    "line45AndOtherBytesPreservedUnderHashBinding": true,
+    "reconstructedSourceWritten": false,
+    "finding": "Line 37 now explicitly delegates product-decision-sha256:<hash> to the normative Get-ProductDecisionEnvelope/Get-LCBytes definition in line 45. The contradictory pure Decision hash formula is removed."
+  },
+  "sourceBindings": [
+    {"path": "implementation/scripts/productmanagement/ProductManagement.psm1", "sha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820", "previousQaHashMatched": true, "readLines": [78,79,82,83,84,85,86,87,88,224,225,226,227,228,229,230,231,232,233,234,235,258,259,260,261]},
+    {"path": "implementation/scripts/productmanagement/Get-ProductRecovery.ps1", "sha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193", "previousQaHashMatched": true, "readMode": "hash_only_no_repeated_R2_review"},
+    {"path": "implementation/scripts/productmanagement/New-ProductFeature.ps1", "sha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c", "previousQaHashMatched": true, "readLines": [35,36,37,38,39]},
+    {"path": "implementation/scripts/coordinator/Lifecycle.Persistence.ps1", "sha256": "8c75f5981e852e0a984ea74ff5270303102a7354f0f624179f7c7572e5860085", "previousQaHashMatched": true, "readLines": [1,2,3,4,5,6,7,8,9,10,11,12]},
+    {"path": "implementation/scripts/productmanagement/Save-ProductDecision.ps1", "sha256": "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c", "previousQaHashMatched": true, "readMode": "full_20_line_wrapper_content_only"}
+  ],
+  "artifactBindings": [
+    {"path": "qa-completion-review.md", "sha256": "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c", "manifestBindingMatched": true},
+    {"path": "qa-completion-review.json", "sha256": "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2", "manifestBindingMatched": true},
+    {"path": "contract-rework-report.md", "sha256": "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21", "manifestBindingMatched": true},
+    {"path": "contract-rework-report.json", "sha256": "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5", "manifestBindingMatched": true},
+    {"path": "contract-rework-manifest.json", "sha256": "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d", "readMode": "content_and_hash_no_self_hash_claim"},
+    {"path": "contract-rework.diff", "sha256": "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a", "manifestBindingMatched": true}
+  ],
+  "referencesConclusion": "Ordered envelope fields in ProductManagement:78-79 agree with contract:45; Save:228-229/234/260 and Feature:37-39 use that envelope digest and existing review binding. Persistence:10-11 specifies compact JSON Depth 100, strict UTF8 without BOM and SHA256. Wrapper:14-20 binds configuration and Solution before Save. Content read only; no functions invoked.",
+  "artifactConsistency": "Both reports and manifest agree on before/after hashes and line 37 delta. All three manifest artifact hashes, both QA hashes and both code reference hashes match independently read files.",
+  "openCriteria": {
+    "owner": "Binding identities, original sources and access remain externally open.",
+    "provider": "Current installed API/history/completion/restart support and authorized registry approval remain open.",
+    "product": "Real strategy/PO/handoff/outcome acceptance and measurements remain open.",
+    "ground": "Identity, sources and access remain open; no invented assignments.",
+    "runtime": "No acceptance/feature publication, activation, continuation, recovery, reminders/outbox/CAS or partial-publication resolution executed. Review snapshot is observational; no atomic Store/Memory transaction proven. Previous R1-R3 boundaries remain, including filesystem concurrency and two non-atomic publications.",
+    "parentAndExternalAcceptance": "Own parent acceptance and external criteria remain separate and open. Index and integration are outside assigned scope."
+  },
+  "limits": [
+    "Source findings are not current functional proof or overall package acceptance.",
+    "Hash readback is a snapshot without filesystem lock or future-state guarantee.",
+    "No tests, parser/validator runs, product runtime/native/browser probes, fixtures, installation, activation, module imports or Actions.",
+    "No organizational index content, delegation, Git mutation or window actions.",
+    "Initial read of a mistaken Lifecycle path failed; corrected to the path explicitly recorded in previous QA. No product conclusion inferred from that read error."
+  ],
+  "accounting": {"ownMeasuredTokenUsage": null, "subtasks": [], "predecessorUsageCountedAsOwn": false},
+  "memory": "Quick search yielded no relevant contract finding; no memory facts used."
+}

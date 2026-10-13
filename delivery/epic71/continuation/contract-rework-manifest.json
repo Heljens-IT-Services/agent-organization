@@ -1,0 +1,82 @@
+{
+    "workItem":  "epic71-contract-hash-rework",
+    "parentWorkItem":  "epic71-source-delivery",
+    "createdAt":  "2026-10-13T07:29:14.6605618Z",
+    "source":  {
+                   "path":  "docs/contracts/PRODUCTMANAGEMENT.md",
+                   "beforeSha256":  "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+                   "expectedBeforeSha256":  "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+                   "beforeHashMatched":  true,
+                   "afterSha256":  "15c9736cc78d4615b90d95ab1210b46fc8bc40a8bdc83253f602978e8ca11bef"
+               },
+    "exactDelta":  {
+                       "line":  37,
+                       "oldLine":  "`Save-ProductDecision.ps1` speichert nur explizite Records mit `id`, `date`, `context`, `reasons`, `alternatives`, `consequences`, `status`, gehashten JSON-Quellbelegen `sources` und `supersedes` (null oder Vorgängerhash). `proposed` ist ein Vorschlag. Für `accepted`/`rejected` muss der bestehende Reader ein akzeptiertes Review-WorkItem mit exakt `product-decision-sha256:\u003cSHA256(kompaktes UTF8 JSON der Decision)\u003e` im Ergebnisbeleg lesen. Der Record archiviert diese Reviewbytes und Store-Revision. Eine bloße Antwort oder Modellbehauptung reicht nicht. Dies übernimmt die vorhandene WorkItem-Reviewautorität; es führt keine neue authentifizierte Humanidentity ein.",
+                       "newLine":  "`Save-ProductDecision.ps1` speichert nur explizite Records mit `id`, `date`, `context`, `reasons`, `alternatives`, `consequences`, `status`, gehashten JSON-Quellbelegen `sources` und `supersedes` (null oder Vorgängerhash). `proposed` ist ein Vorschlag. Für `accepted`/`rejected` muss der bestehende Reader ein akzeptiertes Review-WorkItem mit exakt `product-decision-sha256:\u003chash\u003e` gemäß der normativen Umschlaghash-Definition im Abschnitt „Ereignisse, Backlog und Wirkung“ (`Get-ProductDecisionEnvelope` und `Get-LCBytes`) im Ergebnisbeleg lesen. Der Record archiviert diese Reviewbytes und Store-Revision. Eine bloße Antwort oder Modellbehauptung reicht nicht. Dies übernimmt die vorhandene WorkItem-Reviewautorität; es führt keine neue authentifizierte Humanidentity ein."
+                   },
+    "references":  [
+                       {
+                           "path":  "scripts/productmanagement/ProductManagement.psm1",
+                           "sha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                           "lines":  [
+                                         78,
+                                         79,
+                                         82,
+                                         85,
+                                         86,
+                                         87,
+                                         228,
+                                         229,
+                                         234,
+                                         235,
+                                         260
+                                     ],
+                           "readMode":  "targeted_read_only_content"
+                       },
+                       {
+                           "path":  "scripts/productmanagement/New-ProductFeature.ps1",
+                           "sha256":  "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+                           "lines":  [
+                                         36,
+                                         37,
+                                         38,
+                                         39
+                                     ],
+                           "readMode":  "targeted_read_only_content"
+                       }
+                   ],
+    "qaSources":  [
+                      {
+                          "path":  "qa-completion-review.md",
+                          "sha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c"
+                      },
+                      {
+                          "path":  "qa-completion-review.json",
+                          "sha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2"
+                      }
+                  ],
+    "artifacts":  [
+                      {
+                          "path":  "contract-rework-report.md",
+                          "sha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21"
+                      },
+                      {
+                          "path":  "contract-rework-report.json",
+                          "sha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5"
+                      },
+                      {
+                          "path":  "contract-rework.diff",
+                          "sha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a"
+                      }
+                  ],
+    "status":  "implemented_pending_independent_review",
+    "limits":  [
+                   "Nur Inhalt, Diff, Hashbindung und Referenzreadback; kein aktueller Funktionsnachweis.",
+                   "Keine Tests, Parser, Validatoren, Runtime-, native oder Browserproduktproben; kein Modulimport, keine Fixtures, Installation, Aktivierung oder Actions.",
+                   "Keine Organisationsindizes geladen, keine Delegation, keine Gitmutation oder externe Schreibaktion.",
+                   "Unabhängige Prüfung von Vertrag und neuer Hashbindung sowie eigene Elternabnahme bleiben offen.",
+                   "Keine Gesamtpaketabnahme; parallele Integrationsdateien und reserviertes Resultat liegen außerhalb dieses Beitrags.",
+                   "Get-LCBytes/Get-LCHash wurden nicht ausgeführt; Bytevorgabe wird durch unveränderte normative Zeile 45 und gelesene Aufrufstellen gebunden.",
+                   "Hashreadback ist eine Momentaufnahme ohne Dateisystemsperre."
+               ]
+}

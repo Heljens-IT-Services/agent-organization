@@ -1,0 +1,810 @@
+{
+    "recipient":  "teamleiter_agent_ressources",
+    "workItem":  "epic71-current-develop-integration",
+    "parentWorkItem":  "epic71-source-delivery",
+    "at":  "2026-10-13T07:40:32.991Z",
+    "originalBase":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+    "integratedBase":  "176f3626cc0151fb4bd88b7073fb8075eba46f24",
+    "currentDevelop":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "latestFetchedDevelop":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "additionalDrift":  "",
+    "head":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+    "branch":  "feature/epic71-product-management-20261013",
+    "scope":  [
+                  "scripts/accounting/AccountingEvidence.psm1",
+                  "scripts/accounting/Get-WorkItemMetrics.ps1",
+                  "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                  "scripts/accounting/OriginalUsageAccountingCaller.psm1",
+                  "scripts/accounting/README.md",
+                  "scripts/accounting/TokenHistory.psm1",
+                  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                  "scripts/web/Start-LocalWeb.ps1",
+                  "web/app.js",
+                  "web/styles.css",
+                  "web/token-history.js"
+              ],
+    "files":  [
+                  {
+                      "path":  "scripts/accounting/AccountingEvidence.psm1",
+                      "before":  {
+                                     "sha256":  "fb6f93c9bdb1e965b6da784b23cfb002f8bcebb82b67be5c9bdb1439c737ae4f",
+                                     "bytes":  53868
+                                 },
+                      "after":  {
+                                    "sha256":  "d6d38606ce032a27f7c84ce60a2f8b93c187334c6c747fe5292a9fe519f50472",
+                                    "bytes":  56518
+                                },
+                      "upstreamBlob":  "870a607e4117462ca637a605170c63ceff67d17a",
+                      "upstreamSha256":  "6ee3884d9fdae14b122b92917e6a83489cf2515954a60c11fcfcfdb7e9c8bd88",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/accounting/Get-WorkItemMetrics.ps1",
+                      "before":  {
+                                     "sha256":  "a7f6368b172cf6d0b849c2239c7cc3d308e35c164ca308645b8f282a150e5140",
+                                     "bytes":  17115
+                                 },
+                      "after":  {
+                                    "sha256":  "7d7b49d47ce39e8d32fce92e2aeaa4d8adca8ce256c065c1b04f62c6d5f56692",
+                                    "bytes":  19526
+                                },
+                      "upstreamBlob":  "55ae0f8c1df7cd8ff2011674d67c47347a9766d8",
+                      "upstreamSha256":  "ef39d61a95a4a640d27893250c4542d099b3c8ffd620b83f1256d2bdc09ffddd",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/accounting/Import-RolloutTaskUsage.ps1",
+                      "before":  {
+                                     "sha256":  "9d502924912ba89d005138f383d12f75947451a827b70666a1bc1ba5656bf1dc",
+                                     "bytes":  17862
+                                 },
+                      "after":  {
+                                    "sha256":  "272fe7a39d5713bf4454b79a473fd237ff64d2e370abeb0cc6bdce26ab37f66d",
+                                    "bytes":  20699
+                                },
+                      "upstreamBlob":  "49e7f726e3b20c0bfca9f557f39cdf4143992c5c",
+                      "upstreamSha256":  "272fe7a39d5713bf4454b79a473fd237ff64d2e370abeb0cc6bdce26ab37f66d",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/accounting/OriginalUsageAccountingCaller.psm1",
+                      "before":  {
+                                     "sha256":  "3ac6e77ed174d0e27b6c10478ebc28c78e2191f9b68e4ebad93ecf3cf5867dbd",
+                                     "bytes":  41874
+                                 },
+                      "after":  {
+                                    "sha256":  "8458cf48813cd2b5e36463d4d14accd1573c0a062a4870aef6a570656098cf76",
+                                    "bytes":  49628
+                                },
+                      "upstreamBlob":  "019ce8c43ffcf8682a719c09b5718ac7368348c1",
+                      "upstreamSha256":  "8458cf48813cd2b5e36463d4d14accd1573c0a062a4870aef6a570656098cf76",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/accounting/README.md",
+                      "before":  {
+                                     "sha256":  "5155c798e377f523996470f1f948807d76f46aed2f03ac62e2a8cb107eb8e1e6",
+                                     "bytes":  11291
+                                 },
+                      "after":  {
+                                    "sha256":  "f9422c848b57a727fb668b0d5b2f8049ffa178e3faf34c3cacf67151aba761f1",
+                                    "bytes":  18137
+                                },
+                      "upstreamBlob":  "7a473adc022a488ecfef2c1dfa5cb9eda951ac8d",
+                      "upstreamSha256":  "5e159c6a0407d4719ceeaec6b5aa39524c46d58304aac5716753ee79ba0313d4",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/accounting/TokenHistory.psm1",
+                      "before":  null,
+                      "after":  {
+                                    "sha256":  "f9c9e95b6cf97e58c8ea4897713a4731da7d9ae012f5dfe1298d347f4879d165",
+                                    "bytes":  10277
+                                },
+                      "upstreamBlob":  "caf2188547dd30b608370d1a65b217ab3cd2c6db",
+                      "upstreamSha256":  "1d324995e77c87e8b82d22ad2901c941a5b9d4feb4b47bb1939c075d3122455e",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  true
+                  },
+                  {
+                      "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                      "before":  {
+                                     "sha256":  "6c10487771baad2acabbe459c93b937efdc7c4fb185004e2729861178f5635a9",
+                                     "bytes":  122273
+                                 },
+                      "after":  {
+                                    "sha256":  "b2c22fc57f617c7a6afb9b06707037e26895ecba9da10aa65929b7f23c8aa274",
+                                    "bytes":  124039
+                                },
+                      "upstreamBlob":  "a4066bc61db38afdcc629082dd61a5d166d2a29c",
+                      "upstreamSha256":  "2808e0c57390c6c7d3fa5879da3c6b52c4d89ac51db1153d6db6767e0ac84737",
+                      "contentEqualsDevelop":  false,
+                      "beforeEqualsBase":  false,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "scripts/web/Start-LocalWeb.ps1",
+                      "before":  {
+                                     "sha256":  "611fc3ba44c1f3c2d39062d4fb541322d9988c21251306cf6f5d38b210c262ed",
+                                     "bytes":  9763
+                                 },
+                      "after":  {
+                                    "sha256":  "7449f5adb2d6a97b5c94a711ef2f52803d8b4a6732087bfb053c09b3dfb1eb19",
+                                    "bytes":  9866
+                                },
+                      "upstreamBlob":  "b166ea01342b74c4663ea16cc15b7f3a70c60260",
+                      "upstreamSha256":  "337d4a85830c9a26602f662ff9c9558934cbe876be6a5073fc63467e10edcee5",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "web/app.js",
+                      "before":  {
+                                     "sha256":  "275097c90befd02ac7e939ef03efdd962c233cd38ddf3a079232f76a5618b67d",
+                                     "bytes":  95237
+                                 },
+                      "after":  {
+                                    "sha256":  "54166e59aa03778e49e73ac28a9f78ad6469b47755493b334f87fb6ba0d4bd8f",
+                                    "bytes":  95801
+                                },
+                      "upstreamBlob":  "9a109d615b304cd65452cab34d9a851a1b4d770f",
+                      "upstreamSha256":  "207e4d0c3a7a7de005f3358bdbbfd89e7464ee389c1bcaf8980d08aab6e877b3",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "web/styles.css",
+                      "before":  {
+                                     "sha256":  "e08b80e3c4ab0b758930ed893b8f51ac92b3dac7a4c181d01c4e0f4d1c6f9a73",
+                                     "bytes":  31606
+                                 },
+                      "after":  {
+                                    "sha256":  "a971eb43af4af93817471aeb6a8392d35163ca7e537003e393b07ea5c1129f02",
+                                    "bytes":  33862
+                                },
+                      "upstreamBlob":  "4296b58a81ebd512beb90c25195f0cce5819a30e",
+                      "upstreamSha256":  "7e782d6645fb1521f39fd7f1c682b39b16f7aa4f35047c74087b7e8319ef5b04",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  false
+                  },
+                  {
+                      "path":  "web/token-history.js",
+                      "before":  null,
+                      "after":  {
+                                    "sha256":  "0328e848a0be168c3abf3e9c7e0eb083dd3adeb54f3f2b8e371e8502d42e24b5",
+                                    "bytes":  22025
+                                },
+                      "upstreamBlob":  "f6f2622eb44631016c106484a90fa1e403be03b0",
+                      "upstreamSha256":  "88301578e92b389bdb7c834aab03d24ac50f3a3e5360fd67c988e95d1a21bb9b",
+                      "contentEqualsDevelop":  true,
+                      "beforeEqualsBase":  true,
+                      "untracked":  true
+                  }
+              ],
+    "preserved":  [
+                      {
+                          "path":  "delivery/epic71/architecture.md",
+                          "before":  {
+                                         "sha256":  "0f1905e1cca334833f6c21914e31d6941f819c74a1497b30f460d47de9d2f75f",
+                                         "bytes":  15641
+                                     },
+                          "after":  {
+                                        "sha256":  "0f1905e1cca334833f6c21914e31d6941f819c74a1497b30f460d47de9d2f75f",
+                                        "bytes":  15641
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/coordinator-team-entry.json",
+                          "before":  {
+                                         "sha256":  "028d482b44a31032c3badfce0410f2c9f644e897af2f8ba0afca49b71117c52a",
+                                         "bytes":  373
+                                     },
+                          "after":  {
+                                        "sha256":  "028d482b44a31032c3badfce0410f2c9f644e897af2f8ba0afca49b71117c52a",
+                                        "bytes":  373
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/criteria.json",
+                          "before":  {
+                                         "sha256":  "7fc5e22a559bbec66e10e8901f70fb67426fd13992930623fe34e9af4d19e092",
+                                         "bytes":  9313
+                                     },
+                          "after":  {
+                                        "sha256":  "7fc5e22a559bbec66e10e8901f70fb67426fd13992930623fe34e9af4d19e092",
+                                        "bytes":  9313
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/criteria.pre-rework.json",
+                          "before":  {
+                                         "sha256":  "31b2cd365d07e2d4374fd1259a6f60c0e84c5029ce1bf20f5c5040b2e7f18d44",
+                                         "bytes":  5932
+                                     },
+                          "after":  {
+                                        "sha256":  "31b2cd365d07e2d4374fd1259a6f60c0e84c5029ce1bf20f5c5040b2e7f18d44",
+                                        "bytes":  5932
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/evidence-history.md",
+                          "before":  {
+                                         "sha256":  "71b82b03243081b86d3d70e810f0a87568e609d9ee8668e9e68ee887a47327e5",
+                                         "bytes":  1011
+                                     },
+                          "after":  {
+                                        "sha256":  "71b82b03243081b86d3d70e810f0a87568e609d9ee8668e9e68ee887a47327e5",
+                                        "bytes":  1011
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/implementation-report.md",
+                          "before":  {
+                                         "sha256":  "00801520bb372fc554fdb424661684dfdb2b5a326376f0f74d568e18946f97dc",
+                                         "bytes":  10456
+                                     },
+                          "after":  {
+                                        "sha256":  "00801520bb372fc554fdb424661684dfdb2b5a326376f0f74d568e18946f97dc",
+                                        "bytes":  10456
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/implementation-report.pre-rework.md",
+                          "before":  {
+                                         "sha256":  "788f11a123a2ec37a18b148cf16d9050d56e425293b19a51b1273479a5840b4f",
+                                         "bytes":  8536
+                                     },
+                          "after":  {
+                                        "sha256":  "788f11a123a2ec37a18b148cf16d9050d56e425293b19a51b1273479a5840b4f",
+                                        "bytes":  8536
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/inventory-result.json",
+                          "before":  {
+                                         "sha256":  "7e03f940dd597559fad56fba6e84f75af190f0ad5073d7a15e9574f5043082c2",
+                                         "bytes":  2204
+                                     },
+                          "after":  {
+                                        "sha256":  "7e03f940dd597559fad56fba6e84f75af190f0ad5073d7a15e9574f5043082c2",
+                                        "bytes":  2204
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/inventory.md",
+                          "before":  {
+                                         "sha256":  "c04454d1e526e0203e7763436f2fea26d1e5c58d021d4ddd2a7f31d320d0af3f",
+                                         "bytes":  16836
+                                     },
+                          "after":  {
+                                        "sha256":  "c04454d1e526e0203e7763436f2fea26d1e5c58d021d4ddd2a7f31d320d0af3f",
+                                        "bytes":  16836
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/native-final-result.json",
+                          "before":  {
+                                         "sha256":  "7a60239d141153a724618b58585208d3c064a40c3aab446170b7db59ea1f10e3",
+                                         "bytes":  8775
+                                     },
+                          "after":  {
+                                        "sha256":  "7a60239d141153a724618b58585208d3c064a40c3aab446170b7db59ea1f10e3",
+                                        "bytes":  8775
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/native-inventory.json",
+                          "before":  {
+                                         "sha256":  "50c00adf0b7f87d7640f80f5739f29ea3063e3f8388f0ff0e066041dc091a949",
+                                         "bytes":  5540
+                                     },
+                          "after":  {
+                                        "sha256":  "50c00adf0b7f87d7640f80f5739f29ea3063e3f8388f0ff0e066041dc091a949",
+                                        "bytes":  5540
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/native-inventory.md",
+                          "before":  {
+                                         "sha256":  "60570d66ba3c70815695d032ca96e121fe4b5791b1779dc0db7b863fdf65cbee",
+                                         "bytes":  1287
+                                     },
+                          "after":  {
+                                        "sha256":  "60570d66ba3c70815695d032ca96e121fe4b5791b1779dc0db7b863fdf65cbee",
+                                        "bytes":  1287
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/workitems.json",
+                          "before":  {
+                                         "sha256":  "4fe7564e4a9609d86cc39091c4acea7e0f3accd7ecc344ba34c6c020396223d5",
+                                         "bytes":  28623
+                                     },
+                          "after":  {
+                                        "sha256":  "4fe7564e4a9609d86cc39091c4acea7e0f3accd7ecc344ba34c6c020396223d5",
+                                        "bytes":  28623
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "delivery/epic71/workitems.pre-rework.json",
+                          "before":  {
+                                         "sha256":  "ba48763e37ba4955b2864268a8f3f6d809ddbfb1489ebb971cbef0d89e9211b9",
+                                         "bytes":  69392
+                                     },
+                          "after":  {
+                                        "sha256":  "ba48763e37ba4955b2864268a8f3f6d809ddbfb1489ebb971cbef0d89e9211b9",
+                                        "bytes":  69392
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "docs/LOCAL-WEB.md",
+                          "before":  {
+                                         "sha256":  "2bc98c41e6d129790ca627b1fcda66c2c86edc58fd4b9a68b605a23f818e6072",
+                                         "bytes":  3697
+                                     },
+                          "after":  {
+                                        "sha256":  "2bc98c41e6d129790ca627b1fcda66c2c86edc58fd4b9a68b605a23f818e6072",
+                                        "bytes":  3697
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "productmanagement/solutions.json",
+                          "before":  {
+                                         "sha256":  "af4a426b4b9f8572639a12e23c2c0779d79758eaed2d83b7bc7a3023d1b0fbba",
+                                         "bytes":  728
+                                     },
+                          "after":  {
+                                        "sha256":  "af4a426b4b9f8572639a12e23c2c0779d79758eaed2d83b7bc7a3023d1b0fbba",
+                                        "bytes":  728
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/Start-CoordinatorHost.ps1",
+                          "before":  {
+                                         "sha256":  "3d47159f89b587cdda51faa8a57b2360122cea51584f9e0f2707af31a6e39bcb",
+                                         "bytes":  29844
+                                     },
+                          "after":  {
+                                        "sha256":  "3d47159f89b587cdda51faa8a57b2360122cea51584f9e0f2707af31a6e39bcb",
+                                        "bytes":  29844
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/coordinator/CoordinatorAutomation.psm1",
+                          "before":  {
+                                         "sha256":  "37cc1701d6d584e421c876d1407583ddb60880bf2fd71d810df6b965679dc625",
+                                         "bytes":  81610
+                                     },
+                          "after":  {
+                                        "sha256":  "37cc1701d6d584e421c876d1407583ddb60880bf2fd71d810df6b965679dc625",
+                                        "bytes":  81610
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/coordinator/CoordinatorPlanning.psm1",
+                          "before":  {
+                                         "sha256":  "00a469cabe8b13f67413489e94ef54bfe9cb8e20c99e08c90ad75e571d0ef462",
+                                         "bytes":  11245
+                                     },
+                          "after":  {
+                                        "sha256":  "00a469cabe8b13f67413489e94ef54bfe9cb8e20c99e08c90ad75e571d0ef462",
+                                        "bytes":  11245
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/coordinator/Resume.Automation.ps1",
+                          "before":  {
+                                         "sha256":  "7113fef86a41772a30cf69386aaf682e1d3c00bd8cd5870b2215f27396c6d58f",
+                                         "bytes":  20835
+                                     },
+                          "after":  {
+                                        "sha256":  "7113fef86a41772a30cf69386aaf682e1d3c00bd8cd5870b2215f27396c6d58f",
+                                        "bytes":  20835
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/delegation/Resolve-DelegatedWorkItem.ps1",
+                          "before":  {
+                                         "sha256":  "011afaf120e05ccc892b61ebfc2c86d24005228b931002c58c38bb734e57d9e5",
+                                         "bytes":  12213
+                                     },
+                          "after":  {
+                                        "sha256":  "011afaf120e05ccc892b61ebfc2c86d24005228b931002c58c38bb734e57d9e5",
+                                        "bytes":  12213
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/productmanagement/Get-ProductRecovery.ps1",
+                          "before":  {
+                                         "sha256":  "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+                                         "bytes":  2815
+                                     },
+                          "after":  {
+                                        "sha256":  "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+                                        "bytes":  2815
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/productmanagement/New-ProductFeature.ps1",
+                          "before":  {
+                                         "sha256":  "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+                                         "bytes":  6078
+                                     },
+                          "after":  {
+                                        "sha256":  "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+                                        "bytes":  6078
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/productmanagement/ProductManagement.psm1",
+                          "before":  {
+                                         "sha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                                         "bytes":  21365
+                                     },
+                          "after":  {
+                                        "sha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                                        "bytes":  21365
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/productmanagement/Save-ProductDecision.ps1",
+                          "before":  {
+                                         "sha256":  "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c",
+                                         "bytes":  1276
+                                     },
+                          "after":  {
+                                        "sha256":  "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c",
+                                        "bytes":  1276
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/web/LocalWebBridge.psm1",
+                          "before":  {
+                                         "sha256":  "1d2dadd38d7d36141f444b2340fd8f267ff45805cc387f2ee2e3e96c9033257d",
+                                         "bytes":  51539
+                                     },
+                          "after":  {
+                                        "sha256":  "1d2dadd38d7d36141f444b2340fd8f267ff45805cc387f2ee2e3e96c9033257d",
+                                        "bytes":  51539
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/Assert-WorkItemParentAcceptance.ps1",
+                          "before":  {
+                                         "sha256":  "b6883555f38f05ac8f14ef70f062d83c4c64f1698611df454f7c2c1b8929e2f8",
+                                         "bytes":  7131
+                                     },
+                          "after":  {
+                                        "sha256":  "b6883555f38f05ac8f14ef70f062d83c4c64f1698611df454f7c2c1b8929e2f8",
+                                        "bytes":  7131
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/Complete-DelegatedWorkItem.ps1",
+                          "before":  {
+                                         "sha256":  "7ddb91f24d8341fef5129c89886648aa072d11da426478c343924e3992c8e527",
+                                         "bytes":  33542
+                                     },
+                          "after":  {
+                                        "sha256":  "7ddb91f24d8341fef5129c89886648aa072d11da426478c343924e3992c8e527",
+                                        "bytes":  33542
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/HumanInteraction.ps1",
+                          "before":  {
+                                         "sha256":  "001bb3b3c6f23ac3cac1a9f7d17bb473752d23442f8f1b55b1b8a3e214842659",
+                                         "bytes":  11369
+                                     },
+                          "after":  {
+                                        "sha256":  "001bb3b3c6f23ac3cac1a9f7d17bb473752d23442f8f1b55b1b8a3e214842659",
+                                        "bytes":  11369
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/Set-WorkItemHumanRequest.ps1",
+                          "before":  {
+                                         "sha256":  "4351648eb75167d81ced2f441ec487a9c38495c1af7a6b759519632ef3c4da10",
+                                         "bytes":  2972
+                                     },
+                          "after":  {
+                                        "sha256":  "4351648eb75167d81ced2f441ec487a9c38495c1af7a6b759519632ef3c4da10",
+                                        "bytes":  2972
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/Set-WorkItemHumanResponse.ps1",
+                          "before":  {
+                                         "sha256":  "cb1410f01385f22479c81340fdcf767f3d0755f32ffc4d8e8f859e94469ba11a",
+                                         "bytes":  5858
+                                     },
+                          "after":  {
+                                        "sha256":  "cb1410f01385f22479c81340fdcf767f3d0755f32ffc4d8e8f859e94469ba11a",
+                                        "bytes":  5858
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/Test-WorkItems.ps1",
+                          "before":  {
+                                         "sha256":  "e3dfa0b97690dbe735c35817a460d54f532f34c22678f9e83ee54ffd2ec739cf",
+                                         "bytes":  12805
+                                     },
+                          "after":  {
+                                        "sha256":  "e3dfa0b97690dbe735c35817a460d54f532f34c22678f9e83ee54ffd2ec739cf",
+                                        "bytes":  12805
+                                    },
+                          "unchanged":  true
+                      },
+                      {
+                          "path":  "scripts/workitems/WorkItemStore.psm1",
+                          "before":  {
+                                         "sha256":  "5c8d9e32c668e275ee886a71e42551de787fb17cc0de86fe6a510bf6c128da94",
+                                         "bytes":  52956
+                                     },
+                          "after":  {
+                                        "sha256":  "5c8d9e32c668e275ee886a71e42551de787fb17cc0de86fe6a510bf6c128da94",
+                                        "bytes":  52956
+                                    },
+                          "unchanged":  true
+                      }
+                  ],
+    "historical":  [
+                       {
+                           "path":  "index-completion-report.md",
+                           "before":  {
+                                          "sha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                          "bytes":  9642
+                                      },
+                           "after":  {
+                                         "sha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                         "bytes":  9642
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "index-completion-report.json",
+                           "before":  {
+                                          "sha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                          "bytes":  7014
+                                      },
+                           "after":  {
+                                         "sha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                         "bytes":  7014
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "index-completion-manifest.json",
+                           "before":  {
+                                          "sha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                          "bytes":  65345
+                                      },
+                           "after":  {
+                                         "sha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                         "bytes":  65345
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "index-completion.diff",
+                           "before":  {
+                                          "sha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                          "bytes":  262793
+                                      },
+                           "after":  {
+                                         "sha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                         "bytes":  262793
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "implementation.diff",
+                           "before":  {
+                                          "sha256":  "258143f8c5ee55377bba6ba706d8b98077363621069956e9d13b717febf93cd1",
+                                          "bytes":  261080
+                                      },
+                           "after":  {
+                                         "sha256":  "258143f8c5ee55377bba6ba706d8b98077363621069956e9d13b717febf93cd1",
+                                         "bytes":  261080
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "contract-rework-report.md",
+                           "before":  {
+                                          "sha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                          "bytes":  4566
+                                      },
+                           "after":  {
+                                         "sha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                         "bytes":  4566
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "contract-rework-report.json",
+                           "before":  {
+                                          "sha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                          "bytes":  8806
+                                      },
+                           "after":  {
+                                         "sha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                         "bytes":  8806
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "contract-rework-manifest.json",
+                           "before":  {
+                                          "sha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                          "bytes":  6001
+                                      },
+                           "after":  {
+                                         "sha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                         "bytes":  6001
+                                     },
+                           "unchanged":  true
+                       },
+                       {
+                           "path":  "contract-rework.diff",
+                           "before":  {
+                                          "sha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                          "bytes":  1562
+                                      },
+                           "after":  {
+                                         "sha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                         "bytes":  1562
+                                     },
+                           "unchanged":  true
+                       }
+                   ],
+    "excludedContentPaths":  [
+                                 "docs/contracts/PRODUCTMANAGEMENT.md",
+                                 "docs/contracts/WORKITEMS.md",
+                                 "koordinator/teams.json",
+                                 "schemas/productmanagement.schema.json",
+                                 "schemas/workitems.schema.json",
+                                 "teams/agent_ressources/agenten/optimierer.toml",
+                                 "teams/produktmanagement/agenten.json",
+                                 "teams/produktmanagement/agenten/produktmanagement_pm_strategie.toml",
+                                 "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml",
+                                 "teams/produktmanagement/teamleiter.toml"
+                             ],
+    "excludedContentNote":  "No organizational/index/contract contents loaded or written. Preservation for these paths is bounded to mutation scope and inherited evidence, not a fresh byte equality claim.",
+    "gitIndex":  {
+                     "before":  {
+                                    "sha256":  "39871e9aaf7a35fc0bda22380e0051340afbec883a089074f5aefc038f84b535",
+                                    "bytes":  21885
+                                },
+                     "after":  {
+                                   "sha256":  "39871e9aaf7a35fc0bda22380e0051340afbec883a089074f5aefc038f84b535",
+                                   "bytes":  21885
+                               },
+                     "unchanged":  true
+                 },
+    "starter":  {
+                    "upstreamAddedBlocks":  [
+                                                {
+                                                    "lines":  1,
+                                                    "sha256":  "b44fc3fe161c77353ee84a37527193b4e8d9064f94e086f4f30dd353b3e41b10",
+                                                    "occurrences":  1
+                                                },
+                                                {
+                                                    "lines":  2,
+                                                    "sha256":  "edf4a880f284fbe1b4f42acb4216508256c75c01a0d3fb4b231b539ba2d04da7",
+                                                    "occurrences":  1
+                                                },
+                                                {
+                                                    "lines":  2,
+                                                    "sha256":  "f84cdd30cef8a1b87f902410008ff61790ffe9de34180b66abefc48f9ba7fffa",
+                                                    "occurrences":  1
+                                                },
+                                                {
+                                                    "lines":  8,
+                                                    "sha256":  "0266aa75adf20f6af7b69a8196a36722e3ab77ee29f28a5d5a6ef60563bd16a3",
+                                                    "occurrences":  1
+                                                },
+                                                {
+                                                    "lines":  5,
+                                                    "sha256":  "10812b4a25e8ee91ba57f3551d4626266500b6b1cc310aa1eca03b8b2f261f03",
+                                                    "occurrences":  1
+                                                }
+                                            ],
+                    "reconstructedBeforeBlob":  "273fa8790747814088698ae0a6e106cb8c2ecc91",
+                    "beforeCanonicalShort":  "273fa87",
+                    "preimageReconstructed":  true,
+                    "beforePayloadSha256":  "2a445b63bc0c95b7d6cc213cb6dae0b6e4a979f3fffe9b4285cc0cdfc8144f9e",
+                    "afterPayloadSha256":  "2a445b63bc0c95b7d6cc213cb6dae0b6e4a979f3fffe9b4285cc0cdfc8144f9e",
+                    "pmResidualPayloadUnchanged":  true
+                },
+    "gitStatus":  " M docs/LOCAL-WEB.md\n M docs/contracts/WORKITEMS.md\n M koordinator/teams.json\n M schemas/workitems.schema.json\n M scripts/Start-CoordinatorHost.ps1\n M scripts/accounting/AccountingEvidence.psm1\n M scripts/accounting/Get-WorkItemMetrics.ps1\n M scripts/accounting/Import-RolloutTaskUsage.ps1\n M scripts/accounting/OriginalUsageAccountingCaller.psm1\n M scripts/accounting/README.md\n M scripts/coordinator/CoordinatorAutomation.psm1\n M scripts/coordinator/CoordinatorPlanning.psm1\n M scripts/coordinator/Resume.Automation.ps1\n M scripts/delegation/Resolve-DelegatedWorkItem.ps1\n M scripts/delegation/Start-DelegatedCodexTask.ps1\n M scripts/web/LocalWebBridge.psm1\n M scripts/web/Start-LocalWeb.ps1\n M scripts/workitems/Assert-WorkItemParentAcceptance.ps1\n M scripts/workitems/Complete-DelegatedWorkItem.ps1\n M scripts/workitems/Set-WorkItemHumanResponse.ps1\n M scripts/workitems/Test-WorkItems.ps1\n M scripts/workitems/WorkItemStore.psm1\n M teams/agent_ressources/agenten/optimierer.toml\n M web/app.js\n M web/styles.css\n?? delivery/\n?? docs/contracts/PRODUCTMANAGEMENT.md\n?? productmanagement/\n?? schemas/productmanagement.schema.json\n?? scripts/accounting/TokenHistory.psm1\n?? scripts/productmanagement/\n?? scripts/workitems/HumanInteraction.ps1\n?? scripts/workitems/Set-WorkItemHumanRequest.ps1\n?? teams/produktmanagement/\n?? web/token-history.js\n",
+    "changesAgainstOriginal":  "M\tdocs/LOCAL-WEB.md\nM\tdocs/contracts/WORKITEMS.md\nM\tkoordinator/teams.json\nM\tschemas/workitems.schema.json\nM\tscripts/Start-CoordinatorHost.ps1\nM\tscripts/accounting/AccountingEvidence.psm1\nM\tscripts/accounting/Get-WorkItemMetrics.ps1\nM\tscripts/accounting/Import-RolloutTaskUsage.ps1\nM\tscripts/accounting/OriginalUsageAccountingCaller.psm1\nM\tscripts/accounting/README.md\nM\tscripts/coordinator/CoordinatorAutomation.psm1\nM\tscripts/coordinator/CoordinatorPlanning.psm1\nM\tscripts/coordinator/Resume.Automation.ps1\nM\tscripts/delegation/Resolve-DelegatedWorkItem.ps1\nM\tscripts/delegation/Start-DelegatedCodexTask.ps1\nM\tscripts/web/LocalWebBridge.psm1\nM\tscripts/web/Start-LocalWeb.ps1\nM\tscripts/workitems/Assert-WorkItemParentAcceptance.ps1\nM\tscripts/workitems/Complete-DelegatedWorkItem.ps1\nM\tscripts/workitems/Set-WorkItemHumanResponse.ps1\nM\tscripts/workitems/Test-WorkItems.ps1\nM\tscripts/workitems/WorkItemStore.psm1\nM\tteams/agent_ressources/agenten/optimierer.toml\nM\tweb/app.js\nM\tweb/styles.css\n",
+    "changesAgainstCurrent":  "M\tkoordinator/teams.json\nM\tscripts/Start-CoordinatorHost.ps1\nD\tscripts/accounting/TokenHistory.psm1\nM\tscripts/coordinator/CoordinatorAutomation.psm1\nM\tscripts/delegation/Start-DelegatedCodexTask.ps1\nD\tscripts/workitems/HumanInteraction.ps1\nD\tscripts/workitems/Set-WorkItemHumanRequest.ps1\nD\tweb/token-history.js\n",
+    "untracked":  "delivery/epic71/architecture.md\ndelivery/epic71/coordinator-team-entry.json\ndelivery/epic71/criteria.json\ndelivery/epic71/criteria.pre-rework.json\ndelivery/epic71/evidence-history.md\ndelivery/epic71/implementation-report.md\ndelivery/epic71/implementation-report.pre-rework.md\ndelivery/epic71/inventory-result.json\ndelivery/epic71/inventory.md\ndelivery/epic71/native-final-result.json\ndelivery/epic71/native-inventory.json\ndelivery/epic71/native-inventory.md\ndelivery/epic71/workitems.json\ndelivery/epic71/workitems.pre-rework.json\ndocs/contracts/PRODUCTMANAGEMENT.md\nproductmanagement/solutions.json\nschemas/productmanagement.schema.json\nscripts/accounting/TokenHistory.psm1\nscripts/productmanagement/Get-ProductRecovery.ps1\nscripts/productmanagement/New-ProductFeature.ps1\nscripts/productmanagement/ProductManagement.psm1\nscripts/productmanagement/Save-ProductDecision.ps1\nscripts/workitems/HumanInteraction.ps1\nscripts/workitems/Set-WorkItemHumanRequest.ps1\nteams/produktmanagement/agenten.json\nteams/produktmanagement/agenten/produktmanagement_pm_strategie.toml\nteams/produktmanagement/agenten/produktmanagement_po_backlog.toml\nteams/produktmanagement/teamleiter.toml\nweb/token-history.js\n",
+    "caution":  "Raw git diff against current develop shows deletions for new untracked upstream files. Use manifest content equality and working-directory content when preparing later delivery.",
+    "diff":  {
+                 "path":  "develop-completion.diff",
+                 "sha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                 "bytes":  112934
+             },
+    "inheritedEvidence":  "index-completion-report.md/json, index-completion-manifest.json and index-completion.diff retained; inherited observations are historical only",
+    "constraints":  {
+                        "contentOnly":  true,
+                        "currentFunctionProof":  false,
+                        "parentAcceptance":  false,
+                        "independentReview":  false,
+                        "tests":  false,
+                        "parsers":  false,
+                        "validators":  false,
+                        "runtime":  false,
+                        "nativeProbes":  false,
+                        "browser":  false,
+                        "fixtures":  false,
+                        "moduleImports":  false,
+                        "installation":  false,
+                        "activation":  false,
+                        "actions":  false,
+                        "commit":  false,
+                        "push":  false,
+                        "PR":  false,
+                        "issueWrite":  false,
+                        "merge":  false,
+                        "delegation":  false,
+                        "staging":  false,
+                        "stashing":  false
+                    },
+    "ownTokenUsage":  null,
+    "childTasks":  [
+
+                   ],
+    "markdownReport":  {
+                           "path":  "develop-completion-report.md",
+                           "sha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                           "bytes":  8446
+                       }
+}

@@ -1,0 +1,65 @@
+{
+    "recipient":  "teamleiter_agent_ressources",
+    "workItem":  "epic71-final-delta-rework",
+    "originalBodiesAvailable":  false,
+    "inventoryClaimedBodiesRead":  true,
+    "fullySatisfiedIssueProposals":  [
+
+                                     ],
+    "issues":  [
+                   {
+                       "issue":  72,
+                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                       "evidence":  [
+                                        "../inventory.md",
+                                        "index-completion-report.md",
+                                        "../architecture.md"
+                                    ],
+                       "missing":  [
+                                       "full_original_issue_body"
+                                   ],
+                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                   },
+                   {
+                       "issue":  76,
+                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                       "evidence":  [
+                                        "../inventory.md",
+                                        "index-completion-report.md",
+                                        "index-completion-manifest.json",
+                                        "index-completion.diff"
+                                    ],
+                       "missing":  [
+                                       "full_original_issue_body"
+                                   ],
+                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                   },
+                   {
+                       "issue":  79,
+                       "proposal":  "source_scope_evidence_supplied_original_issue_criteria_unresolved",
+                       "evidence":  [
+                                        "../inventory.md",
+                                        "qa-contract-final-review.md",
+                                        "../../../scripts/productmanagement/ProductManagement.psm1"
+                                    ],
+                       "missing":  [
+                                       "full_original_issue_body",
+                                       "real_decisions_and_reviews"
+                                   ],
+                       "limit":  "No new formal acceptance/runtime/test blockers imposed; no issue completion or authoritative status mutation inferred."
+                   }
+               ],
+    "issueWrites":  false,
+    "runtimeEvidence":  false,
+    "asOf":  "2026-10-13T08:24:35.0998849Z",
+    "independentIndexReview":  "Pass_supplied_source_scope",
+    "indexTeamLeaderDecision":  "accepted_source_scope",
+    "independentIntegrationReview":  "Rework_D1_D3_new_independent_qa_pending",
+    "groundMapping":  null,
+    "indexEvidenceOriginals":  [
+                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.md",
+                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.json",
+                                   "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/finalization-coordination.json"
+                               ],
+    "issueBlockerPolicy":  "Formal acceptance, runtime and prohibited tests are not added as issue blockers. Actual original issue criteria remain to be bound by the team leader."
+}

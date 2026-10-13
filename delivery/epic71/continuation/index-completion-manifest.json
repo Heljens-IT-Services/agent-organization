@@ -1,0 +1,578 @@
+{
+  "recipient": "teamleiter_agent_ressources",
+  "workItems": [
+    "epic71-index-integration",
+    "epic71-current-develop-integration"
+  ],
+  "parentWorkItem": "epic71-source-delivery",
+  "timestamp": "2026-10-13T07:24:41.185Z",
+  "worktree": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation",
+  "branch": "feature/epic71-product-management-20261013",
+  "head": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "originalBase": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "freshDevelop": "176f3626cc0151fb4bd88b7073fb8075eba46f24",
+  "pr110Commit": "953921b31bfcf19dd789b0586c4e9553436dc3ee",
+  "pr111Commit": "71bde91553aed4b41ebd1501f88a770f087dfd93",
+  "jobBinding": {
+    "taskId": "86b408aaf6284195a8d992544e9c6053",
+    "parentTaskId": "2dec3528cc36495a9e0fd1b7788e9297",
+    "threadId": "01a13422-8dab-7113-93fb-caa035114230",
+    "turnId": "01a13422-91ff-78e3-b73e-e06f2e2defd5",
+    "ruleActuallyLoaded": "Lade Organisationsdateien und -indizes nur, soweit sie im menschlich\nfreigegebenen WorkItem über Koordinator -> zuständigen Teamleiter -> Optimierer\nausdrücklich zur Änderung beauftragt sind, einschließlich koordinator/teams.json.\nLade keine fremden Agentenindizes außerhalb dieses Auftragsscopes und betreibe\nkeine freie Organisationsrecherche; nutze geladene Indizes nicht zum Routing.",
+    "source": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-result.json.job.json",
+    "nativeAcknowledgementClaimed": false,
+    "ssotWorkItemId": null,
+    "ownershipSource": "Explicit task text; job work_item_id is null"
+  },
+  "retry": {
+    "taskId": "68ddc64dc2904cbf9b7454a9b723b57c",
+    "threadId": "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+    "turnId": "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+    "status": "interrupted",
+    "error": null,
+    "cause": null,
+    "runner29688Absent": "Supplied prior observation; no new process probe"
+  },
+  "files": [
+    {
+      "path": "docs/LOCAL-WEB.md",
+      "beforeSha256": "4d4254881ed9af2d93e8fed245febc241e612a54acae6866579104271006f6ef",
+      "afterSha256": "2bc98c41e6d129790ca627b1fcda66c2c86edc58fd4b9a68b605a23f818e6072",
+      "beforeBytes": 3132,
+      "afterBytes": 3697,
+      "changedThisJob": true,
+      "upstreamGitBlob": "0e5f51565f2b62c3df9a4bb16a58edf7608969f4",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "docs/contracts/WORKITEMS.md",
+      "beforeSha256": "55fb1b2a445fea3d2729c5bab25043b612450136593d37162e96e1e90135dd6a",
+      "afterSha256": "d6e1444c3369d351454bf8f18617c486ad6f53ec97bea917f619435a7395d336",
+      "beforeBytes": 5700,
+      "afterBytes": 11574,
+      "changedThisJob": true,
+      "upstreamGitBlob": "b40005518a648c25eb2631cdcc6dc47c9138d5d2",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "schemas/workitems.schema.json",
+      "beforeSha256": "527a75147e04602c69e5efccfdaebae0dca9bb40ddd618b0511e47021fed3aef",
+      "afterSha256": "973fcfd5518bbb03bc8a3e87456ef4be636bf0275f6f72c6b565362e986b9e7c",
+      "beforeBytes": 5901,
+      "afterBytes": 7419,
+      "changedThisJob": true,
+      "upstreamGitBlob": "ae55cd2d05d6d562b9c1eb6477633e35a0461b31",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorAutomation.psm1",
+      "beforeSha256": "0f29e374fa97cfbd8bfa2d5fb371ec8a019abf3bcf5a4b71b0ae01bef0758069",
+      "afterSha256": "37cc1701d6d584e421c876d1407583ddb60880bf2fd71d810df6b965679dc625",
+      "beforeBytes": 80834,
+      "afterBytes": 81610,
+      "changedThisJob": true,
+      "upstreamGitBlob": "efeb05238c72af6a50f234a1a60bbf29322c61fa",
+      "matchesDevelopContent": false
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorPlanning.psm1",
+      "beforeSha256": "028854b1a4855b729dfb20ac7800446c2355d15bd061e01d8bed47f63531214e",
+      "afterSha256": "00a469cabe8b13f67413489e94ef54bfe9cb8e20c99e08c90ad75e571d0ef462",
+      "beforeBytes": 10882,
+      "afterBytes": 11245,
+      "changedThisJob": true,
+      "upstreamGitBlob": "72570eea389765020fc9372b59b92f86e8b37168",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/coordinator/Resume.Automation.ps1",
+      "beforeSha256": "38b8472e0679481d7c4b6d225e85796d791be867e6f94c50c0a787620e3622ba",
+      "afterSha256": "7113fef86a41772a30cf69386aaf682e1d3c00bd8cd5870b2215f27396c6d58f",
+      "beforeBytes": 19510,
+      "afterBytes": 20835,
+      "changedThisJob": true,
+      "upstreamGitBlob": "1f4df1d66d6987bc8d3262aeaf16f207c68d9325",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/delegation/Resolve-DelegatedWorkItem.ps1",
+      "beforeSha256": "447ec0b8e78506ec2a75bc023fad36a6b6249f205b06964c3d57a1cbbc78dbb1",
+      "afterSha256": "011afaf120e05ccc892b61ebfc2c86d24005228b931002c58c38bb734e57d9e5",
+      "beforeBytes": 12133,
+      "afterBytes": 12213,
+      "changedThisJob": true,
+      "upstreamGitBlob": "cd94729822157c785e4dcd8f6f5810042e3d999c",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/web/LocalWebBridge.psm1",
+      "beforeSha256": "cb4eeb94065502d1cb7bcb72283a055f86c8d0676369507d8c073ad199760016",
+      "afterSha256": "1d2dadd38d7d36141f444b2340fd8f267ff45805cc387f2ee2e3e96c9033257d",
+      "beforeBytes": 48162,
+      "afterBytes": 51539,
+      "changedThisJob": true,
+      "upstreamGitBlob": "282c6462f48b3f18939c3a70cc9545e03c31b9ab",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/Assert-WorkItemParentAcceptance.ps1",
+      "beforeSha256": "c5344b75194a27ef052a60a5231e077801570c953dc38a7c1afb6c5d70f16b3d",
+      "afterSha256": "b6883555f38f05ac8f14ef70f062d83c4c64f1698611df454f7c2c1b8929e2f8",
+      "beforeBytes": 7063,
+      "afterBytes": 7131,
+      "changedThisJob": true,
+      "upstreamGitBlob": "4750b70c7e8b9d5162ab891e1244d1d9fe8b5b2f",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/Complete-DelegatedWorkItem.ps1",
+      "beforeSha256": "30ada7894a3e58f8961edcd8468fe9525d063940f60f3a46e343be7617e8e0ac",
+      "afterSha256": "7ddb91f24d8341fef5129c89886648aa072d11da426478c343924e3992c8e527",
+      "beforeBytes": 30645,
+      "afterBytes": 33542,
+      "changedThisJob": true,
+      "upstreamGitBlob": "88245e9d7f7cd85f6deae8ff9da284e8241ff8a1",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/HumanInteraction.ps1",
+      "beforeSha256": null,
+      "afterSha256": "001bb3b3c6f23ac3cac1a9f7d17bb473752d23442f8f1b55b1b8a3e214842659",
+      "beforeBytes": null,
+      "afterBytes": 11369,
+      "changedThisJob": true,
+      "upstreamGitBlob": "d30a7f02fd3775d0dde7fa94e279e6119aed3589",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/Set-WorkItemHumanRequest.ps1",
+      "beforeSha256": null,
+      "afterSha256": "4351648eb75167d81ced2f441ec487a9c38495c1af7a6b759519632ef3c4da10",
+      "beforeBytes": null,
+      "afterBytes": 2972,
+      "changedThisJob": true,
+      "upstreamGitBlob": "e492d3d687ed1414da865ff2aceeef678ec9133b",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/Set-WorkItemHumanResponse.ps1",
+      "beforeSha256": "09f4c34a73ef8b3f07928d86b7dc2d85fe5c455c7efe082b16b76774b8db0076",
+      "afterSha256": "cb1410f01385f22479c81340fdcf767f3d0755f32ffc4d8e8f859e94469ba11a",
+      "beforeBytes": 2393,
+      "afterBytes": 5858,
+      "changedThisJob": true,
+      "upstreamGitBlob": "c7df9558e23fe91be8ba9cc761e58c9c94ebd3b2",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/Test-WorkItems.ps1",
+      "beforeSha256": "885af4580799f3d60c9eee83c0b651ce8d060e258c1d1c8759d8026fb4bd80b4",
+      "afterSha256": "e3dfa0b97690dbe735c35817a460d54f532f34c22678f9e83ee54ffd2ec739cf",
+      "beforeBytes": 12499,
+      "afterBytes": 12805,
+      "changedThisJob": true,
+      "upstreamGitBlob": "9cf46eb8d0b797cb71e978394be1a36e91f9f457",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/workitems/WorkItemStore.psm1",
+      "beforeSha256": "6262e2f5b6c46a26186fa3a0685bc7ef48545a09f02b09db6bc4e3d2c6020a2e",
+      "afterSha256": "5c8d9e32c668e275ee886a71e42551de787fb17cc0de86fe6a510bf6c128da94",
+      "beforeBytes": 51733,
+      "afterBytes": 52956,
+      "changedThisJob": true,
+      "upstreamGitBlob": "4c5040ab3c3c60741f8ec1798837581d2021d796",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "teams/agent_ressources/agenten/optimierer.toml",
+      "beforeSha256": "f3835bd654e3c23edb5d6ae3c4529f1ab85892db62904fb22f04d5f6dbd5e1e1",
+      "afterSha256": "bc06ee710f44920130bf20911b709c064f4fead418f0b9a24c9816e1101e8c33",
+      "beforeBytes": 1392,
+      "afterBytes": 1659,
+      "changedThisJob": true,
+      "upstreamGitBlob": "e70bdfcf6011d81af0fb7811b6fdfb8c91a05b57",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "web/app.js",
+      "beforeSha256": "c7a1dc285397ac40e1da98e3542e109e64ed0a958f3d1c8ff99befc93d69e556",
+      "afterSha256": "275097c90befd02ac7e939ef03efdd962c233cd38ddf3a079232f76a5618b67d",
+      "beforeBytes": 88403,
+      "afterBytes": 95237,
+      "changedThisJob": true,
+      "upstreamGitBlob": "5fdfc078d8989dc5c708166410108f63f19194a2",
+      "matchesDevelopContent": true
+    },
+    {
+      "path": "scripts/Start-CoordinatorHost.ps1",
+      "beforeSha256": "3d47159f89b587cdda51faa8a57b2360122cea51584f9e0f2707af31a6e39bcb",
+      "afterSha256": "3d47159f89b587cdda51faa8a57b2360122cea51584f9e0f2707af31a6e39bcb",
+      "beforeBytes": 29844,
+      "afterBytes": 29844,
+      "changedThisJob": false,
+      "upstreamGitBlob": null,
+      "matchesDevelopContent": null
+    },
+    {
+      "path": "scripts/delegation/Start-DelegatedCodexTask.ps1",
+      "beforeSha256": "6c10487771baad2acabbe459c93b937efdc7c4fb185004e2729861178f5635a9",
+      "afterSha256": "6c10487771baad2acabbe459c93b937efdc7c4fb185004e2729861178f5635a9",
+      "beforeBytes": 122273,
+      "afterBytes": 122273,
+      "changedThisJob": false,
+      "upstreamGitBlob": null,
+      "matchesDevelopContent": null
+    },
+    {
+      "path": "koordinator/teams.json",
+      "beforeSha256": "eb37aa613b72351bc42c974d2301af70bd1b03e01996a2be4ebccf7e948c8635",
+      "afterSha256": "3187efc592cb9f0917e27971b40f4cd357e3ab3c0b7ce262ee39123a3abf1ff4",
+      "beforeBytes": 3742,
+      "afterBytes": 4156,
+      "changedThisJob": true,
+      "upstreamGitBlob": null,
+      "matchesDevelopContent": null
+    },
+    {
+      "path": "teams/produktmanagement/agenten.json",
+      "beforeSha256": "cf760cee5c675d50029815517b5701625299a9b0fdc8b12656ae29485b9464df",
+      "afterSha256": "cf760cee5c675d50029815517b5701625299a9b0fdc8b12656ae29485b9464df",
+      "beforeBytes": 625,
+      "afterBytes": 625,
+      "changedThisJob": false,
+      "upstreamGitBlob": null,
+      "matchesDevelopContent": null
+    }
+  ],
+  "preservedPriorFiles": [
+    {
+      "path": "delivery/epic71/architecture.md",
+      "beforeSha256": "0f1905e1cca334833f6c21914e31d6941f819c74a1497b30f460d47de9d2f75f",
+      "afterSha256": "0f1905e1cca334833f6c21914e31d6941f819c74a1497b30f460d47de9d2f75f",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/coordinator-team-entry.json",
+      "beforeSha256": "028d482b44a31032c3badfce0410f2c9f644e897af2f8ba0afca49b71117c52a",
+      "afterSha256": "028d482b44a31032c3badfce0410f2c9f644e897af2f8ba0afca49b71117c52a",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/criteria.json",
+      "beforeSha256": "7fc5e22a559bbec66e10e8901f70fb67426fd13992930623fe34e9af4d19e092",
+      "afterSha256": "7fc5e22a559bbec66e10e8901f70fb67426fd13992930623fe34e9af4d19e092",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/criteria.pre-rework.json",
+      "beforeSha256": "31b2cd365d07e2d4374fd1259a6f60c0e84c5029ce1bf20f5c5040b2e7f18d44",
+      "afterSha256": "31b2cd365d07e2d4374fd1259a6f60c0e84c5029ce1bf20f5c5040b2e7f18d44",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/evidence-history.md",
+      "beforeSha256": "71b82b03243081b86d3d70e810f0a87568e609d9ee8668e9e68ee887a47327e5",
+      "afterSha256": "71b82b03243081b86d3d70e810f0a87568e609d9ee8668e9e68ee887a47327e5",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/implementation-report.md",
+      "beforeSha256": "00801520bb372fc554fdb424661684dfdb2b5a326376f0f74d568e18946f97dc",
+      "afterSha256": "00801520bb372fc554fdb424661684dfdb2b5a326376f0f74d568e18946f97dc",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/implementation-report.pre-rework.md",
+      "beforeSha256": "788f11a123a2ec37a18b148cf16d9050d56e425293b19a51b1273479a5840b4f",
+      "afterSha256": "788f11a123a2ec37a18b148cf16d9050d56e425293b19a51b1273479a5840b4f",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/inventory-result.json",
+      "beforeSha256": "7e03f940dd597559fad56fba6e84f75af190f0ad5073d7a15e9574f5043082c2",
+      "afterSha256": "7e03f940dd597559fad56fba6e84f75af190f0ad5073d7a15e9574f5043082c2",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/inventory.md",
+      "beforeSha256": "c04454d1e526e0203e7763436f2fea26d1e5c58d021d4ddd2a7f31d320d0af3f",
+      "afterSha256": "c04454d1e526e0203e7763436f2fea26d1e5c58d021d4ddd2a7f31d320d0af3f",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/native-final-result.json",
+      "beforeSha256": "7a60239d141153a724618b58585208d3c064a40c3aab446170b7db59ea1f10e3",
+      "afterSha256": "7a60239d141153a724618b58585208d3c064a40c3aab446170b7db59ea1f10e3",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/native-inventory.json",
+      "beforeSha256": "50c00adf0b7f87d7640f80f5739f29ea3063e3f8388f0ff0e066041dc091a949",
+      "afterSha256": "50c00adf0b7f87d7640f80f5739f29ea3063e3f8388f0ff0e066041dc091a949",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/native-inventory.md",
+      "beforeSha256": "60570d66ba3c70815695d032ca96e121fe4b5791b1779dc0db7b863fdf65cbee",
+      "afterSha256": "60570d66ba3c70815695d032ca96e121fe4b5791b1779dc0db7b863fdf65cbee",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/workitems.json",
+      "beforeSha256": "4fe7564e4a9609d86cc39091c4acea7e0f3accd7ecc344ba34c6c020396223d5",
+      "afterSha256": "4fe7564e4a9609d86cc39091c4acea7e0f3accd7ecc344ba34c6c020396223d5",
+      "unchanged": true
+    },
+    {
+      "path": "delivery/epic71/workitems.pre-rework.json",
+      "beforeSha256": "ba48763e37ba4955b2864268a8f3f6d809ddbfb1489ebb971cbef0d89e9211b9",
+      "afterSha256": "ba48763e37ba4955b2864268a8f3f6d809ddbfb1489ebb971cbef0d89e9211b9",
+      "unchanged": true
+    },
+    {
+      "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+      "beforeSha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+      "afterSha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+      "unchanged": true
+    },
+    {
+      "path": "productmanagement/solutions.json",
+      "beforeSha256": "af4a426b4b9f8572639a12e23c2c0779d79758eaed2d83b7bc7a3023d1b0fbba",
+      "afterSha256": "af4a426b4b9f8572639a12e23c2c0779d79758eaed2d83b7bc7a3023d1b0fbba",
+      "unchanged": true
+    },
+    {
+      "path": "schemas/productmanagement.schema.json",
+      "beforeSha256": "f34c228f51b60ce571a0e4c1f007d5bcf10c1dc93a6adab93d4079009ed433ac",
+      "afterSha256": "f34c228f51b60ce571a0e4c1f007d5bcf10c1dc93a6adab93d4079009ed433ac",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/productmanagement/Get-ProductRecovery.ps1",
+      "beforeSha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+      "afterSha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/productmanagement/New-ProductFeature.ps1",
+      "beforeSha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+      "afterSha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/productmanagement/ProductManagement.psm1",
+      "beforeSha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+      "afterSha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/productmanagement/Save-ProductDecision.ps1",
+      "beforeSha256": "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c",
+      "afterSha256": "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c",
+      "unchanged": true
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_pm_strategie.toml",
+      "beforeSha256": "5be7251fbd8f9ab8e1179885038437c1b675dcd632824e6286f91ab657632945",
+      "afterSha256": "5be7251fbd8f9ab8e1179885038437c1b675dcd632824e6286f91ab657632945",
+      "unchanged": true
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml",
+      "beforeSha256": "146b7ca2077ddd5bde37a65ef66e040b60c062dcdb48a6772e0201653f1f0055",
+      "afterSha256": "146b7ca2077ddd5bde37a65ef66e040b60c062dcdb48a6772e0201653f1f0055",
+      "unchanged": true
+    },
+    {
+      "path": "teams/produktmanagement/teamleiter.toml",
+      "beforeSha256": "ef4cee3353425d8db3b821aace29011b59fdc2a0534c91e41c5923939d35994b",
+      "afterSha256": "ef4cee3353425d8db3b821aace29011b59fdc2a0534c91e41c5923939d35994b",
+      "unchanged": true
+    }
+  ],
+  "historicalEvidence": [
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation-location.json",
+      "sha256": "c05854b6264306f9551725d976dd809dd13c11769223eb3c6a32a5d638a38a7c"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\rework-manifest.json",
+      "sha256": "a8858ea5111e1ad2632ce8c43667a0a13747a7d9051a9db9925346bf99da7239"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\rework-report.md",
+      "sha256": "88c6f4da34641a99a8805b91514e0ee9f27951febb7d42cdb648f67296853b6b"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\implementation.diff",
+      "sha256": "258143f8c5ee55377bba6ba706d8b98077363621069956e9d13b717febf93cd1"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-result.json",
+      "sha256": "5c51dbe28eff52fad293052b7ee819ce23259551c7284459dd47b5bdb6421220"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-result.json.job.json",
+      "sha256": "a42aee10404dbff4e0214130a3523d3a7da0a62228f6c859a59b22707b19942f"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-result.json.events.jsonl",
+      "sha256": "b608b61dfff866ece6a0f480e91b4a0befb8afa8d315080cd9c9969c110cf206"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-result.json.public.txt",
+      "sha256": "faa38dd78b3fc290d5f56de5eee4257972ef6eacd34397091e7fd858e612d9e3"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-retry-result.json.job.json",
+      "sha256": "9e3116276fe0228faab36f7fd7d6a6fae6ca9d2edee8ae77a4132e2de13e39eb"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-retry-result.json.events.jsonl",
+      "sha256": "62e26dfe3e448d6426d89129e0bc8bd37584432c6eea433f2bde7226348476ab"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-integration-retry-result.json.public.txt",
+      "sha256": "16134b168f7ad856e7177f157fbec414dd60c9e8b7291bff81f88f05bda0efb8"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-thread-read.json",
+      "sha256": "d24549f531fd8e5c1ed96eed42d3dfc2e3f53ecef823a08198d8c5d2bb802c0a"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\retry-thread-read.md",
+      "sha256": "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-result.json.job.json",
+      "sha256": "58457c681aba4e896dc37ca5463caf78ebcb1747c46a0812234ccf54f804defa"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-result.json.job.json.active.json",
+      "sha256": "33a1084a8f4f18bca855c647b982a55611e537d947fd43103ffa3f8715422065"
+    }
+  ],
+  "gitStatusBefore": " M scripts/Start-CoordinatorHost.ps1\n M scripts/coordinator/CoordinatorAutomation.psm1\n M scripts/delegation/Start-DelegatedCodexTask.ps1\n?? delivery/\n?? docs/contracts/PRODUCTMANAGEMENT.md\n?? productmanagement/\n?? schemas/productmanagement.schema.json\n?? scripts/productmanagement/\n?? teams/produktmanagement/\n",
+  "gitStatusAfter": " M docs/LOCAL-WEB.md\n M docs/contracts/WORKITEMS.md\n M koordinator/teams.json\n M schemas/workitems.schema.json\n M scripts/Start-CoordinatorHost.ps1\n M scripts/coordinator/CoordinatorAutomation.psm1\n M scripts/coordinator/CoordinatorPlanning.psm1\n M scripts/coordinator/Resume.Automation.ps1\n M scripts/delegation/Resolve-DelegatedWorkItem.ps1\n M scripts/delegation/Start-DelegatedCodexTask.ps1\n M scripts/web/LocalWebBridge.psm1\n M scripts/workitems/Assert-WorkItemParentAcceptance.ps1\n M scripts/workitems/Complete-DelegatedWorkItem.ps1\n M scripts/workitems/Set-WorkItemHumanResponse.ps1\n M scripts/workitems/Test-WorkItems.ps1\n M scripts/workitems/WorkItemStore.psm1\n M teams/agent_ressources/agenten/optimierer.toml\n M web/app.js\n?? delivery/\n?? docs/contracts/PRODUCTMANAGEMENT.md\n?? productmanagement/\n?? schemas/productmanagement.schema.json\n?? scripts/productmanagement/\n?? scripts/workitems/HumanInteraction.ps1\n?? scripts/workitems/Set-WorkItemHumanRequest.ps1\n?? teams/produktmanagement/\n",
+  "gitIndexChanged": false,
+  "originalPmIntegrationAddedRemovedLinesPreserved": true,
+  "initialIntegrationDiff": "diff --git a/scripts/Start-CoordinatorHost.ps1 b/scripts/Start-CoordinatorHost.ps1\nindex fce2084..79fe0aa 100644\n--- a/scripts/Start-CoordinatorHost.ps1\n+++ b/scripts/Start-CoordinatorHost.ps1\n@@ -49,6 +49,11 @@ try {\n     $CoordinatorJobPath=[IO.Path]::GetFullPath($CoordinatorJobPath);$CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)\n     $rootJob=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorJobPath\n     $launch=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorLaunchConfigPath\n+    $productReference=Get-CoordinatorConfigValue $launch 'productManagement'\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot 'productmanagement/ProductManagement.psm1')\n+        [void](Read-ProductConfiguration $productReference)\n+    }\n     foreach($name in $callerInputs.Keys){$supplied=$callerInputs[$name];$expected=switch($name){'DataDirectory'{$rootJob.coordinator_launch.dataDirectory};'WorkingDirectory'{$rootJob.cwd};'RuntimeExecutable'{$launch.runtimeExecutable};'AccountingDirectory'{$rootJob.accounting_directory};'WorkItemStorePath'{$launch.workItemStorePath};'EventJournalPath'{$launch.eventJournalPath};'ResultDirectories'{$launch.resultDirectories};'RegistryDirectory'{$launch.registryDirectory};'NativeInventoryPath'{$launch.nativeInventoryPath};'CompleteEpoch'{$launch.completeEpoch};'AutomationCapacity'{$rootJob.admission_capacity};'RuntimeArguments'{$launch.runtimeArguments}}\n         if($name -in @('ResultDirectories','RuntimeArguments')){$equal=(ConvertTo-Json -InputObject @($supplied) -Depth 10 -Compress) -ceq (ConvertTo-Json -InputObject @($expected) -Depth 10 -Compress)}elseif($name -in @('AutomationCapacity')){$equal=[int]$supplied -eq [int]$expected}elseif($expected -and $supplied){$equal=[IO.Path]::GetFullPath([string]$supplied) -ceq [IO.Path]::GetFullPath([string]$expected)}else{$equal=([string]$supplied) -ceq ([string]$expected)}\n         if(-not $equal){throw ('BlockedRecovery: caller-supplied root input mismatch: '+$name)}\n@@ -76,6 +81,13 @@ try {\n         if(-not $session.PSObject.Properties[$pair[0]]) { $session | Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] }\n     }\n     if ($session.PSObject.Properties.Name -notcontains 'NativeThreadId') { throw 'BlockedRecovery: Session contract incomplete.' }\n+    $savedProductReference=Get-CoordinatorConfigValue $session 'ProductManagement'\n+    if ($savedProductReference -and (ConvertTo-Json -InputObject $savedProductReference -Compress) -cne (ConvertTo-Json -InputObject $productReference -Compress)) { throw 'BlockedRecovery: Product configuration changed; explicit recovery required.' }\n+    if ($productReference -and -not $savedProductReference) {\n+        if ($session.NativeThreadId) { throw 'BlockedRecovery: Existing host requires reviewed product configuration migration.' }\n+        $session | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n+        Write-CoordinatorAtomicJson $path $session\n+    }\n     if ($null -ne $session.RuntimePid) {\n         $validatedRuntimePid=0\n         if (-not [int]::TryParse([string]$session.RuntimePid,[ref]$validatedRuntimePid) -or $validatedRuntimePid -le 0) { throw 'BlockedRecovery: persisted runtime PID is invalid; no process was stopped.' }\n@@ -185,6 +197,7 @@ try {\n         # Production host remains resident; callers use the single local dispatcher.\n         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq 'completed'}|Select-Object -Last 1)\n         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties['retryBaseSeconds']){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties['retryCeilingSeconds']){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties['retryAttemptCeiling']){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties['eventBatchLimit']){[int]$launch.eventBatchLimit}else{256})}\n+        $automationConfig | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)\n             if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}\n             $response=Invoke-CoordinatorTurn $runtime $session $path $request\ndiff --git a/scripts/coordinator/CoordinatorAutomation.psm1 b/scripts/coordinator/CoordinatorAutomation.psm1\nindex f7be236..1c971c0 100644\n--- a/scripts/coordinator/CoordinatorAutomation.psm1\n+++ b/scripts/coordinator/CoordinatorAutomation.psm1\n@@ -469,6 +469,15 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho\n         $dispatch = & $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath ([string]$bound[0].executionId)\n         if (-not $dispatch -or @($dispatch.eventIds | Where-Object { $_ -ceq [string]$Event.id }).Count -eq 0 -or [string](Get-AutomationValue $dispatch.input 'eventId') -cne [string]$Event.id) { throw 'EventDispatchBindingConflict' }\n     } else {\n+        $productContext=$null\n+        $productReference=Get-AutomationValue $Config 'ProductManagement'\n+        if ($productReference) {\n+            Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')\n+            $productBinding=Get-ProductBinding $productReference ([string](Get-AutomationValue $Event.payload 'workItemId')) @($Snapshot.Document.items)\n+            if ($productBinding) {\n+                $productContext=Get-ProductContext $productBinding $Config.DataDirectory @((Get-AutomationValue $Event.payload 'documentIds' @())) @((Get-AutomationValue $Event.payload 'decisionIds' @()))\n+            }\n+        }\n         $turnInput = [ordered]@{\n             eventId = [string]$Event.id; kind = [string]$Event.kind; sourceId = [string]$Event.sourceId; payload = $Event.payload\n             storeRevision = [string]$Snapshot.Revision; workItems = @($Snapshot.Document.items); logicalSessionId = $LogicalSessionId\n@@ -479,6 +488,7 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho\n                 rules = @('no_change requires commands=[] and an event-specific reason', 'apply requires at least one command', 'Only these command kinds are allowed', 'blocked transitions require propose_resume as first command; bind eventId and storeRevision exactly, requestedAt=null without humanInteraction; responseHash is SHA256 UTF8 compact JSON response including null; priorGeneration=0 and priorExecutionId=null only before any execution; otherwise use the exact returned prior execution and generation; keep_blocked consumes this trigger without starting work; wake IDs are not authority', 'Do not execute store or filesystem writes; report intended effects as commands only')\n             }\n         }\n+        if ($productContext) { $turnInput.productContext=$productContext }\n         $dispatch = & $DispatchModule { param($p, $id, $pur, $gen, $input, $events) Start-CoordinatorDispatch -JournalPath $p -WorkItemId $id -Purpose $pur -Generation $gen -Input $input -EventIds $events } $dispatchPath $workId $purpose 1 $turnInput @([string]$Event.id)\n     }\n     $serialized = ConvertTo-Json -InputObject $dispatch.input -Depth 50 -Compress\ndiff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1\nindex c51235a..273fa87 100644\n--- a/scripts/delegation/Start-DelegatedCodexTask.ps1\n+++ b/scripts/delegation/Start-DelegatedCodexTask.ps1\n@@ -874,6 +874,10 @@ $evidence = [ordered]@{\n $notifications = New-Object System.Collections.Generic.List[object]\n $progressState = New-ProgressState\n $process = $null\n+$productActivation = $null\n+$productBinding = $null\n+$productContext = $null\n+$productReleaseConfirmed = $false\n function Update-NativeUsage($Notification) {\n     if ($Notification.method -eq 'thread/tokenUsage/updated' -and\n         $evidence.thread_id -and $evidence.turn_id -and\n@@ -1032,11 +1036,38 @@ try {\n     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\\coordinator\\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)\n     $capability=Get-AdmissionInstalledContract $script:admissionProvider\n     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}\n-    Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n-    $thread = Wait-Rpc 2\n+    $productReference=Get-AdmissionField $pinnedRootLaunch 'productManagement'\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')\n+        $productItems=@()\n+        if ($jobSsotMode) {\n+            $productSnapshot=& (Join-Path $PSScriptRoot '../workitems/Get-WorkItems.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot\n+            $productItems=@($productSnapshot.Document.items)\n+        }\n+        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems\n+        if ($job.role -ceq 'produktmanagement_pm_strategie' -and -not $productBinding) { throw 'ProductSolutionAssignmentMissing' }\n+        if ($job.role -ceq 'produktmanagement_pm_strategie') {\n+            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @('planned','in_progress','rework') })\n+            if ($ownedPM.Count -ne 1) { throw 'ProductPMWorkItemOwnerOrStateChanged' }\n+        }\n+        if ($productBinding) {\n+            $selected=Get-AdmissionField $productBinding.solution 'activationDocumentIds' @()\n+            $selectedDecisions=Get-AdmissionField $productBinding.solution 'activationDecisionIds' @()\n+            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)\n+        }\n+    } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }\n+    if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {\n+        # This remains the existing visible, admitted specialist runner.\n+        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}\n+        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc\n+        $thread=$productActivation.reply\n+    } else {\n+        Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n+        $thread = Wait-Rpc 2\n+    }\n     $evidence.thread_id = $thread.thread.id\n     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}\n-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}\n+    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}\n     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')\n     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable\n     if ($job.registry_directory) {\n@@ -1067,10 +1098,12 @@ try {\n         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash\n     }\n     $turnStartRpcId=3\n+    if ($productContext) { $text += \"`n`nSolution context (selected owner documents and reviewed memory):`n\" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }\n     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId\n     $evidence.model_started = $true\n     $turn = Wait-Rpc 3\n     $evidence.turn_id = $turn.turn.id\n+    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }\n     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null\n     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){\n         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\\workitems\\CoordinatorExecutionContext.psm1') -PassThru -Force\n@@ -1097,6 +1130,7 @@ try {\n         if ($null -eq $completion) { [void](Read-Rpc) }\n     }\n     $evidence.terminal_outcome = $completion.params.turn.status\n+    if ($productActivation) { Complete-ProductSession $productActivation $completion }\n     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}\n     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join \"`n\"\n     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })\n@@ -1158,11 +1192,15 @@ try {\n         }\n     }\n     if ($job.registry_directory -and $job.registry_dispatch_id) {\n-        try { Complete-BoundRegistryJob $job } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }\n+        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }\n     }\n     if ($process) {\n         try { $process.StandardInput.Close() } catch { }\n-        [void]$process.WaitForExit(3000)\n+        $processExitConfirmed=$process.WaitForExit(3000)\n+        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence 'transfer_error') -and $productActivation.session.state -ceq 'TerminalPendingTransfer') {\n+            try { Publish-ProductSession $productActivation $resultFile }\n+            catch { Write-Host ('Product session remains recovery-closed: '+$_.Exception.Message) }\n+        }\n         $process.Dispose()\n     }\n     Write-Host ('Resultat gesichert: ' + $resultFile)\n@@ -1173,6 +1211,7 @@ try {\n         if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }\n     }\n     } finally {\n+        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }\n         if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }\n         elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }\n         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,('AgentOrganizationTask.'+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }\n",
+  "residualIntegrationDiff": "diff --git a/scripts/Start-CoordinatorHost.ps1 b/scripts/Start-CoordinatorHost.ps1\nindex fce2084..79fe0aa 100644\n--- a/scripts/Start-CoordinatorHost.ps1\n+++ b/scripts/Start-CoordinatorHost.ps1\n@@ -49,6 +49,11 @@ try {\n     $CoordinatorJobPath=[IO.Path]::GetFullPath($CoordinatorJobPath);$CoordinatorLaunchConfigPath=[IO.Path]::GetFullPath($CoordinatorLaunchConfigPath)\n     $rootJob=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorJobPath\n     $launch=& $contextModule {param($p)Read-ContextJson $p} $CoordinatorLaunchConfigPath\n+    $productReference=Get-CoordinatorConfigValue $launch 'productManagement'\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot 'productmanagement/ProductManagement.psm1')\n+        [void](Read-ProductConfiguration $productReference)\n+    }\n     foreach($name in $callerInputs.Keys){$supplied=$callerInputs[$name];$expected=switch($name){'DataDirectory'{$rootJob.coordinator_launch.dataDirectory};'WorkingDirectory'{$rootJob.cwd};'RuntimeExecutable'{$launch.runtimeExecutable};'AccountingDirectory'{$rootJob.accounting_directory};'WorkItemStorePath'{$launch.workItemStorePath};'EventJournalPath'{$launch.eventJournalPath};'ResultDirectories'{$launch.resultDirectories};'RegistryDirectory'{$launch.registryDirectory};'NativeInventoryPath'{$launch.nativeInventoryPath};'CompleteEpoch'{$launch.completeEpoch};'AutomationCapacity'{$rootJob.admission_capacity};'RuntimeArguments'{$launch.runtimeArguments}}\n         if($name -in @('ResultDirectories','RuntimeArguments')){$equal=(ConvertTo-Json -InputObject @($supplied) -Depth 10 -Compress) -ceq (ConvertTo-Json -InputObject @($expected) -Depth 10 -Compress)}elseif($name -in @('AutomationCapacity')){$equal=[int]$supplied -eq [int]$expected}elseif($expected -and $supplied){$equal=[IO.Path]::GetFullPath([string]$supplied) -ceq [IO.Path]::GetFullPath([string]$expected)}else{$equal=([string]$supplied) -ceq ([string]$expected)}\n         if(-not $equal){throw ('BlockedRecovery: caller-supplied root input mismatch: '+$name)}\n@@ -76,6 +81,13 @@ try {\n         if(-not $session.PSObject.Properties[$pair[0]]) { $session | Add-Member -NotePropertyName $pair[0] -NotePropertyValue $pair[1] }\n     }\n     if ($session.PSObject.Properties.Name -notcontains 'NativeThreadId') { throw 'BlockedRecovery: Session contract incomplete.' }\n+    $savedProductReference=Get-CoordinatorConfigValue $session 'ProductManagement'\n+    if ($savedProductReference -and (ConvertTo-Json -InputObject $savedProductReference -Compress) -cne (ConvertTo-Json -InputObject $productReference -Compress)) { throw 'BlockedRecovery: Product configuration changed; explicit recovery required.' }\n+    if ($productReference -and -not $savedProductReference) {\n+        if ($session.NativeThreadId) { throw 'BlockedRecovery: Existing host requires reviewed product configuration migration.' }\n+        $session | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n+        Write-CoordinatorAtomicJson $path $session\n+    }\n     if ($null -ne $session.RuntimePid) {\n         $validatedRuntimePid=0\n         if (-not [int]::TryParse([string]$session.RuntimePid,[ref]$validatedRuntimePid) -or $validatedRuntimePid -le 0) { throw 'BlockedRecovery: persisted runtime PID is invalid; no process was stopped.' }\n@@ -185,6 +197,7 @@ try {\n         # Production host remains resident; callers use the single local dispatcher.\n         $rootCompleted=@((Get-CoordinatorHistory $session)|Where-Object{$_.terminalContextPath -and $_.outcome -eq 'completed'}|Select-Object -Last 1)\n         $automationConfig=[pscustomobject]@{EventJournalPath=[IO.Path]::GetFullPath($EventJournalPath);DataDirectory=$owner.DataDirectory;WorkItemStorePath=[IO.Path]::GetFullPath($WorkItemStorePath);RepositoryRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot));AccountingDirectory=$AccountingDirectory;ParentTaskId=$rootJob.task_id;TaskId=$rootJob.task_id;ParentJobPath=$CoordinatorJobPath;CoordinatorJobHash=$CoordinatorJobHash;ParentContextPath=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextPath}else{$null});ParentContextHash=$(if($rootCompleted.Count){$rootCompleted[0].terminalContextHash}else{$null});WorkingDirectory=$effectiveCwd;ResultDirectories=@($ResultDirectories|ForEach-Object{[IO.Path]::GetFullPath($_)});RegistryDirectory=[IO.Path]::GetFullPath($RegistryDirectory);Capacity=$AutomationCapacity;NativeInventoryPath=$NativeInventoryPath;CompleteEpoch=$CompleteEpoch;AdmissionPolicy=$runtimeConfig.AdmissionPolicy;RuntimeConfig=$runtimeConfig;RetryBaseSeconds=$(if($launch.PSObject.Properties['retryBaseSeconds']){[int]$launch.retryBaseSeconds}else{5});RetryCeilingSeconds=$(if($launch.PSObject.Properties['retryCeilingSeconds']){[int]$launch.retryCeilingSeconds}else{3600});RetryAttemptCeiling=$(if($launch.PSObject.Properties['retryAttemptCeiling']){[int]$launch.retryAttemptCeiling}else{256});EventBatchLimit=$(if($launch.PSObject.Properties['eventBatchLimit']){[int]$launch.eventBatchLimit}else{256})}\n+        $automationConfig | Add-Member -NotePropertyName ProductManagement -NotePropertyValue $productReference\n         Start-CoordinatorPipe @{PipeName=$PipeName;StopRequested=$false;RuntimeProcess=$runtime.Process} { param($request)\n             if($TaskId){$request.taskId=$TaskId};if($ParentTaskId){$request.parentTaskId=$ParentTaskId};if($AccountingDirectory){$request.accountingDirectory=$AccountingDirectory}\n             $response=Invoke-CoordinatorTurn $runtime $session $path $request\ndiff --git a/scripts/coordinator/CoordinatorAutomation.psm1 b/scripts/coordinator/CoordinatorAutomation.psm1\nindex efeb052..0326a70 100644\n--- a/scripts/coordinator/CoordinatorAutomation.psm1\n+++ b/scripts/coordinator/CoordinatorAutomation.psm1\n@@ -476,6 +476,15 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho\n         $dispatch = & $DispatchModule { param($p, $id) Get-CoordinatorDispatch -JournalPath $p -ExecutionId $id } $dispatchPath ([string]$bound[0].executionId)\n         if (-not $dispatch -or @($dispatch.eventIds | Where-Object { $_ -ceq [string]$Event.id }).Count -eq 0 -or [string](Get-AutomationValue $dispatch.input 'eventId') -cne [string]$Event.id) { throw 'EventDispatchBindingConflict' }\n     } else {\n+        $productContext=$null\n+        $productReference=Get-AutomationValue $Config 'ProductManagement'\n+        if ($productReference) {\n+            Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')\n+            $productBinding=Get-ProductBinding $productReference ([string](Get-AutomationValue $Event.payload 'workItemId')) @($Snapshot.Document.items)\n+            if ($productBinding) {\n+                $productContext=Get-ProductContext $productBinding $Config.DataDirectory @((Get-AutomationValue $Event.payload 'documentIds' @())) @((Get-AutomationValue $Event.payload 'decisionIds' @()))\n+            }\n+        }\n         $turnInput = [ordered]@{\n             eventId = [string]$Event.id; kind = [string]$Event.kind; sourceId = [string]$Event.sourceId; payload = $Event.payload\n             storeRevision = [string]$Snapshot.Revision; workItems = @($Snapshot.Document.items); logicalSessionId = $LogicalSessionId\n@@ -486,6 +495,7 @@ function Get-CoordinatorEventDispatch($Config, $DispatchModule, $Event, $Snapsho\n                 rules = @('no_change requires commands=[] and an event-specific reason', 'apply requires at least one command', 'Only these command kinds are allowed', 'blocked transitions require propose_resume as first command; bind eventId and storeRevision exactly, requestedAt=null without humanInteraction; responseHash is SHA256 UTF8 compact JSON response including null; priorGeneration=0 and priorExecutionId=null only before any execution; otherwise use the exact returned prior execution and generation; keep_blocked consumes this trigger without starting work; wake IDs are not authority', 'Do not execute store or filesystem writes; report intended effects as commands only')\n             }\n         }\n+        if ($productContext) { $turnInput.productContext=$productContext }\n         $dispatch = & $DispatchModule { param($p, $id, $pur, $gen, $input, $events) Start-CoordinatorDispatch -JournalPath $p -WorkItemId $id -Purpose $pur -Generation $gen -Input $input -EventIds $events } $dispatchPath $workId $purpose 1 $turnInput @([string]$Event.id)\n     }\n     $serialized = ConvertTo-Json -InputObject $dispatch.input -Depth 50 -Compress\ndiff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1\nindex c51235a..273fa87 100644\n--- a/scripts/delegation/Start-DelegatedCodexTask.ps1\n+++ b/scripts/delegation/Start-DelegatedCodexTask.ps1\n@@ -874,6 +874,10 @@ $evidence = [ordered]@{\n $notifications = New-Object System.Collections.Generic.List[object]\n $progressState = New-ProgressState\n $process = $null\n+$productActivation = $null\n+$productBinding = $null\n+$productContext = $null\n+$productReleaseConfirmed = $false\n function Update-NativeUsage($Notification) {\n     if ($Notification.method -eq 'thread/tokenUsage/updated' -and\n         $evidence.thread_id -and $evidence.turn_id -and\n@@ -1032,11 +1036,38 @@ try {\n     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\\coordinator\\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)\n     $capability=Get-AdmissionInstalledContract $script:admissionProvider\n     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}\n-    Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n-    $thread = Wait-Rpc 2\n+    $productReference=Get-AdmissionField $pinnedRootLaunch 'productManagement'\n+    if ($productReference) {\n+        Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')\n+        $productItems=@()\n+        if ($jobSsotMode) {\n+            $productSnapshot=& (Join-Path $PSScriptRoot '../workitems/Get-WorkItems.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot\n+            $productItems=@($productSnapshot.Document.items)\n+        }\n+        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems\n+        if ($job.role -ceq 'produktmanagement_pm_strategie' -and -not $productBinding) { throw 'ProductSolutionAssignmentMissing' }\n+        if ($job.role -ceq 'produktmanagement_pm_strategie') {\n+            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @('planned','in_progress','rework') })\n+            if ($ownedPM.Count -ne 1) { throw 'ProductPMWorkItemOwnerOrStateChanged' }\n+        }\n+        if ($productBinding) {\n+            $selected=Get-AdmissionField $productBinding.solution 'activationDocumentIds' @()\n+            $selectedDecisions=Get-AdmissionField $productBinding.solution 'activationDecisionIds' @()\n+            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)\n+        }\n+    } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }\n+    if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {\n+        # This remains the existing visible, admitted specialist runner.\n+        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}\n+        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc\n+        $thread=$productActivation.reply\n+    } else {\n+        Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2\n+        $thread = Wait-Rpc 2\n+    }\n     $evidence.thread_id = $thread.thread.id\n     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}\n-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}\n+    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}\n     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')\n     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable\n     if ($job.registry_directory) {\n@@ -1067,10 +1098,12 @@ try {\n         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash\n     }\n     $turnStartRpcId=3\n+    if ($productContext) { $text += \"`n`nSolution context (selected owner documents and reviewed memory):`n\" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }\n     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId\n     $evidence.model_started = $true\n     $turn = Wait-Rpc 3\n     $evidence.turn_id = $turn.turn.id\n+    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }\n     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null\n     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){\n         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\\workitems\\CoordinatorExecutionContext.psm1') -PassThru -Force\n@@ -1097,6 +1130,7 @@ try {\n         if ($null -eq $completion) { [void](Read-Rpc) }\n     }\n     $evidence.terminal_outcome = $completion.params.turn.status\n+    if ($productActivation) { Complete-ProductSession $productActivation $completion }\n     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}\n     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join \"`n\"\n     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })\n@@ -1158,11 +1192,15 @@ try {\n         }\n     }\n     if ($job.registry_directory -and $job.registry_dispatch_id) {\n-        try { Complete-BoundRegistryJob $job } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }\n+        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }\n     }\n     if ($process) {\n         try { $process.StandardInput.Close() } catch { }\n-        [void]$process.WaitForExit(3000)\n+        $processExitConfirmed=$process.WaitForExit(3000)\n+        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence 'transfer_error') -and $productActivation.session.state -ceq 'TerminalPendingTransfer') {\n+            try { Publish-ProductSession $productActivation $resultFile }\n+            catch { Write-Host ('Product session remains recovery-closed: '+$_.Exception.Message) }\n+        }\n         $process.Dispose()\n     }\n     Write-Host ('Resultat gesichert: ' + $resultFile)\n@@ -1173,6 +1211,7 @@ try {\n         if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }\n     }\n     } finally {\n+        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }\n         if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }\n         elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }\n         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,('AgentOrganizationTask.'+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }\n",
+  "intermediateCommitRequired": false,
+  "conflicts": [],
+  "organizationScopeInterpretation": "Two index edits authorized; PR111 role file only reproduces exact accepted upstream delta under explicit PR110/111 integration assignment, no new rule design. PM index already consistent and byte-preserved.",
+  "diff": {
+    "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion.diff",
+    "sha256": "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970"
+  },
+  "evidenceKind": "content_diff_hash_references_only",
+  "currentFunctionEvidence": false,
+  "independentReview": null,
+  "parentAcceptance": null,
+  "ownTokenUsage": null,
+  "children": [],
+  "referenceFiles": [
+    {
+      "path": "teams/produktmanagement/teamleiter.toml",
+      "sha256": "ef4cee3353425d8db3b821aace29011b59fdc2a0534c91e41c5923939d35994b",
+      "readOnly": true
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_pm_strategie.toml",
+      "sha256": "5be7251fbd8f9ab8e1179885038437c1b675dcd632824e6286f91ab657632945",
+      "readOnly": true
+    },
+    {
+      "path": "teams/produktmanagement/agenten/produktmanagement_po_backlog.toml",
+      "sha256": "146b7ca2077ddd5bde37a65ef66e040b60c062dcdb48a6772e0201653f1f0055",
+      "readOnly": true
+    },
+    {
+      "path": "delivery/epic71/coordinator-team-entry.json",
+      "sha256": "028d482b44a31032c3badfce0410f2c9f644e897af2f8ba0afca49b71117c52a",
+      "readOnly": true
+    }
+  ],
+  "acceptedMirrorReference": {
+    "path": "C:/Users/Tom-OliverMarek/AppData/Local/Temp/agent-org-optimizer-global-mirror-20261013/parent-acceptance.md",
+    "sha256": "7229ae1b2b354d5ddbb84a9b9e3c9f6737b2aa50c3970bbd899f01dc9192f155",
+    "readOnly": true
+  },
+  "indexEvidence": {
+    "priorTeamCount": 9,
+    "currentTeamCount": 10,
+    "existingTeamBytesPreservedExceptRequiredSeparatorComma": true,
+    "removingExactSuppliedEntryRestoresBeforeSha256": true,
+    "pmIndexUnchanged": true,
+    "statusPropertyPresent": false,
+    "coordinatorEntrySource": "delivery/epic71/coordinator-team-entry.json",
+    "identityChain": "koordinator -> teamleiter_produktmanagement -> produktmanagement_pm_strategie / produktmanagement_po_backlog",
+    "localLeaderSource": "teams/produktmanagement/teamleiter.toml",
+    "leaderRoleFile": "teamleiter_produktmanagement.toml",
+    "pmRoleFile": "produktmanagement_pm_strategie.toml",
+    "poRoleFile": "produktmanagement_po_backlog.toml",
+    "flattenedRoleFileNames": "Preserved existing convention. Global flattened files not installed or examined."
+  },
+  "integrationEvidence": {
+    "scope": "Original base to initial freshly fetched develop 176f362; exact PR110/111 files plus existing assigned PM hooks",
+    "upstreamFilesCount": 17,
+    "upstreamExactContentCount": 16,
+    "overlap": "Only CoordinatorAutomation contains both PR110 human changes and preserved PM changes; non-overlapping hunks",
+    "pmIntegrationDeltaAgainstPinnedDevelopEqualsInitialAddedRemovedLines": true,
+    "branchRebased": false,
+    "gitApplyMode": "working tree only; no index, no 3-way merge, no commit",
+    "currentDevelopComplete": false
+  },
+  "developDrift": {
+    "initialFetch": "176f3626cc0151fb4bd88b7073fb8075eba46f24",
+    "finalFetch": "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+    "latestIsDifferent": true,
+    "additionalCommits": "5019175 Merge pull request #112 from Heljens-IT-Services/feature/ar-108-historical-token-profiles-20261013\n65ed1c6 feat(accounting): project historical token profiles for WorkItem families",
+    "changedPaths": "M\tscripts/accounting/AccountingEvidence.psm1\nM\tscripts/accounting/Get-WorkItemMetrics.ps1\nM\tscripts/accounting/Import-RolloutTaskUsage.ps1\nM\tscripts/accounting/OriginalUsageAccountingCaller.psm1\nM\tscripts/accounting/README.md\nA\tscripts/accounting/TokenHistory.psm1\nM\tscripts/delegation/Start-DelegatedCodexTask.ps1\nM\tscripts/web/Start-LocalWeb.ps1\nM\tweb/app.js\nM\tweb/styles.css\nA\tweb/token-history.js",
+    "contentsRead": false,
+    "integrated": false,
+    "reason": "PR112 needs accounting/web dependencies outside assigned scope. Escalation to own team leader; no partial PR112 integration."
+  },
+  "gitStatusFinal": " M docs/LOCAL-WEB.md\n M docs/contracts/WORKITEMS.md\n M koordinator/teams.json\n M schemas/workitems.schema.json\n M scripts/Start-CoordinatorHost.ps1\n M scripts/coordinator/CoordinatorAutomation.psm1\n M scripts/coordinator/CoordinatorPlanning.psm1\n M scripts/coordinator/Resume.Automation.ps1\n M scripts/delegation/Resolve-DelegatedWorkItem.ps1\n M scripts/delegation/Start-DelegatedCodexTask.ps1\n M scripts/web/LocalWebBridge.psm1\n M scripts/workitems/Assert-WorkItemParentAcceptance.ps1\n M scripts/workitems/Complete-DelegatedWorkItem.ps1\n M scripts/workitems/Set-WorkItemHumanResponse.ps1\n M scripts/workitems/Test-WorkItems.ps1\n M scripts/workitems/WorkItemStore.psm1\n M teams/agent_ressources/agenten/optimierer.toml\n M web/app.js\n?? delivery/\n?? docs/contracts/PRODUCTMANAGEMENT.md\n?? productmanagement/\n?? schemas/productmanagement.schema.json\n?? scripts/productmanagement/\n?? scripts/workitems/HumanInteraction.ps1\n?? scripts/workitems/Set-WorkItemHumanRequest.ps1\n?? teams/produktmanagement/\n",
+  "finalHead": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "finalReadbackAt": "2026-10-13T07:28:15.996Z",
+  "constraints": {
+    "testsExecuted": false,
+    "testsCreated": false,
+    "parserTestRuns": false,
+    "validatorsExecuted": false,
+    "moduleImports": false,
+    "runtimeProbes": false,
+    "nativeProbes": false,
+    "browserProbes": false,
+    "fixturesCreated": false,
+    "activation": false,
+    "globalInstallation": false,
+    "actionsChanged": false,
+    "commit": false,
+    "push": false,
+    "prWrite": false,
+    "issueWrite": false,
+    "merge": false,
+    "delegation": false,
+    "stashesChanged": false,
+    "foreignBranchesOrWorktreesChanged": false,
+    "productSourcesOrContractChanged": false
+  },
+  "commandsScopeNote": "Node was used only for byte/text hashes, Git orchestration, metadata reading and evidence writing; no product code was loaded/executed. Python command alias was unavailable; the attempt performed no source mutation.",
+  "artifacts": [
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-report.md",
+      "sha256": "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion-report.json",
+      "sha256": "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad"
+    },
+    {
+      "path": "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\index-completion.diff",
+      "sha256": "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970"
+    }
+  ]
+}

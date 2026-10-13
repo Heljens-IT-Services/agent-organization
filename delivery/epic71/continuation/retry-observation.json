@@ -1,0 +1,46 @@
+{
+  "work_item": "epic71-index-integration",
+  "observation": "bound-index-integration-retry",
+  "observed_at": "2026-10-13T07:14:46Z",
+  "outcome": "no-terminal-state-evidenced",
+  "task_id": "68ddc64dc2904cbf9b7454a9b723b57c",
+  "thread_id": "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+  "turn_id": "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+  "runner_pid": 29688,
+  "window_handle": 1907400,
+  "window_confirmed_visible": true,
+  "window_confirmed_at": "2026-10-13T07:04:38.0993233Z",
+  "active_binding_recorded_at": "2026-10-13T07:04:49.2655416Z",
+  "base_result_present": false,
+  "last_event_at": "2026-10-13T07:05:51.7268739Z",
+  "last_event": "item/started reasoning",
+  "last_event_thread_id": "01a13414-0085-77a2-a5db-9f0c312cb4dc",
+  "last_event_turn_id": "01a13414-035d-7ec1-ba11-3d2309fcc8e2",
+  "terminal_state_evidenced": false,
+  "runner_found_at_observation": false,
+  "rollout_file": "C:/Users/Tom-OliverMarek/.codex/sessions/2026/10/13/rollout-2026-10-13T09-04-49-01a13414-0085-77a2-a5db-9f0c312cb4dc.jsonl",
+  "rollout_terminal_state_evidenced": false,
+  "appserver_read_only_surface_available": false,
+  "interpretation": "terminal outcome undetermined; observation boundary is not failure or restart evidence",
+  "evidence_files": [
+    "index-integration-retry-result.json.job.json",
+    "index-integration-retry-result.json.window.json",
+    "index-integration-retry-result.json.go.json",
+    "index-integration-retry-result.json.job.json.active.json",
+    "index-integration-retry-result.json.events.jsonl",
+    "index-integration-retry-result.json.public.txt",
+    "C:/Users/Tom-OliverMarek/.codex/sessions/2026/10/13/rollout-2026-10-13T09-04-49-01a13414-0085-77a2-a5db-9f0c312cb4dc.jsonl"
+  ],
+  "scopes": ["delegation process, event, thread and terminal-state observation"],
+  "exclusions": ["resume or model start/kill/interrupt/admission", "reviewer or writer actions", "product probes", "tests/parser/validator/runtime/native/browser/activation", "source/git mutation", "organization index", "reserved result write"],
+  "historical_misbound_report_preserved_as": [
+    "retry-observation.misbound-bd20de86e07e4c418cdcbfedee712d3f.md",
+    "retry-observation.misbound-bd20de86e07e4c418cdcbfedee712d3f.json"
+  ],
+  "limits": [
+    "base result file is absent",
+    "metadata establishes initial task/window binding, not continued process liveness",
+    "process absence at observation time does not establish why or how the process ended",
+    "no documented read-only appserver surface was available for terminal-state confirmation"
+  ]
+}

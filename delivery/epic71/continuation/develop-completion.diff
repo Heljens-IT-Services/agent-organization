@@ -1,0 +1,1151 @@
+diff --git a/scripts/accounting/AccountingEvidence.psm1 b/scripts/accounting/AccountingEvidence.psm1
+index c0678a0..870a607 100644
+--- a/scripts/accounting/AccountingEvidence.psm1
++++ b/scripts/accounting/AccountingEvidence.psm1
+@@ -1,5 +1,6 @@
+ # Technical design; backend owns adoption. No organizational contract changes.
+ Set-StrictMode -Version 2
++Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
+ $script:TokenFields = @('inputTokens','cachedInputTokens','outputTokens','reasoningOutputTokens','totalTokens','cacheWriteInputTokens')
+ function Get-Field($Object, [string]$Name) {
+     if ($null -eq $Object) { return $null }
+@@ -151,6 +152,16 @@ function Read-UsageEntries([string]$Directory) {
+             }
+         }
+     }
++    # Immutable enrichment does not add usage or alter accepted accounting identity.
++    foreach ($file in Get-ChildItem -LiteralPath $Directory -Filter '*.profile.json' -File -ErrorAction SilentlyContinue) {
++        $profile = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
++        if ((Get-Field $profile 'schema') -cne 'native-token-profile/v1') { continue }
++        $key = (Get-CanonicalId (Get-Field $profile 'thread_id')) + '/' + (Get-CanonicalId (Get-Field $profile 'turn_id'))
++        if (-not $native.ContainsKey($key)) { continue }
++        $entry = $native[$key]
++        if ($entry.AliasTaskIds -cnotcontains (Get-CanonicalId (Get-Field $profile 'task_id'))) { continue }
++        $entry.records += @($profile); $entry.paths += @($file.FullName)
++    }
+     foreach ($id in @($tasks.Keys)) {
+         $seen = @{}; $cursor = $id
+         while ($null -ne $cursor -and $tasks.ContainsKey($cursor)) {
+@@ -369,11 +380,14 @@ function Get-LedgerCounterKind($Entry) {
+ }
+ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$RolloutPaths, [string[]]$RootTaskIds, [string[]]$EventLogPaths, $SupplementalBindings=@()) {
+     $rows=@(); $lifecycles=@(); $sources=@(); $conflicts=@(); $diagnostics=@()
++    $jobProfiles=@()
+     $roots=@($RootTaskIds | ForEach-Object { Get-CanonicalId $_ } | Select-Object -Unique)
+     foreach ($path in @($JobArtifactPaths | Select-Object -Unique)) {
+         $full=Get-CanonicalPath $path; $sources+=@($full)
+         $document=Get-Content -LiteralPath $full -Raw -Encoding UTF8 | ConvertFrom-Json
+-        $rows+=@(New-AccountingBinding $document @($full))
++        $jobBinding=New-AccountingBinding $document @($full)
++        $rows+=@($jobBinding)
++        $jobProfiles+=@([pscustomobject]@{binding=$jobBinding;roleId=(Get-Field $document 'role');source=$full})
+     }
+     foreach ($binding in @($SupplementalBindings)) { $rows+=@(New-AccountingBinding $binding @(Get-Field $binding 'sources')) }
+     foreach ($path in @($RolloutPaths | Select-Object -Unique)) {
+@@ -400,7 +414,7 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
+                     if ($null -eq $turn) { continue }
+                     if (-not $local.ContainsKey($turn)) {
+                         $binding=New-AccountingBinding ([pscustomobject]@{thread_id=$thread;turn_id=$turn}) @($full)
+-                        $local[$turn]=[pscustomobject]@{binding=$binding;source=$full;startOrdinal=$null;completeOrdinal=$null;context=$false;snapshots=@();issues=@()}
++                        $local[$turn]=[pscustomobject]@{binding=$binding;source=$full;startOrdinal=$null;completeOrdinal=$null;context=$false;profiles=@();snapshots=@();issues=@()}
+                         $rows+=@($binding)
+                     }
+                     $state=$local[$turn]
+@@ -408,9 +422,10 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
+                         $ctx=New-AccountingBinding $payload @($full)
+                         if ($null -ne $ctx.threadId -and $ctx.threadId -cne $thread) { throw 'Foreign context thread.' }
+                         $ctx.threadId=$thread; $rows+=@($ctx); $state.context=$true
++                        $state.profiles+=@(Get-TurnContextHistory $payload ($full+'#ordinal='+$ordinal))
+                     } elseif ($type -ceq 'token_usage_record') {
+                         if ((Get-CanonicalId (Get-Field $payload 'thread_id')) -cne $thread) { throw 'Foreign token thread.' }
+-                        $state.snapshots+=@([pscustomobject]@{ordinal=[long]$ordinal;usage=Get-NormalizedNativeUsage (Get-Field $payload 'turn_token_usage');source=$full})
++                        $state.snapshots+=@([pscustomobject]@{ordinal=[long]$ordinal;usage=Get-NormalizedNativeUsage (Get-Field $payload 'turn_token_usage');measurementUTC=(ConvertTo-HistoryUTC (Get-Field $record 'timestamp'));source=$full})
+                     } elseif ($type -ceq 'event_msg') {
+                         $eventType=Get-Field $payload 'type'
+                         if ($eventType -ceq 'task_started') {
+@@ -464,11 +479,20 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
+             if (-not $monotone) { $conflicts+=@(New-AccountingConflict $sample 'native_turn_counter_reversal' @($state.source)); continue }
+             if ($inside.Count -eq 0 -or $ids.Count -ne 1) { continue }
+             $chosen=$inside[-1]
++            $assignments=@($jobProfiles | Where-Object {
++                $null -ne $_.binding.taskId -and $_.binding.taskId -ceq $sample.taskId -and
++                ($null -eq $_.binding.threadId -or $_.binding.threadId -ceq $sample.threadId) -and
++                ($null -eq $_.binding.turnId -or $_.binding.turnId -ceq $sample.turnId)
++            })
++            $history=Get-TokenHistory (@($state.profiles)+@($assignments)) (@($state.profiles | ForEach-Object { $state.source })+@($assignments | ForEach-Object source))
+             $candidates+=@([pscustomobject]@{
+                 taskId=$sample.taskId;parentTaskId=$sample.parentTaskId;parentThreadId=$sample.parentThreadId;parentTurnId=$sample.parentTurnId
+                 threadId=$sample.threadId;turnId=$sample.turnId;workItemId=$sample.workItemId;executionId=$sample.executionId;storePath=$sample.storePath
+                 tokenUsage=$chosen.usage;final=$true;role='native_rollout';source=$state.source;sources=@($state.source)
+                 usageOrdinal=$chosen.ordinal;startOrdinal=$state.startOrdinal;completeOrdinal=$state.completeOrdinal;counterKind='turn_token_usage'
++                roleId=$history.roleId;modelId=$history.modelId;reasoningEffort=$history.reasoningEffort;measurementUTC=$chosen.measurementUTC
++                metadataConflicts=$history.metadataConflicts;metadataSources=$history.metadataSources;metadataAuthority=$history.metadataAuthority
++                measurementTimeBasis='native_record_timestamp'
+             })
+         }
+     }
+@@ -478,6 +502,8 @@ function Read-ObservedAccountingFamily([string[]]$JobArtifactPaths, [string[]]$R
+         foreach ($candidate in $group.Group) { if (-not (Compare-AccountingUsage $first.tokenUsage $candidate.tokenUsage)) { $same=$false } }
+         if (-not $same) { $conflicts+=@(New-AccountingConflict $first 'conflicting_source_final_native_measurements' @($group.Group | ForEach-Object source)); continue }
+         $first.sources=@($group.Group | ForEach-Object source | Select-Object -Unique)
++        $history=Get-TokenHistory @($group.Group) @($group.Group | ForEach-Object source)
++        foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','metadataConflicts','metadataSources','metadataAuthority')) { $first.$field=$history.$field }
+         $measurements+=@($first)
+     }
+     # Event totals are diagnostic only, even after turn/completed.
+@@ -506,6 +532,7 @@ function Merge-NativeAccountingMeasurements($Entries, $Measurements) {
+         $matches=@($all | Where-Object native_key -ceq $key)
+         if ($null -eq $measurement.taskId -or $matches.Count -gt 1) { $conflicts+=@(New-AccountingConflict $measurement 'ambiguous_measurement_identity' $measurement.sources); continue }
+         $record=[pscustomobject]@{task_id=$measurement.taskId;parent_task_id=$measurement.parentTaskId;parent_thread_id=$measurement.parentThreadId;parent_turn_id=$measurement.parentTurnId;role=$measurement.role;thread_id=$measurement.threadId;turn_id=$measurement.turnId;work_item_id=$measurement.workItemId;execution_id=$measurement.executionId;work_item_store_path=$measurement.storePath;token_usage=$measurement.tokenUsage;final=$true;source='local_rollout_native_turn_usage'}
++        foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','measurementTimeBasis','metadataConflicts','metadataSources','metadataAuthority')) { $record | Add-Member -NotePropertyName $field -NotePropertyValue (Get-Field $measurement $field) }
+         $identity=Get-UsageIdentity $record; $aliases=@($measurement.taskId); $paths=@($measurement.sources); $records=@($record); $blocked=$false
+         if ($matches.Count -eq 1) {
+             $prior=$matches[0]; $old=$prior.identity
+diff --git a/scripts/accounting/Get-WorkItemMetrics.ps1 b/scripts/accounting/Get-WorkItemMetrics.ps1
+index 914b5d3..55ae0f8 100644
+--- a/scripts/accounting/Get-WorkItemMetrics.ps1
++++ b/scripts/accounting/Get-WorkItemMetrics.ps1
+@@ -12,6 +12,7 @@ param(
+ $ErrorActionPreference = 'Stop'
+ $readStarted = [DateTime]::UtcNow
+ Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
++Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
+ Import-Module (Join-Path $PSScriptRoot 'WorkItemMetricEvidence.psm1') -Force
+ Import-Module (Join-Path $RepositoryRoot 'scripts/workitems/WorkItemStore.psm1') -Force
+ # Designed production use of the existing revision/validation boundary, never
+@@ -176,6 +177,7 @@ $rootLifecycle = @($lifecycle | Where-Object { $_.id -ceq $WorkItemId })[0]
+ $classified = @($lifecycle | Where-Object { $null -ne $_.firstAcceptance })
+ $firstAccepted = @($classified | Where-Object { $_.firstAcceptance }).Count
+ $details = @($selectedEntries | ForEach-Object {
++    $history = Get-EntryTokenHistory $_
+     [pscustomobject]@{
+         task_id=$_.identity.taskId; AliasTaskIds=@($_.AliasTaskIds); native_key=$_.native_key
+         parent_task_id=$_.identity.parentTaskId; parent_thread_id=$_.identity.parentThreadId; parent_turn_id=$_.identity.parentTurnId
+@@ -183,12 +185,37 @@ $details = @($selectedEntries | ForEach-Object {
+         execution_id=$_.identity.executionId; work_item_store_path=$_.identity.storePath
+         token_usage=$_.identity.tokenUsage; final=$_.identity.final; paths=@($_.paths)
+         correlationValid=($executions[$_.identity.executionId].conflicts.Count -eq 0)
++        roleId=$history.roleId; modelId=$history.modelId; reasoningEffort=$history.reasoningEffort
++        measurementUTC=$history.measurementUTC; importedAtUTC=$history.importedAtUTC
++        metadataSources=$history.metadataSources; metadataConflicts=$history.metadataConflicts; missingMetadata=$history.missingMetadata
+     }
+ })
+ $sourcePaths = @($StorePath) + @($entries | ForEach-Object { $_.paths }) + @($executions.Values | ForEach-Object { $_.sources }) + @($family.sources) + @($observedFamily.sources)
++$historyEligible=@($known | Where-Object { $executions[$_.identity.executionId].conflicts.Count -eq 0 } | ForEach-Object native_key)
++$historyCoverage=[pscustomobject]@{
++    familyCompletenessProven=$false; familyCompletenessReason=$observedFamily.completenessReason
++    missingExpectedExecutions=$expectedMissing; missingExpectedNativeTurns=$missingNativeTurns
++    executionSetUnknownWorkItemIds=$unknownItems; bindingGaps=$bindingGaps; parentBindingGaps=$parentGaps
++    correlationConflicts=$conflicts; nativeConflicts=$allNativeConflicts; incompleteTransfers=$incompleteTransfers
++}
++$tokenHistory=Get-TokenHistoryProjection $selectedEntries $historyEligible $historyCoverage
++$tokenHistory | Add-Member -NotePropertyName scope -NotePropertyValue ([pscustomobject]@{
++    kind='workitem_family'; workItemId=$WorkItemId; includedWorkItemIds=@($selected.Keys | Sort-Object)
++    storePath=$store; accountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)
++    expectedNativeKeys=@($scopedExpectations | Where-Object { $_.storePath -ceq $store -and $null -ne $_.workItemId -and $selected.ContainsKey($_.workItemId) -and $null -ne $_.threadId -and $null -ne $_.turnId } | ForEach-Object { $_.threadId+'/'+$_.turnId } | Sort-Object -Unique)
++    expectedSetComplete=$false; unboundTasksIncluded=$false
++})
++# Revision includes actual attributed content/coverage, not only store revision.
++$historyText=$tokenHistory | ConvertTo-Json -Depth 60 -Compress
++$historyHasher=[Security.Cryptography.SHA256]::Create()
++try { $historyRevision=([BitConverter]::ToString($historyHasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($historyText)))).Replace('-','').ToLowerInvariant() }
++finally { $historyHasher.Dispose() }
++$tokenHistory | Add-Member -NotePropertyName projectionRevision -NotePropertyValue $historyRevision
++$tokenHistory | Add-Member -NotePropertyName projectionGeneratedAtUTC -NotePropertyValue ([DateTime]::UtcNow.ToString('o'))
+ [pscustomobject][ordered]@{
+     workItemId=$WorkItemId; includedWorkItemIds=@($selected.Keys | Sort-Object); storePath=[IO.Path]::GetFullPath($StorePath); storeRevision=$snapshot.Revision
+     accountingDirectory=[IO.Path]::GetFullPath($AccountingDirectory)
++    tokenHistory=$tokenHistory
+     readWindow=[pscustomobject]@{startedAt=$readStarted.ToString('o'); endedAt=[DateTime]::UtcNow.ToString('o'); sourcePaths=@($sourcePaths | Select-Object -Unique); consistency='Fixed store revision; sequential ledger/binding reads, not an atomic snapshot.'}
+     tokenUsage=[pscustomobject]@{
+         own=$(if ($ownCoverageComplete) { $ownPartial } else { $null }); ownKnownPartial=$ownPartial; ownCoverageComplete=$ownCoverageComplete
+diff --git a/scripts/accounting/Import-RolloutTaskUsage.ps1 b/scripts/accounting/Import-RolloutTaskUsage.ps1
+index 1f03f0d..49e7f72 100644
+--- a/scripts/accounting/Import-RolloutTaskUsage.ps1
++++ b/scripts/accounting/Import-RolloutTaskUsage.ps1
+@@ -13,6 +13,7 @@ param(
+ )
+ $ErrorActionPreference = 'Stop'
+ Import-Module (Join-Path $PSScriptRoot 'AccountingEvidence.psm1') -Force
++Import-Module (Join-Path $PSScriptRoot 'TokenHistory.psm1') -Force
+ $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+ # Explicit opt-in to this observed internal format, not a public rollout API.
+ # Only metadata is read; message payloads are never returned or included in errors.
+@@ -101,6 +102,7 @@ $directMetadata = 0
+ $directStarted = $false
+ $directCompleted = $false
+ $directError = $null
++$profiles = @(); $measurementUTC = $null
+ $directStream = [System.IO.File]::Open($file.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+ $directReader = New-Object System.IO.StreamReader($directStream, $utf8, $false)
+ try {
+@@ -109,6 +111,12 @@ try {
+         if ($null -eq $data -or $data -isnot [pscustomobject] -or $data.type -isnot [string] -or $data.payload -isnot [pscustomobject]) { throw 'Unknown rollout record envelope.' }
+         if (@('session_meta','event_msg','response_item','turn_context','compacted','world_state','inter_agent_communication_metadata','token_usage_record') -cnotcontains $data.type) { throw 'Unknown rollout record type.' }
+         if ($data.type -eq 'session_meta' -and (Get-CanonicalId (Get-Field $data.payload 'id')) -ceq (Get-CanonicalId $thread)) { $directMetadata++ }
++        if ($data.type -ceq 'turn_context' -and $directMetadata -eq 1 -and
++            (Get-CanonicalId (Get-Field $data.payload 'turn_id') -Optional) -ceq (Get-CanonicalId $turn)) {
++            $contextThread=Get-CanonicalId (Get-Field $data.payload 'thread_id') -Optional
++            if ($null -ne $contextThread -and $contextThread -cne (Get-CanonicalId $thread)) { throw 'Foreign selected turn context.' }
++            $profiles+=@(Get-TurnContextHistory $data.payload ($file.FullName+'#turn_context:'+ $turn))
++        }
+         if ($data.type -eq 'event_msg' -and (Get-CanonicalId (Get-Field $data.payload 'turn_id') -Optional) -ceq (Get-CanonicalId $turn)) {
+             if ($data.payload.type -eq 'task_started') {
+                 if ($directStarted -or $directMetadata -ne 1) { $directError = 'Ambiguous selected native turn start.' }
+@@ -126,6 +134,7 @@ try {
+                 foreach ($key in $ledgerFields) { if ($next.$key -lt $direct.$key) { throw 'Native turn counter reset.' } }
+             }
+             $direct = $next
++            $measurementUTC = ConvertTo-HistoryUTC (Get-Field $data 'timestamp')
+         }
+     }
+ } finally { $directReader.Dispose() }
+@@ -171,7 +180,7 @@ try {
+                             }
+                         }
+                         $latest = $snapshot
+-                        if ($activeTurn -eq $turn) { $final = $snapshot }
++                        if ($activeTurn -eq $turn) { $final = $snapshot; $measurementUTC = ConvertTo-HistoryUTC (Get-Field $data 'timestamp') }
+                     }
+                     'task_started' {
+                         $eventTurn = Id $event.turn_id 'task start turn'
+@@ -223,6 +232,10 @@ $record = [pscustomobject][ordered]@{
+     task_id = $task; parent_task_id = $parent; role = $Role; thread_id = $thread; turn_id = $turn
+     parent_thread_id = $parentThread; parent_turn_id = $parentTurn; token_usage = $usage; final = $true; source = $(if ($null -ne $direct) { 'local_rollout_native_turn_usage' } else { 'local_rollout_completed_turn_delta' })
+ }
++$history = Get-TokenHistory (@($profiles)+@([pscustomobject]@{roleId=$Role;measurementUTC=$measurementUTC;measurementTimeBasis='native_record_timestamp'})) (@($profiles | ForEach-Object { $file.FullName })+@('explicit historical import assignment; '+$file.FullName))
++foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','metadataConflicts','metadataSources','metadataAuthority')) { $record | Add-Member -NotePropertyName $field -NotePropertyValue $history.$field }
++$record | Add-Member -NotePropertyName importedAtUTC -NotePropertyValue ([DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'"))
++$record | Add-Member -NotePropertyName measurementTimeBasis -NotePropertyValue 'native_record_timestamp'
+ if ($null -ne $workItem) {
+     $record | Add-Member -NotePropertyName work_item_id -NotePropertyValue $workItem
+     $record | Add-Member -NotePropertyName execution_id -NotePropertyValue $execution
+@@ -280,5 +293,20 @@ try {
+             }
+         } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
+     }
+-} finally { $lock.Dispose() }
++    # Persist trustworthy backfill without replacing an existing Unknown/final
++    # measurement. This additive profile has no counters and cannot be summed.
++    $profile=[ordered]@{schema='native-token-profile/v1';task_id=$task;thread_id=$thread;turn_id=$turn}
++    foreach ($field in @('roleId','modelId','reasoningEffort','measurementUTC','measurementTimeBasis','metadataConflicts','metadataSources','metadataAuthority')) { $profile[$field]=$record.$field }
++    $profileIdentityText=$profile | ConvertTo-Json -Depth 20
++    $sha=[Security.Cryptography.SHA256]::Create()
++    try { $hash=([BitConverter]::ToString($sha.ComputeHash($utf8.GetBytes($profileIdentityText)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
++    $profile['importedAtUTC']=$record.importedAtUTC
++    $profileText=$profile | ConvertTo-Json -Depth 20
++    $profilePath=Join-Path $directory ($thread+'.'+$turn+'.'+$hash+'.profile.json')
++    if (-not [IO.File]::Exists($profilePath)) {
++        $profileTemporary=Join-Path $directory ([guid]::NewGuid().ToString('N')+'.tmp')
++        try { [IO.File]::WriteAllText($profileTemporary,$profileText,$utf8); [IO.File]::Move($profileTemporary,$profilePath) }
++        finally { if ([IO.File]::Exists($profileTemporary)) { [IO.File]::Delete($profileTemporary) } }
++    }
++} finally { $lock.Dispose() }
+ $record
+diff --git a/scripts/accounting/OriginalUsageAccountingCaller.psm1 b/scripts/accounting/OriginalUsageAccountingCaller.psm1
+index fbcf90b..019ce8c 100644
+--- a/scripts/accounting/OriginalUsageAccountingCaller.psm1
++++ b/scripts/accounting/OriginalUsageAccountingCaller.psm1
+@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
+ 
+ $script:UsageFields = @('input_tokens','cached_input_tokens','cache_write_input_tokens','output_tokens','reasoning_output_tokens','total_tokens')
+ $script:MaximumUsageSnapshotBytes = 134217728L
++$script:ProfileFields = @('role_id','roleId','model','modelId','effort','reasoning_effort','reasoningEffort')
+ 
+ function Get-UsagePropertyValue($Object, [string]$Name) {
+     if ($null -eq $Object -or $Object -isnot [System.Management.Automation.PSCustomObject]) { return $null }
+@@ -128,13 +129,14 @@ function Test-PublicRawRecord($B,$Top,[string]$Type,$PayloadSpans){
+     if($Top.Count -lt 3 -or -not $Top.Contains('ordinal') -or -not $Top.Contains('type') -or -not $Top.Contains('payload')){return 'record envelope is incomplete'}
+     if($Top.Contains('timestamp')){
+         $timestamp=Get-PublicValue $B $Top 'timestamp'
+-        if($timestamp -isnot [string] -or $timestamp -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?Z$'){return 'timestamp is not strict UTC ISO-8601'}
+-        $formats=@("yyyy-MM-dd'T'HH:mm:ss'Z'");for($digits=1;$digits -le 7;$digits++){$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"'Z'")}
+-        $parsed=[datetime]::MinValue;if(-not [datetime]::TryParseExact($timestamp,$formats,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){return 'timestamp calendar value is invalid'}
++        if($timestamp -isnot [string] -or $timestamp -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$'){return 'timestamp has no explicit ISO-8601 offset'}
++        $formats=@("yyyy-MM-dd'T'HH:mm:ss'Z'","yyyy-MM-dd'T'HH:mm:sszzz")
++        for($digits=1;$digits -le 7;$digits++){$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"'Z'");$formats+=("yyyy-MM-dd'T'HH:mm:ss."+('f'*$digits)+"zzz")}
++        $parsed=[datetimeoffset]::MinValue;if(-not [datetimeoffset]::TryParseExact($timestamp,$formats,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){return 'timestamp calendar value is invalid'}
+     }
+     $allowedPayload=@()
+     if($Type -ceq 'session_meta'){$allowedPayload=@('id')}
+-    elseif($Type -ceq 'turn_context'){$allowedPayload=@('thread_id','threadId','turn_id','turnId','root_turn_id')}
++    elseif($Type -ceq 'turn_context'){$allowedPayload=@('thread_id','threadId','turn_id','turnId','root_turn_id')+$script:ProfileFields}
+     elseif($Type -ceq 'token_usage_record'){$allowedPayload=@('thread_id','turn_id','turn_token_usage')}
+     elseif($Type -ceq 'event_msg'){$allowedPayload=@('type','thread_id','threadId','turn_id','turnId','task_id','taskId','parent_task_id','parentTaskId','work_item_id','workItemId','execution_id','executionId','parent_thread_id','parentThreadId','parent_turn_id','parentTurnId','turn_attribution')}
+     else{return 'record type is not allowlisted'}
+@@ -142,7 +144,11 @@ function Test-PublicRawRecord($B,$Top,[string]$Type,$PayloadSpans){
+     if($Type -ceq 'session_meta'){
+         $v=Get-PublicValue $B $PayloadSpans 'id';if($v -isnot [string] -or -not (Test-PublicGuid $v)){return 'session id is not a GUID'}
+     }elseif($Type -ceq 'turn_context'){
+-        foreach($key in $PayloadSpans.Keys){$v=Get-PublicValue $B $PayloadSpans $key;if($v -isnot [string] -or -not (Test-PublicGuid $v)){return "context identity is not a GUID: $key"}}
++        foreach($key in $PayloadSpans.Keys){
++            $v=Get-PublicValue $B $PayloadSpans $key
++            if($key -cin $script:ProfileFields){if($null -ne $v -and ($v -isnot [string] -or $v -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$')){return "context profile value invalid: $key"}}
++            elseif($v -isnot [string] -or -not (Test-PublicGuid $v)){return "context identity is not a GUID: $key"}
++        }
+     }elseif($Type -ceq 'token_usage_record'){
+         foreach($key in @('thread_id','turn_id')){$v=Get-PublicValue $B $PayloadSpans $key;if($v -isnot [string] -or -not (Test-PublicGuid $v)){return "usage identity is not a GUID: $key"}}
+         if($PayloadSpans.Contains('turn_token_usage') -and $null -ne (Get-PublicValue $B $PayloadSpans 'turn_token_usage')){
+@@ -174,7 +180,13 @@ function Get-PublicNative($Snapshot){
+             if($type -ceq 'session_meta'){
+                 $safe=Select-PublicFields $b $ps @('id');$sessions++
+                 if($sessions -ne 1 -or -not $safe.Contains('id') -or $safe.id -isnot [string] -or ([guid]$safe.id).ToString('D') -cne $thread){throw 'NativeSessionInvalid'}
+-            }elseif($type -ceq 'turn_context'){$safe=Select-PublicFields $b $ps ($script:BindingNames+@('root_turn_id'))}
++            }elseif($type -ceq 'turn_context'){
++                $safe=Select-PublicFields $b $ps ($script:BindingNames+@('root_turn_id'))
++                foreach($f in $script:ProfileFields){
++                    if(-not $ps.Contains($f)){continue};$v=Get-PublicValue $b $ps $f
++                    $safe[$f]=if($v -is [string] -and $v -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$v}else{$null}
++                }
++            }
+             elseif($type -ceq 'token_usage_record'){
+                 $safe=Select-PublicFields $b $ps @('thread_id','turn_id')
+                 if(-not $safe.Contains('thread_id')){throw 'NativeUsageIdentityMissing'}
+@@ -195,6 +207,13 @@ function Get-PublicNative($Snapshot){
+                 $originalTurnId=if($safe.Contains('turn_id')){$safe.turn_id}else{$null}
+                 if($type -cne 'session_meta'){if(-not $safe.Contains('turn_id') -or $safe.turn_id -isnot [string]){throw 'NativeTurnMissing'};$safe.turn_id=([guid]$safe.turn_id).ToString('D')}
+                 $row=[pscustomobject][ordered]@{ordinal=[long]$ord;type=$type;payload=[pscustomobject]$safe}
++                if($top.Contains('timestamp')){
++                    $ts=Get-PublicValue $b $top 'timestamp'
++                    $parsedTime=[datetimeoffset]::MinValue
++                    if($ts -is [string] -and $ts -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($ts,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsedTime)){
++                        $row | Add-Member -NotePropertyName timestamp -NotePropertyValue $ts
++                    }
++                }
+                 if($type -cne 'token_usage_record' -or $null -ne $safe.turn_token_usage){$rows.Add($row);$lines.Add(($row|ConvertTo-Json -Depth 20 -Compress))}
+                 $original=[byte[]]::new($i-$start+1);[Array]::Copy($b,$start,$original,0,$original.Length)
+                 $rawReason=Test-PublicRawRecord $b $top $type $ps
+@@ -274,12 +293,92 @@ function Get-PublicEventBytes($Snapshot){
+         };$start=$i+1
+     };return [pscustomobject]@{Bytes=[Text.UTF8Encoding]::new($false).GetBytes(($lines -join "`n")+$(if($lines.Count){"`n"}else{''}));TailOffset=[long]$start;TailLength=[long]($b.Length-$start)}
+ }
++function Get-PublicMetadataSources([byte[]]$B,$Top){
++    # Scan array elements before decoding: unknown/private members never enter the projection.
++    if(-not $Top.Contains('metadataSources')){return}
++    $span=$Top['metadataSources'];$end=$span.Offset+$span.Length;$i=$span.Offset
++    while($i -lt $end -and $B[$i] -in @(9,10,13,32)){$i++}
++    if($i -ge $end -or $B[$i] -ne 91){return};$i++
++    while($i -lt $end){
++        while($i -lt $end -and $B[$i] -in @(9,10,13,32)){$i++}
++        if($i -ge $end){throw 'MetadataSourcesTruncated'};if($B[$i] -eq 93){return}
++        $start=$i;$depth=0;$quoted=$false
++        while($i -lt $end){
++            $c=$B[$i]
++            if($quoted){if($c -eq 92){$i+=2;continue};if($c -eq 34){$quoted=$false}}
++            else{if($c -eq 34){$quoted=$true}elseif($c -in @(123,91)){$depth++}elseif($c -in @(125,93)){if($depth -eq 0){break};$depth--}elseif($c -eq 44 -and $depth -eq 0){break}}
++            $i++
++        }
++        if($quoted -or $depth -ne 0 -or $i -ge $end){throw 'MetadataSourcesTruncated'}
++        if($B[$start] -eq 123){
++            $fields=Get-PublicSpans $B $start ($i-$start)
++            $field=Get-PublicValue $B $fields 'field';$value=Get-PublicValue $B $fields 'value'
++            $valid=$field -cin @('roleId','modelId','reasoningEffort','measurementUTC')
++            if($field -ceq 'measurementUTC'){
++                $parsed=[datetimeoffset]::MinValue
++                $valid=$valid -and $value -is [string] -and $value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($value,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)
++            }else{$valid=$valid -and $value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'}
++            if($valid){
++                $source=Get-PublicValue $B $fields 'source'
++                # Only concrete JSON/JSONL paths and the existing explicit historical assignment prefix.
++                $safeSource=if($source -is [string] -and $source.Length -le 4096 -and $source -cnotmatch '[\x00-\x1f]' -and $source -cmatch '^(explicit historical import assignment; )?([A-Za-z]:[\\/]|/|\\\\).+\.jsonl?$'){$source}else{$null}
++                $safe=[ordered]@{field=$field;value=$value;source=$safeSource}
++                if($fields.Contains('sha256')){$hash=Get-PublicValue $B $fields 'sha256';$safe['sha256']=if($hash -is [string] -and $hash -cmatch '^[0-9a-fA-F]{64}$'){$hash}else{$null}}
++                if($fields.Contains('basis')){$basis=Get-PublicValue $B $fields 'basis';$safe['basis']=if($basis -ceq 'resolved fresh thread defaults; turn/start has no model or effort override'){$basis}else{$null}}
++                if($fields.Contains('authority')){$rank=Get-PublicValue $B $fields 'authority';if($rank -is [int] -and $rank -in @(10,20,30)){$safe['authority']=$rank}}
++                [pscustomobject]$safe
++            }
++        }
++        if($B[$i] -eq 93){return};if($B[$i] -ne 44){throw 'MetadataSourcesSeparator'};$i++
++    }
++    throw 'MetadataSourcesTruncated'
++}
+ function Get-PublicDocumentBytes($Snapshot){
+     $top=Get-PublicSpans $Snapshot.Bytes
+-    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
++    $names=if($Snapshot.Kind -ceq 'job'){$script:BindingNames+@('role')}elseif($Snapshot.Kind -ceq 'expected'){@('version','root_task_ids','coverage','tasks')}
+         elseif($Snapshot.Kind -ceq 'ledger'){$script:BindingNames+@('role','token_usage','final','source','counter_kind','counterKind')}
++        elseif($Snapshot.Kind -ceq 'profile'){@('schema','task_id','thread_id','turn_id')}
+         else{$script:BindingNames+@('complete','startingSnapshot','candidate')}
+-    return ConvertTo-PublicBytes (Select-PublicFields $Snapshot.Bytes $top $names)
++    $public=Select-PublicFields $Snapshot.Bytes $top $names
++    if($Snapshot.Kind -ceq 'profile'){
++        if($public['schema'] -cne 'native-token-profile/v1'){throw 'NativeProfileSchemaInvalid'}
++        foreach($field in @('task_id','thread_id','turn_id')){
++            $value=$public[$field]
++            if($value -isnot [string] -or $value -cnotmatch '^([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'){throw 'NativeProfileIdentityInvalid'}
++        }
++    }
++    if($Snapshot.Kind -cin @('ledger','profile')){
++        foreach($field in @('roleId','modelId','reasoningEffort')){
++            if(-not $top.Contains($field)){continue};$value=Get-PublicValue $Snapshot.Bytes $top $field
++            $public[$field]=if($value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$value}else{$null}
++        }
++        foreach($field in @('measurementUTC','importedAtUTC','measurementObservedAtUTC')){
++            if(-not $top.Contains($field)){continue};$value=Get-PublicValue $Snapshot.Bytes $top $field;$parsed=[datetimeoffset]::MinValue
++            $public[$field]=if($value -is [string] -and $value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$' -and [datetimeoffset]::TryParse($value,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$parsed)){$value}else{$null}
++        }
++        $basis=Get-PublicValue $Snapshot.Bytes $top 'measurementTimeBasis'
++        if($basis -cin @('native_record_timestamp','UTC receipt of last identity-matched native usage notification','native_time_unknown_notification_observation_only')){$public['measurementTimeBasis']=$basis}
++        $rawConflicts=Get-PublicValue $Snapshot.Bytes $top 'metadataConflicts'
++        $public['metadataConflicts']=@($rawConflicts | Where-Object { $_ -cin @('roleId','modelId','reasoningEffort','measurementUTC') })
++        $rawAuthority=Get-PublicValue $Snapshot.Bytes $top 'metadataAuthority'
++        $safeAuthority=[ordered]@{}
++        foreach($field in @('roleId','modelId','reasoningEffort','measurementUTC')){
++            $rank=Get-UsagePropertyValue $rawAuthority $field
++            if($rank -is [int] -and $rank -in @(10,20,30)){$safeAuthority[$field]=$rank}
++        }
++        $public['metadataAuthority']=[pscustomobject]$safeAuthority
++        $public['metadataSources']=@(Get-PublicMetadataSources $Snapshot.Bytes $top)
++        $requested=if($Snapshot.Kind -ceq 'ledger'){Get-PublicValue $Snapshot.Bytes $top 'requestedProfile'}else{$null}
++        if($Snapshot.Kind -ceq 'ledger' -and $null -ne $requested){
++            $safeRequested=[ordered]@{effective=$false}
++            foreach($field in @('modelId','reasoningEffort')){
++                $value=Get-UsagePropertyValue $requested $field
++                $safeRequested[$field]=if($value -is [string] -and $value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$'){$value}else{$null}
++            }
++            $public['requestedProfile']=[pscustomobject]$safeRequested
++        }
++    }
++    return ConvertTo-PublicBytes $public
+ }
+ function New-PublicPlan([string]$Root,$Item){
+     $path=[IO.Path]::GetFullPath((Join-Path $Root $Item.Relative));$prefix=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')+[IO.Path]::DirectorySeparatorChar
+@@ -336,8 +435,8 @@ function Invoke-OriginalUsageAccountingCaller {
+     foreach($group in @(@('job',$ExpectedJobArtifacts),@('native',$NativeRolloutPaths),@('events',$NativeEventLogPaths),@('expected',$ExpectedTaskSources))){
+         foreach($path in @($group[1])){$descriptors.Add([pscustomobject]@{Kind=$group[0];Path=[IO.Path]::GetFullPath($path)})}
+     }
+-    foreach($pattern in @('*.usage.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')){
+-        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -ceq '*.usage.json'){'ledger'}else{'execution'});Path=$file.FullName})}
++    foreach($pattern in @('*.usage.json','*.profile.json','execution-*.json','workitem-transfer-*.json','workitem-current-*.json')){
++        foreach($file in Get-ChildItem -LiteralPath $AccountingDirectory -Filter $pattern -File){$descriptors.Add([pscustomobject]@{Kind=$(if($pattern -ceq '*.usage.json'){'ledger'}elseif($pattern -ceq '*.profile.json'){'profile'}else{'execution'});Path=$file.FullName})}
+     }
+     if($descriptors.Count -gt 4096){throw 'InputCountLimit'}
+     $missing=@($descriptors|Where-Object{-not [IO.File]::Exists($_.Path)}|ForEach-Object Path)
+@@ -369,7 +468,7 @@ function Invoke-OriginalUsageAccountingCaller {
+     $id=Get-OriginalUsageSha256 (ConvertTo-PublicBytes $index);$base="retained/$id";$items=[Collections.Generic.List[object]]::new();$map=@{job=@();native=@();events=@();expected=@()}
+     foreach($s in $snapshots){
+         $slot=Get-OriginalUsageSha256 ([Text.UTF8Encoding]::new($false).GetBytes($s.Path));$name=[IO.Path]::GetFileName($s.Path)
+-        $relative=if($s.Kind -in @('ledger','execution')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
++        $relative=if($s.Kind -in @('ledger','execution','profile')){"$base/accounting/$name"}else{"$base/$($s.Kind)/$slot/$name"}
+         $source=[ordered]@{path=$s.Path;observedLength=[long]$s.Bytes.Length;observedSha256=$s.Sha256;tailOffset=$s.TailOffset;tailLength=$s.TailLength;originalReceipt=$s.OriginalReceipt}
+         if($s.Kind -ceq 'native'){
+             $source.ranges=@($s.Native.Ranges|ForEach-Object{[ordered]@{ordinal=$_.ordinal;offset=$_.offset;length=$_.length;rangeSha256=$_.rangeSha256;originalPath=$_.originalPath;originalThreadId=$_.originalThreadId;originalTurnId=$_.originalTurnId;rawRangeAvailable=$_.rawRangeAvailable;rawUnavailableReason=$_.rawUnavailableReason;threadId=$_.threadId;turnId=$_.turnId;nativeFinalIdentity=$_.nativeFinalIdentity}})
+diff --git a/scripts/accounting/README.md b/scripts/accounting/README.md
+index 3f0bf42..7a473ad 100644
+--- a/scripts/accounting/README.md
++++ b/scripts/accounting/README.md
+@@ -1,5 +1,25 @@
+ # WorkItem Accounting
+ 
++## AR-108 historical token profiles
++
++`TokenHistory.psm1` adds `tokenHistory` to the existing WorkItem metrics projection. It reuses the accepted native identity deduplication and correlation mask and restricts the new history sums to final own `turn_token_usage` counters. Int64 counters cross this new JSON boundary as decimal strings; the browser sums them with BigInt. Existing `tokenUsage`, lifecycle and other metric outputs retain their contracts.
++
++Each history row exposes task/WorkItem/execution/thread/turn plus nullable `roleId`, `modelId`, `reasoningEffort`, `measurementUTC`, separate `importedAtUTC`, provenance, missing metadata and conflicts. Field authority is preserved through enrichment/merge: exact effective native turn context (30) outranks resolved fresh single-turn thread defaults without overrides (20); recorded role assignment (10) remains available. Requested job model/effort is retained separately as `requestedProfiles`, never used as an effective fallback. Equal-authority contradictions make only the affected field unknown; missing values do not erase evidence. `native_rollout` is not a role. Current TOMLs never relabel history. The internal authority marker is meaningful only inside the existing trusted, identity-bound source path; it does not authenticate arbitrary files.
++
++`measurementUTC` is the final native turn measurement timestamp, including the last final snapshot of a proven completed-turn delta. Explicit Z/offset timestamps normalize to UTC; offsetless timestamps stay unknown. Starter notification receipt is retained in `measurementObservationsUTC`, including legacy receipt records, and never bucketed as consumption time. `importedAtUTC` and `projectionGeneratedAtUTC` are separate. Long turns belong to their final measurement bucket, with no estimated distribution. Existing sources provide final turn totals or completed-turn deltas, not an evidenced exhaustive disjoint intra-turn set with profile/time boundaries. Without that set, intra-turn profile conflict stays unknown and the valid turn total counts once. A future evidenced disjoint set must replace the aggregate, preserve all counters, and remain under the existing native identity; no parallel identity is introduced here.
++
++The importer keeps existing usage files immutable and publishes additive `native-token-profile/v1` `*.profile.json` evidence for the same native identity, with no counters. Stable profile content determines its filename; repeating a profile does not add token measurements or duplicate profile files. The public retention reader captures these sidecars as separate `profile` inputs in the observed bundle and publishes their allowlisted schema, task/thread/turn, profile/time fields, conflicts and authority into the retained AccountingDirectory. Profile inputs cannot establish the caller's original task/WorkItem binding or register final counters; the existing reader attaches them only to an existing native identity and proven task alias. Its accepted counter/retention protocol stays intact.
++
++Ledger and sidecar `metadataSources` retain only structured field/value/source, optional SHA256, known effectiveness basis and field authority. Unknown members are skipped before decoding; no private message content is projected. Values use the profile identifier or explicit-offset timestamp rules. Source references are concrete absolute JSON/JSONL paths, optionally with the existing explicit historical import assignment prefix; hashes require 64 hexadecimal characters. The only retained effectiveness basis is the existing resolved fresh-thread-defaults/no-turn-override statement. Invalid references/hash/basis become null, invalid field/value entries are omitted, and missing provenance remains unknown. Paths/hashes are retained historical references, not copied ACK contents or new authentication. Current TOMLs and requested profiles never replace effective sources.
++
++The existing local `metrics(workItemId)` operation returns additive `tokenHistory.version=1`, `scope`, `records`, `excluded`, `coverage`, a content-derived `projectionRevision` and separate generation time. Existing output contracts and request shape are preserved; no new Bridge operation is necessary. The outer `readWindow` describes sequential source reads, not an atomic snapshot. Scope explicitly names the same-store WorkItem family, observed expected native keys and `expectedSetComplete=false`. The configured AccountingDirectory and only explicit supplied native/job/expected sources are read; no global rollout discovery. Unbound CLI tasks are excluded. Native own deduplication and conflict masks precede all filters; inclusive is never added. Diagnostic/provisional counters stay separately in `diagnosticTokenUsage`, outside sums.
++
++`web/token-history.js`, explicitly served by `Start-LocalWeb.ps1`, uses UTC day/Monday-week/calendar-month buckets and filters `[startUtc,endUtc)`. An inclusive UI end date becomes the following day 00:00Z exclusively. Partial buckets use the actual intersection and label it in tooltip and the time-series table. Unknown-time valid tokens remain in the unlimited table; constrained periods show them outside the period sum. Model/effort multiselect uses OR within a field and AND between fields; empty selection means no series. Legend selection filters table, columns, tooltip and visible measured sum together; excluded known tokens are separately shown. Scope gaps and per-field unknown/conflict counts remain unfiltered and overlapping diagnostics are not added. Empty intervals are gaps, not measured zero; an explicit measured zero is preserved. Cached Input and Reasoning Output remain subsets. Chart series pair IDs/colors stay stable.
++
++The Bridge fetches the full family projection; filters are applied synchronously to that revision using current UI settings, without a filtered-result cache. Pending requests additionally bind the snapshot read epoch so a later polling read cannot adopt an older response solely because the store revision stayed the same. Existing five-second polling invalidates the projection cache, including attribution-only changes. The content revision includes attribution and coverage, not merely the WorkItem revision. Product behavior, visual accessibility and live read-window consistency remain unverified under the content-only evidence rule.
++
++Scope remains the selected WorkItem and explicitly bound descendants in the same store. Unbound originalroot/CLI turns require a supported original-owner connection; no automatic completeness is asserted. Missing executions, native turns, correlation, metadata, measurement and family coverage are visible. Implementation evidence under the current repository rule is content/diff/reference read-back only; it is not a current runtime proof or independent acceptance.
++
+ Backend adoption design for #50/#51/#24. All seven files in this directory form one patch set under `scripts/accounting/`. Existing store/schema/ledger remain authoritative. No starter, delegation, role or organization changes are part of adoption.
+ 
+ `Import-RolloutTaskUsage.ps1` retains the existing completed-turn snapshot reader. Native thread+turn identifies a measurement; task IDs are assignments and all proven aliases are retained by the reader. Cumulative turn snapshots contribute their final accumulated delta once, not a sum of snapshots; the session fallback requires a proven baseline and final snapshot. Missing baseline produces an explicit unknown measurement. Cache and reasoning remain subsets. Existing records are never upgraded from unknown/provisional to final by replacement: contradictory reimports fail and retain all existing data. Same canonical identity, binding, measurement and finality are idempotent.
+diff --git a/scripts/accounting/TokenHistory.psm1 b/scripts/accounting/TokenHistory.psm1
+new file mode 100644
+index 0000000..caf2188
+--- /dev/null
++++ b/scripts/accounting/TokenHistory.psm1
+@@ -0,0 +1,131 @@
++# AR-108: metadata projection only; existing accounting owns identity/counters.
++Set-StrictMode -Version 2
++function Get-HistoryField($Value, [string]$Name) {
++    if ($null -eq $Value) { return $null }
++    $property = $Value.PSObject.Properties[$Name]
++    if ($null -ne $property) { return $property.Value }
++    return $null
++}
++function ConvertTo-HistoryUTC($Value) {
++    if ($Value -isnot [string] -or $Value -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?(Z|[+-]\d{2}:\d{2})$') { return $null }
++    $parsed = [DateTimeOffset]::MinValue
++    if (-not [DateTimeOffset]::TryParse($Value, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal, [ref]$parsed)) { return $null }
++    return $parsed.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
++}
++function Get-TokenHistory([object[]]$Records, [string[]]$Sources) {
++    $result = [ordered]@{}; $evidence = @(); $conflicts = @(); $authority = [ordered]@{}
++    foreach ($name in @('roleId','modelId','reasoningEffort','measurementUTC')) {
++        $values = @(); $blocked = $false; $best = 0
++        for ($i = 0; $i -lt $Records.Count; $i++) {
++            $record = $Records[$i]
++            # Authority is preserved across normalized profile/merge boundaries.
++            # Exact effective turn context outranks resolved fresh-thread defaults.
++            $rank = Get-HistoryField (Get-HistoryField $record 'metadataAuthority') $name
++            if ($rank -isnot [int] -or $rank -notin @(10,20,30)) {
++                $rank = if ($name -ceq 'roleId') { 10 }
++                    elseif ($name -ceq 'measurementUTC' -and (Get-HistoryField $record 'measurementTimeBasis') -ceq 'native_record_timestamp') { 30 }
++                    elseif ((Get-HistoryField $record 'schema') -ceq 'native-token-profile/v1' -or (Get-HistoryField $record 'source') -cin @('local_rollout_native_turn_usage','local_rollout_completed_turn_delta')) { 30 }
++                    elseif ((Get-HistoryField $record 'source') -ceq 'app_server_fresh_thread_single_turn' -and $name -cne 'measurementUTC') { 20 }
++                    else { 0 }
++            }
++            if ($name -ceq 'measurementUTC' -and (Get-HistoryField $record 'measurementTimeBasis') -cne 'native_record_timestamp') { continue }
++            $hasConflict = @(Get-HistoryField $record 'metadataConflicts') -ccontains $name
++            $value = Get-HistoryField $record $name
++            # Legacy role is a recorded assignment, never a current role profile.
++            if ($name -ceq 'roleId' -and $null -eq $value) { $value = Get-HistoryField $record 'role' }
++            if ($rank -eq 0) { continue }
++            if ($hasConflict) {
++                if ($rank -gt $best) { $values=@(); $blocked=$false; $best=$rank }
++                if ($rank -eq $best) { $blocked=$true }
++            }
++            if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value) -or $value -cin @('unknown','native_rollout')) { continue }
++            if ($name -cne 'measurementUTC' -and $value -cnotmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') { continue }
++            if ($name -ceq 'measurementUTC') { $value = ConvertTo-HistoryUTC $value; if ($null -eq $value) { continue } }
++            $source = if ($i -lt $Sources.Count) { $Sources[$i] } else { $null }
++            $evidence += @([pscustomobject]@{field=$name; value=$value; source=$source; authority=$rank})
++            if ($rank -gt $best) { $values=@(); $blocked=$false; $best=$rank }
++            if ($rank -eq $best) { $values+=@($value); if ($hasConflict) { $blocked=$true } }
++        }
++        $unique = @($values | Sort-Object -Unique -CaseSensitive)
++        if ($blocked -or $unique.Count -gt 1) { $result[$name]=$null; $conflicts+=@($name) }
++        elseif ($unique.Count -eq 1) { $result[$name]=$unique[0] }
++        else { $result[$name]=$null }
++        $authority[$name]=$best
++    }
++    $imports = @($Records | ForEach-Object { ConvertTo-HistoryUTC (Get-HistoryField $_ 'importedAtUTC') } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
++    $result['importedAtUTC'] = if ($imports.Count) { $imports[0] } else { $null }
++    $result['importObservationsUTC'] = $imports
++    $result['measurementObservationsUTC'] = @($Records | ForEach-Object {
++        ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementObservedAtUTC')
++        if ((Get-HistoryField $_ 'measurementTimeBasis') -ceq 'UTC receipt of last identity-matched native usage notification') { ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC') }
++    } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
++    $result['requestedProfiles'] = @($Records | ForEach-Object { Get-HistoryField $_ 'requestedProfile' } | Where-Object { $null -ne $_ })
++    $result['measurementTimeBasis'] = if (@($Records | Where-Object { (Get-HistoryField $_ 'measurementTimeBasis') -ceq 'native_record_timestamp' -and $null -ne (ConvertTo-HistoryUTC (Get-HistoryField $_ 'measurementUTC')) }).Count -gt 0) { 'native_record_timestamp' } else { 'recorded_measurement_observation_or_unknown' }
++    $result['metadataConflicts'] = $conflicts
++    $result['metadataAuthority'] = [pscustomobject]$authority
++    $result['metadataSources'] = @($evidence)+@($Records | ForEach-Object { Get-HistoryField $_ 'metadataSources' })
++    $result['missingMetadata'] = @(@('roleId','modelId','reasoningEffort','measurementUTC') | Where-Object { $null -eq $result[$_] })
++    return [pscustomobject]$result
++}
++function Get-TurnContextHistory($Payload, [string]$Source) {
++    # Only identity-bound native turn_context values. Requested job/TOML model
++    # defaults are deliberately excluded: they do not prove effective runtime.
++    $records = @()
++    foreach ($pair in @(@('roleId','role_id'),@('roleId','roleId'),@('modelId','model'),@('modelId','modelId'),@('reasoningEffort','effort'),@('reasoningEffort','reasoning_effort'),@('reasoningEffort','reasoningEffort'))) {
++        $value = Get-HistoryField $Payload $pair[1]
++        $one = @{}; $one[$pair[0]] = $value; $one['metadataAuthority']=[pscustomobject]@{roleId=30;modelId=30;reasoningEffort=30}
++        $records += @([pscustomobject]$one)
++    }
++    return Get-TokenHistory $records @($records | ForEach-Object { $Source })
++}
++function Get-EntryTokenHistory($Entry) {
++    # Every duplicate contributes evidence, never another token measurement.
++    $records = @(Get-HistoryField $Entry 'records')
++    # Merged records and unique path sets are not positional arrays. Embedded
++    # metadataSources retain exact provenance; the projection exposes all paths.
++    return Get-TokenHistory $records @()
++}
++function Get-TokenHistoryProjection($Entries, [string[]]$EligibleNativeKeys, $Coverage) {
++    $rows = @(); $excluded = @()
++    foreach ($entry in @($Entries)) {
++        $id = $entry.identity; $history = Get-EntryTokenHistory $entry
++        $eligible = $EligibleNativeKeys -ccontains $entry.native_key
++        $kind = Get-HistoryField $entry 'counterKind'
++        $reason = if (-not $id.final) { 'provisional' } elseif ($null -eq $id.tokenUsage) { 'measurement_missing' }
++            elseif (-not $eligible) { 'accounting_identity_or_correlation_conflict' }
++            elseif ($kind -cne 'turn_token_usage') { 'own_native_counter_semantics_unproven' } else { $null }
++        # Decimal strings preserve Int64 precision across the JSON/JS boundary.
++        $displayUsage=$null
++        $observedUsage=$null
++        if ($null -ne $id.tokenUsage) {
++            $observedUsage=[ordered]@{}
++            foreach ($field in @('totalTokens','inputTokens','outputTokens','cachedInputTokens','reasoningOutputTokens','cacheWriteInputTokens')) { $observedUsage[$field]=$id.tokenUsage.$field.ToString([Globalization.CultureInfo]::InvariantCulture) }
++        }
++        if ($null -eq $reason) {
++            $displayUsage=[ordered]@{}
++            foreach ($field in @('totalTokens','inputTokens','outputTokens','cachedInputTokens','reasoningOutputTokens','cacheWriteInputTokens')) { $displayUsage[$field]=$id.tokenUsage.$field.ToString([Globalization.CultureInfo]::InvariantCulture) }
++        }
++        $row = [pscustomobject]@{
++            nativeKey=$(if ($null -ne $id.threadId -and $null -ne $id.turnId) { $entry.native_key } else { $null }); taskId=$id.taskId; aliasTaskIds=@($entry.AliasTaskIds)
++            workItemId=$id.workItemId; executionId=$id.executionId; threadId=$id.threadId; turnId=$id.turnId
++            roleId=$history.roleId; modelId=$history.modelId; reasoningEffort=$history.reasoningEffort
++            measurementUTC=$history.measurementUTC; importedAtUTC=$history.importedAtUTC
++            measurementTimeBasis=$history.measurementTimeBasis
++            importObservationsUTC=$history.importObservationsUTC; metadataSources=$history.metadataSources
++            measurementObservationsUTC=$history.measurementObservationsUTC; requestedProfiles=$history.requestedProfiles
++            metadataConflicts=$history.metadataConflicts; missingMetadata=$history.missingMetadata
++            metadataAuthority=$history.metadataAuthority
++            tokenUsage=$displayUsage
++            diagnosticTokenUsage=$(if ($null -ne $reason) { $observedUsage } else { $null })
++            eligible=($null -eq $reason); exclusionReason=$reason; sources=@($entry.paths)
++        }
++        $rows+=@($row)
++        if ($null -ne $reason) { $excluded+=@([pscustomobject]@{nativeKey=$row.nativeKey;taskId=$id.taskId;reason=$reason;sources=@($entry.paths)}) }
++    }
++    return [pscustomobject]@{
++        version=1; records=$rows; excluded=$excluded; coverage=$Coverage
++        semantics='Dedupliziert je Thread/Turn; nur finale eigene native Turnzähler. Cached Input und Reasoning Output sind Teilmengen. Summen sind bekannte Teilsummen, keine vollständige Familienabrechnung.'
++        timeBasis='Verbrauch nach finalem Messzeitpunkt (UTC). measurementUTC ist letzte finale native Messung; Empfangsbeobachtung und importedAtUTC sind getrennt. Keine zeitproportionale Aufteilung. Unbekannte Verbrauchszeit wird keiner Zeit-Säule zugeordnet.'
++    }
++}
++Export-ModuleMember -Function Get-TokenHistory,Get-TurnContextHistory,Get-EntryTokenHistory,Get-TokenHistoryProjection,ConvertTo-HistoryUTC
+diff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1
+index c51235a..a4066bc 100644
+--- a/scripts/delegation/Start-DelegatedCodexTask.ps1
++++ b/scripts/delegation/Start-DelegatedCodexTask.ps1
+@@ -870,6 +870,7 @@ $evidence = [ordered]@{
+     parent_context_path=$job.parent_context_path;parent_context_hash=$job.parent_context_hash;request_hash=$job.request_hash
+     start_intent_path=$job.start_intent_path;start_intent_hash=$job.start_intent_hash;payload_hash=$job.payload_hash
+     parent_task_id = $job.parent_task_id; accounting_directory = $job.accounting_directory; token_usage = $null; token_summary = $null; usage_finalized = $false
++    roleId=$job.role; modelId=$null; reasoningEffort=$null; measurementUTC=$null; measurementObservedAtUTC=$null; metadataSources=@()
+ }
+ $notifications = New-Object System.Collections.Generic.List[object]
+ $progressState = New-ProgressState
+@@ -880,6 +881,8 @@ function Update-NativeUsage($Notification) {
+         $Notification.params.threadId -ceq $evidence.thread_id -and $Notification.params.turnId -ceq $evidence.turn_id) {
+         # Kumulativer Snapshot des eigenen frischen Threads, niemals Updates addieren.
+         $evidence.token_usage = $Notification.params.tokenUsage.total
++        # Observation of the actual own native measurement, before publication.
++        $evidence['measurementObservedAtUTC'] = [DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
+     }
+ }
+ function Write-Event([string]$Kind, $Data) {
+@@ -1035,10 +1038,20 @@ try {
+     Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
+     $thread = Wait-Rpc 2
+     $evidence.thread_id = $thread.thread.id
++    # Resolved thread/start response, never requested/current TOML settings.
++    # This runner starts exactly one turn on a fresh thread, without overrides.
+     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
+     $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
+     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
+     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
++    foreach($field in @('model','reasoningEffort')) {
++        $property=$thread.PSObject.Properties[$field]
++        if($null -ne $property -and $property.Value -is [string] -and $property.Value -cmatch '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}$') {
++            $target=if($field -ceq 'model'){'modelId'}else{'reasoningEffort'}
++            $evidence[$target]=$property.Value
++            $evidence.metadataSources+=@([ordered]@{field=$target;value=$property.Value;source=$nativeAckPath;sha256=$nativeAckHash;basis='resolved fresh thread defaults; turn/start has no model or effort override'})
++        }
++    }
+     if ($job.registry_directory) {
+         [void](& (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') -Action RegisterNative -DataDirectory $job.registry_directory -TaskId $job.task_id -DispatchId $job.registry_dispatch_id -NativeThreadId $evidence.thread_id -Role $job.role -State active -NativeAckPath $nativeAckPath -NativeAckHash $nativeAckHash)
+     }
+@@ -1128,6 +1141,11 @@ try {
+         if($terminalContext){$evidence.own_context_path=$terminalContext.path;$evidence.own_context_hash=$terminalContext.hash}
+         Write-Json (Join-Path $job.accounting_directory ($job.task_id + '.usage.json')) ([ordered]@{
+             task_id = $job.task_id; parent_task_id = $job.parent_task_id; role = $job.role
++            roleId=$evidence.roleId; modelId=$evidence.modelId; reasoningEffort=$evidence.reasoningEffort
++            measurementUTC=$evidence.measurementUTC; importedAtUTC=[DateTime]::UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'")
++            measurementObservedAtUTC=$evidence['measurementObservedAtUTC']; measurementTimeBasis='native_time_unknown_notification_observation_only'
++            requestedProfile=[ordered]@{modelId=$job.model;reasoningEffort=$job.config.model_reasoning_effort;source=$JobFile;effective=$false}
++            metadataSources=$evidence.metadataSources; source='app_server_fresh_thread_single_turn'; counter_kind='turn_token_usage'
+             thread_id = $evidence.thread_id; turn_id = $evidence.turn_id; parent_thread_id=$job.parent_thread_id; parent_turn_id=$job.parent_turn_id; work_item_id=$job.work_item_id; execution_id=$job.execution_id; work_item_store_path=$job.work_item_store_path; resume_assessment_path=$job.resume_assessment_path;resume_assessment_hash=$job.resume_assessment_hash; token_usage = (Get-FinalLedgerUsage $evidence)
+         })
+         $evidence.token_summary = & (Join-Path $PSScriptRoot '../accounting/Get-TaskTokenUsage.ps1') -TaskId $job.task_id -AccountingDirectory $job.accounting_directory
+diff --git a/scripts/web/Start-LocalWeb.ps1 b/scripts/web/Start-LocalWeb.ps1
+index eb9a3eb..b166ea0 100644
+--- a/scripts/web/Start-LocalWeb.ps1
++++ b/scripts/web/Start-LocalWeb.ps1
+@@ -58,6 +58,7 @@ $staticFiles = @{
+     '/styles.css' = @{ path = 'web/styles.css'; type = 'text/css; charset=utf-8' }
+     '/app.js' = @{ path = 'web/app.js'; type = 'text/javascript; charset=utf-8' }
+     '/bridge.js' = @{ path = 'web/bridge.js'; type = 'text/javascript; charset=utf-8' }
++    '/token-history.js' = @{ path = 'web/token-history.js'; type = 'text/javascript; charset=utf-8' }
+ }
+ $randomBytes = New-Object byte[] 32
+ $randomGenerator = [Security.Cryptography.RandomNumberGenerator]::Create()
+diff --git a/web/app.js b/web/app.js
+index 5fdfc07..9a109d6 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -1,4 +1,5 @@
+ import { BridgeError, dispatch, initializeBridge } from "/bridge.js";
++import { renderTokenHistory } from "/token-history.js";
+ 
+ const POLL_MS = 5000;
+ const STALE_AFTER_MS = 5000;
+@@ -767,23 +768,25 @@ async function renderMetrics(inheritedFocus = null) {
+   const revision = revisionOf() ?? "unbekannte Revision";
+   const key = `${item.id}\u0000${revision}`;
+   if (state.metricsFor === key && state.metrics) { state.metricsTarget = target; drawMetrics(state.metrics, item, target, inheritedFocus); return; }
++  const readEpoch = state.loadedAt;
++  const requestKey = `${key}\u0000${readEpoch}`;
+   const pendingFocus = inheritedFocus ?? captureFocusState();
+   target.innerHTML = `<p class="placeholder">Vorhandene Projektion wird gelesen…</p>`;
+   try {
+-    let pending = state.metricsPending.get(key);
++    let pending = state.metricsPending.get(requestKey);
+     if (!pending) {
+-      pending = dispatch("metrics", { workItemId: item.id }).finally(() => { if (state.metricsPending.get(key) === pending) state.metricsPending.delete(key); });
+-      state.metricsPending.set(key, pending);
++      pending = dispatch("metrics", { workItemId: item.id }).finally(() => { if (state.metricsPending.get(requestKey) === pending) state.metricsPending.delete(requestKey); });
++      state.metricsPending.set(requestKey, pending);
+     }
+     const { data } = await pending;
+-    if (state.selectedId !== item.id || (revisionOf() ?? "unbekannte Revision") !== revision || target !== el.metricsContent || !target.isConnected) return;
++    if (state.loadedAt !== readEpoch || state.selectedId !== item.id || (revisionOf() ?? "unbekannte Revision") !== revision || target !== el.metricsContent || !target.isConnected) return;
+     state.metrics = data?.metrics ?? data?.data ?? data;
+     state.metricsFor = key;
+     state.metricsTarget = target;
+     drawMetrics(state.metrics, item, target, pendingFocus);
+     if (pendingFocus && document.activeElement === document.body) restoreFocusState(pendingFocus);
+   } catch (error) {
+-    if (state.selectedId === item.id && (revisionOf() ?? "unbekannte Revision") === revision && target === el.metricsContent && target.isConnected) {
++    if (state.loadedAt === readEpoch && state.selectedId === item.id && (revisionOf() ?? "unbekannte Revision") === revision && target === el.metricsContent && target.isConnected) {
+       target.innerHTML = `<div class="notice"><strong>Metrikprojektion nicht verfügbar</strong>${escapeHtml(errorMessage(error))}</div>`;
+       if (pendingFocus && document.activeElement === document.body) restoreFocusState(pendingFocus);
+     }
+@@ -814,9 +817,10 @@ function drawMetrics(metrics, item, target = el.metricsContent, inheritedFocus =
+   const readWindow = metrics?.readWindow;
+   const sourcePaths = Array.isArray(readWindow?.sourcePaths) ? readWindow.sourcePaths : Array.isArray(metrics?.sourcePaths) ? metrics.sourcePaths : [];
+   const projectionMeta = (readWindow || sourcePaths.length) ? `<details class="projection-meta"><summary>Quellfenster und Quellen</summary><div>${readWindow ? `Lesefenster: ${escapeHtml(readWindow.startedAt ?? "unbekannt")} – ${escapeHtml(readWindow.endedAt ?? "unbekannt")} · ${escapeHtml(readWindow.consistency ?? "Konsistenz unbekannt")}` : "Lesefenster unbekannt"}</div>${sourcePaths.length ? `<ul>${sourcePaths.map(path => `<li>${escapeHtml(path)}</li>`).join("")}</ul>` : "Quellpfade unbekannt"}</details>` : `<div class="metric-revision">Quellpfade und Lesefenster unbekannt.</div>`;
+-  const explicit = `${snapshotStatusCounts}${tokenScopes}${fields.filter(key => key !== "tokenUsage").map(key => `<details class="metric-field"><summary>${escapeHtml(metricFieldLabel(key))}</summary><div class="metric-readable">${escapeHtml(metricReadable(key, projected[key]))}</div><pre>${escapeHtml(display(projected[key]))}</pre></details>`).join("")}`;
++  const explicit = `<section class="token-history" aria-label="Historischer Tokenverbrauch"></section>${snapshotStatusCounts}${tokenScopes}${fields.filter(key => key !== "tokenUsage").map(key => `<details class="metric-field"><summary>${escapeHtml(metricFieldLabel(key))}</summary><div class="metric-readable">${escapeHtml(metricReadable(key, projected[key]))}</div><pre>${escapeHtml(display(projected[key]))}</pre></details>`).join("")}`;
+   const navFilter = [state.search && `Text „${state.search}“`, state.statusFilter && `Status ${statusLabel(state.statusFilter)}`].filter(Boolean).join(" · ") || "keiner";
+-  target.innerHTML = `<p class="metric-scope">Auswahl: ${escapeHtml(item.id)} · Revision: ${escapeHtml(snapshotRevision ?? "unbekannt")}. Baumfilter: ${escapeHtml(navFilter)} (wirkt nur auf Navigation). Kennzahlenumfang: einzelne WorkItem-Projektion wie geliefert; Statuszählung: geladener Snapshot. Keine Rollen-/Team- oder Prozentableitung.</p>${mismatch ? `<div class="notice"><strong>Revisionsabweichung</strong>Metriken und WorkItem-Snapshot stammen aus unterschiedlichen Ständen. Aktualisiere den Snapshot vor einem Vergleich.</div>` : ""}<p class="notice">${escapeHtml(tokenCoverage)}. Fehlende Felder und unbekannte Werte bleiben ausdrücklich sichtbar.</p>${explicit}<details class="projection-meta"><summary>Vollständige Rohprojektion</summary><pre>${escapeHtml(JSON.stringify(metrics, null, 2) ?? "Unbekannt")}</pre></details><div class="metric-revision">${metricRevision ? `Metrikrevision: ${escapeHtml(metricRevision)} · Snapshot: ${escapeHtml(snapshotRevision ?? "unbekannt")}` : "Revision der Metrikprojektion unbekannt"} · Projektion für ${escapeHtml(item.id)}. Keine eigene Aggregation.</div>${projectionMeta}`;
++  target.innerHTML = `<p class="metric-scope">Auswahl: ${escapeHtml(item.id)} · Revision: ${escapeHtml(snapshotRevision ?? "unbekannt")}. Baumfilter: ${escapeHtml(navFilter)} (wirkt nur auf Navigation). Kennzahlenumfang: einzelne WorkItem-Projektion wie geliefert; Statuszählung: geladener Snapshot. Historische Rollenprofile verwenden ausschließlich die gelieferte native Messzuordnung; keine Team- oder Prozentableitung.</p>${mismatch ? `<div class="notice"><strong>Revisionsabweichung</strong>Metriken und WorkItem-Snapshot stammen aus unterschiedlichen Ständen. Aktualisiere den Snapshot vor einem Vergleich.</div>` : ""}<p class="notice">${escapeHtml(tokenCoverage)}. Fehlende Felder und unbekannte Werte bleiben ausdrücklich sichtbar.</p>${explicit}<details class="projection-meta"><summary>Vollständige Rohprojektion</summary><pre>${escapeHtml(JSON.stringify(metrics, null, 2) ?? "Unbekannt")}</pre></details><div class="metric-revision">${metricRevision ? `Metrikrevision: ${escapeHtml(metricRevision)} · Snapshot: ${escapeHtml(snapshotRevision ?? "unbekannt")}` : "Revision der Metrikprojektion unbekannt"} · Projektion für ${escapeHtml(item.id)}. Historische Rollen-/Zeitsummen gruppieren ausschließlich die deduplizierte History-Projektion.</div>${projectionMeta}`;
++  renderTokenHistory(target.querySelector(".token-history"), metrics?.tokenHistory, item.id);
+   assignFocusKeys(target);
+   restoreFocusState(focusState);
+ }
+diff --git a/web/styles.css b/web/styles.css
+index 9093ca6..4296b58 100644
+--- a/web/styles.css
++++ b/web/styles.css
+@@ -64,3 +64,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[t
+ @media(prefers-color-scheme:dark){.metric-field summary:focus-visible,.projection-meta summary:focus-visible,.conflict-record summary:focus-visible{outline-color:#93C5FD}}
+ 
+ .attention-group{margin:12px 0}.attention-group h3{margin:8px 0;color:var(--ink);font-size:14px;line-height:1.4}.attention-group .attention-card{margin-top:8px}
++
++/* AR-108 history: native table/SVG, theme tokens from the existing UI. */
++.token-history{margin:16px 0;padding:12px;border:1px solid var(--line);border-radius:8px;color:var(--ink);min-width:0}
++.token-history h4{margin:8px 0;font-size:16px}.history-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:12px 0}
++.history-filters label{display:flex;flex-direction:column;gap:4px;font-size:14px;max-width:100%}
++.history-filters input,.history-filters select{box-sizing:border-box;min-height:40px;max-width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);font:14px "Segoe UI",system-ui,sans-serif}
++.history-table-scroll,.history-chart{overflow:auto;max-width:100%;margin:12px 0;border:1px solid var(--line);border-radius:4px}
++.history-table{width:100%;border-collapse:collapse;font-size:14px}.history-table caption{text-align:left;padding:10px;color:var(--muted)}
++.history-table th,.history-table td{padding:8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}.history-table th:first-child{text-align:left;white-space:normal;min-width:200px;overflow-wrap:anywhere}
++.history-role{background:var(--surface-soft)}.history-role button[aria-pressed="true"]{outline:2px solid var(--green);outline-offset:0}
++.history-legend{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;border:1px solid var(--line);padding:8px;margin-top:10px;font-size:14px}
++.history-legend label{display:flex;align-items:center;gap:8px;min-height:40px;overflow-wrap:anywhere;cursor:pointer}.history-legend input{width:20px;height:20px;flex-shrink:0}.history-swatch{width:16px;height:16px;border:1px solid var(--ink);flex-shrink:0}
++.history-axis{font:12px "Segoe UI",system-ui,sans-serif;fill:var(--ink)}.history-chart svg{display:block;background:var(--surface)}
++.history-tooltip{padding:10px;border:1px solid var(--line);background:var(--surface-soft);font-size:14px;overflow-wrap:anywhere;min-height:60px}.history-chart g:focus rect{stroke:var(--ink);stroke-width:3}
++@media(max-width:599px){.token-history{padding:8px}.history-filters label{flex:1 1 100%}.history-filters .button{width:100%}.history-filters input,.history-filters select{width:100%}}
+diff --git a/web/token-history.js b/web/token-history.js
+new file mode 100644
+index 0000000..f6f2622
+--- /dev/null
++++ b/web/token-history.js
+@@ -0,0 +1,189 @@
++// AR-108: an additive view of the existing, scoped accounting projection.
++const settingsByScope = new Map();
++const fields = ["totalTokens", "inputTokens", "outputTokens", "cachedInputTokens", "reasoningOutputTokens"];
++const unknown = "Unbekannt";
++const esc = value => String(value ?? unknown).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
++const label = value => value ?? unknown;
++const count = value => value == null ? unknown : value.toLocaleString("de-DE");
++const emptySum = () => Object.fromEntries(fields.map(field => [field, 0n]));
++const seriesKey = row => JSON.stringify([row.modelId ?? null, row.reasoningEffort ?? null]);
++const roleKey = row => JSON.stringify(row.roleId ?? null);
++function usageOf(row) {
++  if (row?.eligible !== true || !row.tokenUsage) return null;
++  const usage = {};
++  for (const field of fields) {
++    const value = row.tokenUsage[field];
++    if (typeof value === "string" && /^\d+$/.test(value)) usage[field] = BigInt(value);
++    else if (Number.isSafeInteger(value) && value >= 0) usage[field] = BigInt(value);
++    else return null;
++  }
++  if (usage.cachedInputTokens > usage.inputTokens || usage.reasoningOutputTokens > usage.outputTokens) return null;
++  return usage;
++}
++function add(sum, usage) { for (const field of fields) sum[field] += usage[field]; }
++function measurementTime(row) {
++  const value = row.measurementUTC;
++  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?Z$/.test(value)) return null;
++  const time = Date.parse(value); return Number.isFinite(time) ? time : null;
++}
++function bucketOf(time, interval) {
++  const start = new Date(time); start.setUTCHours(0, 0, 0, 0);
++  if (interval === "week") start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
++  if (interval === "month") start.setUTCDate(1);
++  const end = new Date(start);
++  if (interval === "month") end.setUTCMonth(end.getUTCMonth() + 1);
++  else end.setUTCDate(end.getUTCDate() + (interval === "week" ? 7 : 1));
++  return { key: start.toISOString().slice(0, 10), start: start.getTime(), end: end.getTime() };
++}
++function seriesColor(key) { let hash = 0; for (const c of key) hash = (hash * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${hash % 360} 65% 44%)`; }
++function bucketDistance(start, end, interval) {
++  if (interval === "month") { const a = new Date(start); const b = new Date(end); return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + b.getUTCMonth() - a.getUTCMonth(); }
++  return (end - start) / (86400000 * (interval === "week" ? 7 : 1));
++}
++function options(values, selected) {
++  return values.map(value => `<option value="${esc(JSON.stringify(value))}"${selected == null || selected.includes(JSON.stringify(value)) ? " selected" : ""}>${esc(label(value))}</option>`).join("");
++}
++function distinct(rows, field) { return [...new Set(rows.map(row => row[field] ?? null))].sort((a,b) => label(a).localeCompare(label(b))); }
++function summaryCells(group) {
++  return fields.slice(0, 3).map(field => `<td>${group.measured ? count(group.sum[field]) : unknown}</td>`).join("");
++}
++function periodText(bucket) { return `[${new Date(bucket.clipStart ?? bucket.start).toISOString()}, ${new Date(bucket.clipEnd ?? bucket.end).toISOString()})${bucket.partial ? " · Teilintervall" : ""}`; }
++function tooltipText(bucket, series, sum, records) {
++  return `${periodText(bucket)} · Rolle ${label(series.roleId)} · Modell ${label(series.modelId)} · Reasoning ${label(series.reasoningEffort)} · Gesamt ${count(sum.totalTokens)}, Input ${count(sum.inputTokens)}, Output ${count(sum.outputTokens)} · Cached Input ${count(sum.cachedInputTokens)} (Teilmenge), Reasoning Output ${count(sum.reasoningOutputTokens)} (Teilmenge) · ${records.length} native Messungen · WorkItems ${[...new Set(records.map(row => row.workItemId))].map(label).join(", ")} · Verbrauch nach finalem Messzeitpunkt (UTC); Familienvollständigkeit unbekannt`;
++}
++export function renderTokenHistory(host, projection, scope) {
++  if (!projection || projection.version !== 1 || !Array.isArray(projection.records)) {
++    host.innerHTML = `<p class="notice">Historische Rollenprofile unbekannt: diese Metrikquelle liefert keine History-Projektion.</p>`; return;
++  }
++  if (!settingsByScope.has(scope)) settingsByScope.set(scope, { role: null, interval: "day", from: "", to: "", model: null, reasoning: null, hidden: new Set() });
++  const settings = settingsByScope.get(scope);
++  const all = projection.records;
++  const from = settings.from ? Date.parse(`${settings.from}T00:00:00Z`) : null;
++  const to = settings.to ? Date.parse(`${settings.to}T00:00:00Z`) + 86400000 : null;
++  const invalidPeriod = from != null && to != null && from >= to;
++  const dateFilter = from != null || to != null;
++  const matchesProfile = row => (settings.model == null || settings.model.includes(JSON.stringify(row.modelId ?? null))) &&
++    (settings.reasoning == null || settings.reasoning.includes(JSON.stringify(row.reasoningEffort ?? null)));
++  const profileRows = all.filter(matchesProfile);
++  const periodRows = invalidPeriod ? [] : profileRows.filter(row => {
++    const time = measurementTime(row);
++    return !dateFilter || (time != null && (from == null || time >= from) && (to == null || time < to));
++  });
++  const rows = periodRows.filter(row => !settings.hidden.has(seriesKey(row)));
++  const filteredOut = all.filter(row => !matchesProfile(row) || settings.hidden.has(seriesKey(row)));
++  const unplaced = profileRows.filter(row => !settings.hidden.has(seriesKey(row)) && measurementTime(row) == null && usageOf(row));
++  const measuredSummary = records => { const sum=emptySum(); let measured=0; for (const row of records) { const usage=usageOf(row); if (usage) { add(sum,usage); measured++; } } return {sum,measured}; };
++  const visibleSummary=measuredSummary(rows), filteredSummary=measuredSummary(filteredOut), unplacedSummary=measuredSummary(unplaced);
++  const roles = new Map();
++  for (const row of rows) {
++    const key = roleKey(row);
++    if (!roles.has(key)) roles.set(key, { key, roleId: row.roleId, sum: emptySum(), measured: 0, missing: 0, profiles: new Map() });
++    const role = roles.get(key); const profileKey = seriesKey(row);
++    if (!role.profiles.has(profileKey)) role.profiles.set(profileKey, { ...row, sum: emptySum(), measured: 0, missing: 0 });
++    const profile = role.profiles.get(profileKey); const usage = usageOf(row);
++    if (usage) { add(role.sum, usage); add(profile.sum, usage); role.measured++; profile.measured++; }
++    else { role.missing++; profile.missing++; }
++  }
++  const sortedRoles = [...roles.values()].sort((a,b) => label(a.roleId).localeCompare(label(b.roleId)));
++  // Keep a deliberate choice through filter changes; do not silently chart another role.
++  if (settings.role == null && sortedRoles.length) settings.role = sortedRoles[0].key;
++  const selected = roles.get(settings.role);
++  const selectedRows = periodRows.filter(row => roleKey(row) === settings.role);
++  const series = new Map(); const buckets = new Map();
++  for (const row of selectedRows) {
++    const key = seriesKey(row);
++    if (!series.has(key)) series.set(key, { key, ...row });
++    const time = measurementTime(row); const usage = usageOf(row);
++    if (time == null || !usage || settings.hidden.has(key)) continue;
++    const bucket = bucketOf(time, settings.interval);
++    bucket.clipStart = Math.max(bucket.start, from ?? bucket.start); bucket.clipEnd = Math.min(bucket.end, to ?? bucket.end);
++    bucket.partial = bucket.clipStart !== bucket.start || bucket.clipEnd !== bucket.end;
++    if (!buckets.has(bucket.key)) buckets.set(bucket.key, { ...bucket, series: new Map() });
++    const target = buckets.get(bucket.key);
++    if (!target.series.has(key)) target.series.set(key, { sum: emptySum(), records: [] });
++    add(target.series.get(key).sum, usage); target.series.get(key).records.push(row);
++  }
++  const orderedSeries = [...series.values()].sort((a,b) => a.key.localeCompare(b.key));
++  const orderedBuckets = [...buckets.values()].sort((a,b) => a.start - b.start);
++  const chartSummary=measuredSummary(selectedRows.filter(row => !settings.hidden.has(seriesKey(row)) && measurementTime(row) != null));
++  const summaryText = summary => `${summary.measured} Messungen · Gesamt ${summary.measured ? count(summary.sum.totalTokens) : unknown} · Input ${summary.measured ? count(summary.sum.inputTokens) : unknown} · Output ${summary.measured ? count(summary.sum.outputTokens) : unknown}`;
++  const bucketTable = orderedBuckets.map(bucket => [...bucket.series.entries()].map(([key,value]) => {
++    const s=series.get(key);
++    return `<tr><th scope="row">${esc(periodText(bucket))} · ${esc(label(s.modelId))} · ${esc(label(s.reasoningEffort))}</th>${summaryCells({sum:value.sum,measured:value.records.length})}<td>${value.records.length}</td></tr>`;
++  }).join("")).join("");
++  const coverage = projection.coverage ?? {};
++  const missing = all.filter(row => !usageOf(row)).length;
++  const noTime = all.filter(row => measurementTime(row) == null).length;
++  const noMetadata = all.filter(row => [row.roleId, row.modelId, row.reasoningEffort].some(value => value == null)).length;
++  const conflicts = all.filter(row => Array.isArray(row.metadataConflicts) && row.metadataConflicts.length).length;
++  const statusCounts = ["provisional", "measurement_missing", "accounting_identity_or_correlation_conflict", "own_native_counter_semantics_unproven"].map(reason => `${reason}: ${all.filter(row => row.exclusionReason === reason).length}`).join(" · ");
++  const fieldGaps = ["roleId","modelId","reasoningEffort","measurementUTC"].map(field => `${field}: unknown ${all.filter(row => row[field] == null).length}, conflict ${all.filter(row => row.metadataConflicts?.includes(field)).length}`).join(" · ");
++  const coverageMissing = ["missingExpectedExecutions", "missingExpectedNativeTurns", "executionSetUnknownWorkItemIds", "bindingGaps", "parentBindingGaps", "correlationConflicts", "nativeConflicts", "incompleteTransfers"].map(key => `${key}: ${Array.isArray(coverage[key]) ? coverage[key].length : unknown}`).join(" · ");
++  host.innerHTML = `<h4>Historischer Tokenverbrauch nach Rolle</h4><p class="metric-scope">Umfang: WorkItemfamilie ${esc(projection.scope?.workItemId ?? scope)} · ${esc((projection.scope?.includedWorkItemIds ?? []).join(", "))}. ${esc(projection.semantics)} Zeiten und Intervalle in UTC. Gezeigte Summen sind bekannte Teilsummen; ohne Messung steht „Unbekannt“.</p>
++    <p class="notice">${missing} Records ohne verwendbare eigene Messung · ${noMetadata} mit fehlenden Rollen-/Modell-/Reasoningwerten · ${noTime} ohne Verbrauchszeit · ${conflicts} Metadatenkonflikte. Erwartungsmenge: ${projection.scope?.expectedSetComplete === true ? "belegt" : "nicht vollständig belegt"}; ${projection.scope?.expectedNativeKeys?.length ?? unknown} erwartete native Schlüssel beobachtet. Familienabdeckung: ${coverage.familyCompletenessProven === true ? "belegt" : "unbekannt / unvollständig"} (${esc(coverage.familyCompletenessReason)}). ${esc(coverageMissing)}</p>
++    <div class="history-filters"><label>Intervall<select data-history-control="interval"><option value="day"${settings.interval === "day" ? " selected" : ""}>Tag</option><option value="week"${settings.interval === "week" ? " selected" : ""}>Woche (Montag)</option><option value="month"${settings.interval === "month" ? " selected" : ""}>Monat</option></select></label>
++    <label>Von (UTC)<input type="date" data-history-control="from" value="${esc(settings.from)}"></label><label>Bis einschließlich (UTC)<input type="date" data-history-control="to" value="${esc(settings.to)}"></label>
++    <label>Modell<select multiple size="4" data-history-control="model">${options(distinct(all, "modelId"), settings.model)}</select></label><label>Reasoning<select multiple size="4" data-history-control="reasoning">${options(distinct(all, "reasoningEffort"), settings.reasoning)}</select></label><button type="button" class="button button-quiet" data-history-reset>Filter zurücksetzen</button></div>
++    ${invalidPeriod ? `<p class="response-lock" role="alert">Der Beginn muss vor dem Ende des Zeitraums liegen.</p>` : ""}
++    <p class="metric-scope">Scope-Diagnosen bleiben ungefiltert: ${esc(statusCounts)} · ${esc(fieldGaps)}. Diagnosezahlen können sich überschneiden und werden nicht zu einer Lückensumme addiert. Mehrfachauswahl: leere Modell-/Reasoningwahl wählt keine Serie; Zurücksetzen wählt alle.</p>
++    <p class="metric-scope">Sichtbare gemessene Teilsumme der Rollentabelle (alle Rollen): ${esc(summaryText(visibleSummary))}. Durch Serien-/Profilfilter ausgeblendet (zeitlich unbegrenzter Vergleich): ${esc(summaryText(filteredSummary))}. Zeitlich nicht zuordenbar bei aktueller Serien-/Profilwahl: ${esc(summaryText(unplacedSummary))}${dateFilter ? "; außerhalb der Zeitraumssumme; Zeitabdeckung unvollständig" : "; in der unbegrenzten Tabelle enthalten"}.</p>
++    <p class="metric-scope">${rows.length} von ${all.length} Records im Filter. ${dateFilter ? `${noTime} Records mit unbekannter Verbrauchszeit können nicht dem Zeitraum zugeordnet werden.` : "Records ohne Verbrauchszeit stehen in der Übersicht, außerhalb des Diagramms."} Legenden-, Modell-/Reasoning- und Zeitraumfilter wirken gemeinsam auf Tabelle, Säulen, Tooltip und sichtbare Summe. ODER innerhalb Modell/Reasoning, UND zwischen den Feldern.</p>
++    <div class="history-table-scroll" tabindex="0" aria-label="Rollentabelle, horizontal scrollbar"><table class="history-table"><caption>Gemessene eigene Teilsummen nach Rolle, Modell und Reasoning</caption><thead><tr><th scope="col">Rolle / Modell / Reasoning</th><th scope="col">Gesamt</th><th scope="col">Input</th><th scope="col">Output</th><th scope="col">Messungen / Lücken</th></tr></thead><tbody>${sortedRoles.map((role,index) => `<tr class="history-role"><th scope="row"><button type="button" class="button button-quiet" data-history-role="${index}" aria-pressed="${settings.role === role.key}">${esc(label(role.roleId))}</button></th>${summaryCells(role)}<td>${role.measured} / ${role.missing}</td></tr>${[...role.profiles.values()].sort((a,b) => seriesKey(a).localeCompare(seriesKey(b))).map(profile => `<tr><th scope="row">${esc(label(profile.modelId))} · ${esc(label(profile.reasoningEffort))}</th>${summaryCells(profile)}<td>${profile.measured} / ${profile.missing}</td></tr>`).join("")}`).join("") || `<tr><td colspan="5">Keine Records im gewählten Filter; Verbrauch unbekannt.</td></tr>`}</tbody></table></div>
++    <h4>Zeitreihe · ${esc(selected ? label(selected.roleId) : "gewählte Rolle ohne Records im Filter")}</h4><div class="history-legend" aria-label="Serien ein- und ausblenden">${orderedSeries.map((s,index) => `<label><input type="checkbox" data-history-series="${index}"${settings.hidden.has(s.key) ? "" : " checked"}><span class="history-swatch" style="background:${seriesColor(s.key)}" aria-hidden="true"></span>${index + 1}. ${esc(label(s.modelId))} · ${esc(label(s.reasoningEffort))}</label>`).join("") || "Keine Modell-/Reasoningserien im Filter."}</div>
++    <p class="metric-scope">${selectedRows.filter(row => measurementTime(row) == null).length} ausgewählte Records ohne Verbrauchszeit; ${selectedRows.filter(row => !usageOf(row)).length} ohne eigene Messung. Leere Zeitintervalle bedeuten fehlende Beobachtung, keinen belegten Nullverbrauch.</p>
++    <p class="metric-scope">Sichtbare Zeitreihenteilsumme der gewählten Rolle: ${esc(summaryText(chartSummary))}. Undatierte Messungen sind hier ausgeschlossen.</p>
++    <div class="history-chart" tabindex="0" aria-label="Gestapelte Zeit-Säulen, horizontal scrollbar"></div><p class="history-tooltip" role="status">Säule mit Maus oder Tastatur auswählen: Zeitraum, Zuordnung und Tokens.</p>
++    <div class="history-table-scroll" tabindex="0" aria-label="Tabellenalternative der Zeitreihe"><table class="history-table"><caption>Verbrauch nach finalem Messzeitpunkt (UTC) · ${esc(selected ? label(selected.roleId) : unknown)} · gleiche Schnittintervalle und Serien wie im Diagramm; Vollständigkeit unbekannt</caption><thead><tr><th scope="col">UTC-Intervall / Modell / Reasoning</th><th scope="col">Gesamt</th><th scope="col">Input</th><th scope="col">Output</th><th scope="col">Messungen</th></tr></thead><tbody>${bucketTable || `<tr><td colspan="5">Keine zeitlich zuordenbare Messung; Verbrauch unbekannt.</td></tr>`}</tbody></table></div>
++    <details class="metric-field"><summary>Messdaten, Metadatenquellen und Importzeit</summary><p>measurementUTC ist Verbrauchs-/Messzeit. importedAtUTC ist Import-/Publikationszeit und verschiebt die Zeitreihe nicht.</p><pre>${esc(JSON.stringify({ records: rows, excluded: projection.excluded, coverage }, null, 2))}</pre></details>`;
++  drawChart(host, orderedBuckets, orderedSeries, settings);
++  // Integrate with the existing polling focus restoration, with stable identities.
++  host.querySelectorAll("[data-history-control]").forEach(control => { control.dataset.focusKey = `history:${scope}:control:${control.dataset.historyControl}`; });
++  host.querySelectorAll("[data-history-role]").forEach(button => { button.dataset.focusKey = `history:${scope}:role:${sortedRoles[Number(button.dataset.historyRole)].key}`; });
++  host.querySelectorAll("[data-history-series]").forEach(input => { input.dataset.focusKey = `history:${scope}:series:${orderedSeries[Number(input.dataset.historySeries)].key}`; });
++  host.querySelector("[data-history-reset]").dataset.focusKey = `history:${scope}:reset`;
++  host.querySelector(".history-chart").dataset.focusKey = `history:${scope}:chart`;
++  host.querySelector(".history-table-scroll").dataset.focusKey = `history:${scope}:table`;
++  host.querySelectorAll("[data-history-control]").forEach(control => control.addEventListener("change", () => {
++    const name = control.dataset.historyControl;
++    settings[name] = name === "model" || name === "reasoning" ? [...control.selectedOptions].map(option => option.value) : control.value;
++    renderTokenHistory(host, projection, scope);
++    host.querySelector(`[data-history-control="${name}"]`)?.focus();
++  }));
++  host.querySelectorAll("[data-history-role]").forEach(button => button.addEventListener("click", () => {
++    settings.role = sortedRoles[Number(button.dataset.historyRole)].key; renderTokenHistory(host, projection, scope);
++    host.querySelector(`[data-history-role="${button.dataset.historyRole}"]`)?.focus();
++  }));
++  host.querySelectorAll("[data-history-series]").forEach(input => input.addEventListener("change", () => {
++    const key = orderedSeries[Number(input.dataset.historySeries)].key;
++    if (input.checked) settings.hidden.delete(key); else settings.hidden.add(key);
++    renderTokenHistory(host, projection, scope); host.querySelector(`[data-history-series="${input.dataset.historySeries}"]`)?.focus();
++  }));
++  host.querySelector("[data-history-reset]").addEventListener("click", () => {
++    Object.assign(settings, { from: "", to: "", model: null, reasoning: null, hidden: new Set() }); renderTokenHistory(host, projection, scope); host.querySelector("[data-history-reset]")?.focus();
++  });
++}
++function drawChart(host, buckets, series, settings) {
++  const chart = host.querySelector(".history-chart");
++  if (!buckets.length) { chart.innerHTML = `<p class="placeholder">Keine zeitlich zuordenbaren eigenen Messungen für die ausgewählten Serien. Verbrauch unbekannt.</p>`; return; }
++  const totals = buckets.map(bucket => [...bucket.series.values()].reduce((sum,s) => sum + s.sum.totalTokens, 0n));
++  const max = totals.reduce((a,b) => a > b ? a : b, 0n);
++  const scaleMax = max > 0n ? max : 1n;
++  const slots = bucketDistance(buckets[0].start, buckets.at(-1).start, settings.interval) + 1;
++  const width = Math.max(640, 100 + slots * 78); const height = 310; const baseline = 250; const plotHeight = 210;
++  const tooltips = []; const columnWidth = (width - 100) / slots;
++  const bars = buckets.map((bucket,index) => {
++    let y = baseline; const x = 80 + bucketDistance(buckets[0].start, bucket.start, settings.interval) * columnWidth;
++    const segments = series.filter(s => !settings.hidden.has(s.key) && bucket.series.has(s.key)).map(s => {
++      const value = bucket.series.get(s.key); const pixels = Number(value.sum.totalTokens * 1000000n / scaleMax) / 1000000 * plotHeight;
++      y -= pixels; const tip = tooltipText(bucket, s, value.sum, value.records); const tipIndex = tooltips.push(tip) - 1;
++      return `<g tabindex="0" role="img" aria-label="${esc(tip)}" data-focus-key="history:bar:${esc(bucket.key)}:${esc(JSON.stringify([s.roleId,s.modelId,s.reasoningEffort]))}" data-history-tooltip="${tipIndex}"><title>${esc(tip)}</title><rect x="${x}" y="${value.sum.totalTokens === 0n ? baseline - 2 : y}" width="${Math.max(12,columnWidth - 20)}" height="${value.sum.totalTokens === 0n ? 2 : Math.max(0.5,pixels)}" fill="${seriesColor(s.key)}" stroke="var(--surface)" stroke-width="1"/></g>`;
++    }).join("");
++    return `${segments}<text x="${x}" y="275" class="history-axis">${esc(bucket.key)}</text>`;
++  }).join("");
++  chart.innerHTML = `<svg width="${width}" height="${height}" role="group" aria-label="Gestapelter bekannter Gesamtverbrauch, Tokens nach UTC-Zeitintervall"><text x="8" y="22" class="history-axis">Tokens</text><text x="8" y="42" class="history-axis">${count(max)}</text><text x="8" y="250" class="history-axis">0</text><line x1="70" x2="${width - 10}" y1="250" y2="250" stroke="var(--muted)"/>${bars}</svg>`;
++  const tooltip = host.querySelector(".history-tooltip");
++  chart.querySelectorAll("[data-history-tooltip]").forEach(segment => {
++    const show = () => { tooltip.textContent = tooltips[Number(segment.dataset.historyTooltip)]; };
++    segment.addEventListener("mouseenter", show); segment.addEventListener("focus", show); segment.addEventListener("click", show);
++  });
++}
+
+# CURRENT DEVELOP RESIDUAL: assigned paths only; new untracked files content-equal by manifest
+diff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1
+index a4066bc..b6a01b6 100644
+--- a/scripts/delegation/Start-DelegatedCodexTask.ps1
++++ b/scripts/delegation/Start-DelegatedCodexTask.ps1
+@@ -875,6 +875,10 @@ $evidence = [ordered]@{
+ $notifications = New-Object System.Collections.Generic.List[object]
+ $progressState = New-ProgressState
+ $process = $null
++$productActivation = $null
++$productBinding = $null
++$productContext = $null
++$productReleaseConfirmed = $false
+ function Update-NativeUsage($Notification) {
+     if ($Notification.method -eq 'thread/tokenUsage/updated' -and
+         $evidence.thread_id -and $evidence.turn_id -and
+@@ -1035,13 +1039,40 @@ try {
+     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)
+     $capability=Get-AdmissionInstalledContract $script:admissionProvider
+     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}
+-    Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
+-    $thread = Wait-Rpc 2
++    $productReference=Get-AdmissionField $pinnedRootLaunch 'productManagement'
++    if ($productReference) {
++        Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')
++        $productItems=@()
++        if ($jobSsotMode) {
++            $productSnapshot=& (Join-Path $PSScriptRoot '../workitems/Get-WorkItems.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot
++            $productItems=@($productSnapshot.Document.items)
++        }
++        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems
++        if ($job.role -ceq 'produktmanagement_pm_strategie' -and -not $productBinding) { throw 'ProductSolutionAssignmentMissing' }
++        if ($job.role -ceq 'produktmanagement_pm_strategie') {
++            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @('planned','in_progress','rework') })
++            if ($ownedPM.Count -ne 1) { throw 'ProductPMWorkItemOwnerOrStateChanged' }
++        }
++        if ($productBinding) {
++            $selected=Get-AdmissionField $productBinding.solution 'activationDocumentIds' @()
++            $selectedDecisions=Get-AdmissionField $productBinding.solution 'activationDecisionIds' @()
++            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)
++        }
++    } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }
++    if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {
++        # This remains the existing visible, admitted specialist runner.
++        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}
++        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc
++        $thread=$productActivation.reply
++    } else {
++        Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
++        $thread = Wait-Rpc 2
++    }
+     $evidence.thread_id = $thread.thread.id
+     # Resolved thread/start response, never requested/current TOML settings.
+     # This runner starts exactly one turn on a fresh thread, without overrides.
+     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
+-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
++    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}
+     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
+     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
+     foreach($field in @('model','reasoningEffort')) {
+@@ -1080,10 +1111,12 @@ try {
+         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash
+     }
+     $turnStartRpcId=3
++    if ($productContext) { $text += "`n`nSolution context (selected owner documents and reviewed memory):`n" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }
+     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId
+     $evidence.model_started = $true
+     $turn = Wait-Rpc 3
+     $evidence.turn_id = $turn.turn.id
++    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }
+     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
+     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){
+         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
+@@ -1110,6 +1143,7 @@ try {
+         if ($null -eq $completion) { [void](Read-Rpc) }
+     }
+     $evidence.terminal_outcome = $completion.params.turn.status
++    if ($productActivation) { Complete-ProductSession $productActivation $completion }
+     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
+     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
+     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
+@@ -1176,11 +1210,15 @@ try {
+         }
+     }
+     if ($job.registry_directory -and $job.registry_dispatch_id) {
+-        try { Complete-BoundRegistryJob $job } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
++        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
+     }
+     if ($process) {
+         try { $process.StandardInput.Close() } catch { }
+-        [void]$process.WaitForExit(3000)
++        $processExitConfirmed=$process.WaitForExit(3000)
++        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence 'transfer_error') -and $productActivation.session.state -ceq 'TerminalPendingTransfer') {
++            try { Publish-ProductSession $productActivation $resultFile }
++            catch { Write-Host ('Product session remains recovery-closed: '+$_.Exception.Message) }
++        }
+         $process.Dispose()
+     }
+     Write-Host ('Resultat gesichert: ' + $resultFile)
+@@ -1191,6 +1229,7 @@ try {
+         if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }
+     }
+     } finally {
++        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }
+         if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }
+         elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }
+         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,('AgentOrganizationTask.'+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }
+
+# STARTER RESIDUAL BEFORE PR112 (against 176f3626)
+diff --git a/scripts/delegation/Start-DelegatedCodexTask.ps1 b/scripts/delegation/Start-DelegatedCodexTask.ps1
+index c51235a..273fa87 100644
+--- a/scripts/delegation/Start-DelegatedCodexTask.ps1
++++ b/scripts/delegation/Start-DelegatedCodexTask.ps1
+@@ -874,6 +874,10 @@ $evidence = [ordered]@{
+ $notifications = New-Object System.Collections.Generic.List[object]
+ $progressState = New-ProgressState
+ $process = $null
++$productActivation = $null
++$productBinding = $null
++$productContext = $null
++$productReleaseConfirmed = $false
+ function Update-NativeUsage($Notification) {
+     if ($Notification.method -eq 'thread/tokenUsage/updated' -and
+         $evidence.thread_id -and $evidence.turn_id -and
+@@ -1032,11 +1036,38 @@ try {
+     [void](Invoke-AdmissionReadDiagnostics $job.registry_directory $rootForRunner.Path $runnerSessionPath (Join-Path $PSScriptRoot '..\coordinator\Register-CoordinatorExecution.ps1') $script:admissionProvider $runnerScanBudget $runnerRpc $runnerMarkers $setDiagnosticOwnership)
+     $capability=Get-AdmissionInstalledContract $script:admissionProvider
+     if(-not $capability.api -or $capability.completionMode -eq 'Unknown'){throw ('AdmissionUnknown: MissingExternalAccess:'+($capability.missing -join ','))}
+-    Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
+-    $thread = Wait-Rpc 2
++    $productReference=Get-AdmissionField $pinnedRootLaunch 'productManagement'
++    if ($productReference) {
++        Import-Module (Join-Path $PSScriptRoot '../productmanagement/ProductManagement.psm1')
++        $productItems=@()
++        if ($jobSsotMode) {
++            $productSnapshot=& (Join-Path $PSScriptRoot '../workitems/Get-WorkItems.ps1') -Path $job.work_item_store_path -RepositoryRoot $RepositoryRoot
++            $productItems=@($productSnapshot.Document.items)
++        }
++        $productBinding=Get-ProductBinding $productReference ([string]$job.work_item_id) $productItems
++        if ($job.role -ceq 'produktmanagement_pm_strategie' -and -not $productBinding) { throw 'ProductSolutionAssignmentMissing' }
++        if ($job.role -ceq 'produktmanagement_pm_strategie') {
++            $ownedPM=@($productItems | Where-Object { $_.id -ceq $job.work_item_id -and $_.owner.id -ceq $job.role -and $_.status -in @('planned','in_progress','rework') })
++            if ($ownedPM.Count -ne 1) { throw 'ProductPMWorkItemOwnerOrStateChanged' }
++        }
++        if ($productBinding) {
++            $selected=Get-AdmissionField $productBinding.solution 'activationDocumentIds' @()
++            $selectedDecisions=Get-AdmissionField $productBinding.solution 'activationDecisionIds' @()
++            $productContext=Get-ProductContext $productBinding $rootForRunner.Job.coordinator_data_directory @($selected) @($selectedDecisions)
++        }
++    } elseif ($job.role -ceq 'produktmanagement_pm_strategie') { throw 'ProductConfigurationAndOwnerAssignmentMissing' }
++    if ($productBinding -and $job.role -ceq 'produktmanagement_pm_strategie') {
++        # This remains the existing visible, admitted specialist runner.
++        $productRpc={param($method,$parameters) $reply=Invoke-RunnerAdmissionRpc $method $parameters 15000; [pscustomobject]@{reply=$reply;rpc=$script:admissionLastRpcReceipt}}
++        $productActivation=Open-ProductSession $productBinding $rootForRunner.Job.coordinator_data_directory $job $productRpc
++        $thread=$productActivation.reply
++    } else {
++        Send-Rpc 'thread/start' @{ cwd = $job.cwd; model = $job.model; sandbox = $job.sandbox; approvalPolicy = $job.approval_policy; developerInstructions = $job.developer_instructions; config = $job.config } 2
++        $thread = Wait-Rpc 2
++    }
+     $evidence.thread_id = $thread.thread.id
+     if(-not $evidence.thread_id){throw 'AdmissionUnknown: NativeThreadACKMissing'}
+-    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$script:admissionLastRpcReceipt}
++    $nativeAck=[ordered]@{taskId=$job.task_id;threadId=$evidence.thread_id;origin=$script:admissionProvider.origin;generation=$script:admissionProvider.generation;reply=$thread;rpc=$(if($productActivation){$productActivation.rpc}else{$script:admissionLastRpcReceipt})}
+     $nativeAckPath=Join-Path ($JobFile+'.inventory') ((Get-AdmissionObjectHash $nativeAck)+'.thread-ack.json')
+     $nativeAckHash=Write-AdmissionJson $nativeAckPath $nativeAck -Immutable
+     if ($job.registry_directory) {
+@@ -1067,10 +1098,12 @@ try {
+         $env:AGENT_ORG_PARENT_CONTEXT_PATH=[string]$job.parent_context_path;$env:AGENT_ORG_PARENT_CONTEXT_HASH=[string]$job.parent_context_hash
+     }
+     $turnStartRpcId=3
++    if ($productContext) { $text += "`n`nSolution context (selected owner documents and reviewed memory):`n" + (ConvertTo-Json -InputObject $productContext -Depth 70 -Compress) }
+     Send-Rpc 'turn/start' @{ threadId = $evidence.thread_id; input = @(@{ type = 'text'; text = $text }) } $turnStartRpcId
+     $evidence.model_started = $true
+     $turn = Wait-Rpc 3
+     $evidence.turn_id = $turn.turn.id
++    if ($productActivation) { Set-ProductTurn $productActivation $evidence.turn_id }
+     $turnContext=$null;$contextModuleRunner=$null;$turnAuthorityHash=$null
+     if(($jobSsotMode -or ($job.parent_context_path -and $job.work_item_store_path)) -and $job.work_item_store_path -and $job.payload_hash){
+         $contextModuleRunner=Import-Module (Join-Path $PSScriptRoot '..\workitems\CoordinatorExecutionContext.psm1') -PassThru -Force
+@@ -1097,6 +1130,7 @@ try {
+         if ($null -eq $completion) { [void](Read-Rpc) }
+     }
+     $evidence.terminal_outcome = $completion.params.turn.status
++    if ($productActivation) { Complete-ProductSession $productActivation $completion }
+     if($turnContext){$decisionBytes=$utf8.GetBytes(($completion|ConvertTo-Json -Depth 50 -Compress));$terminalEvidenceHash=& $contextModuleRunner {param($b)Get-ContextHash $b} $decisionBytes;$terminalOutcome=if($evidence.terminal_outcome -eq 'completed'){'Completed'}elseif($evidence.terminal_outcome -eq 'interrupted'){'Interrupted'}else{'Failed'};$terminalContext=& $contextModuleRunner {param($d,$j,$s,$t,$u,$r,$sid,$a,$e,$o)New-ExecutionTurnContext -Directory $d -JobPath $j -StorePath $s -ThreadId $t -TurnId $u -RequestId $r -Outcome $o -SessionId $sid -AuthorityHash $a -EvidenceHash $e} (Join-Path $job.accounting_directory 'contexts') ($resultFile+'.job.json') $job.work_item_store_path $evidence.thread_id $evidence.turn_id $turnRequestId $turnSessionId $turnAuthorityHash $terminalEvidenceHash $terminalOutcome}
+     $evidence.output = ($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' } | ForEach-Object { [string]$_.params.item.text }) -join "`n"
+     $finalItems = @($notifications | Where-Object { $_.method -eq 'item/completed' -and $_.params.threadId -ceq $evidence.thread_id -and $_.params.turnId -ceq $evidence.turn_id -and $_.params.item.type -eq 'agentMessage' -and $_.params.item.phase -eq 'final_answer' })
+@@ -1158,11 +1192,15 @@ try {
+         }
+     }
+     if ($job.registry_directory -and $job.registry_dispatch_id) {
+-        try { Complete-BoundRegistryJob $job } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
++        try { Complete-BoundRegistryJob $job; $productReleaseConfirmed=$true } catch { Write-Host ('Reservation retained for recovery: '+$_.Exception.Message) }
+     }
+     if ($process) {
+         try { $process.StandardInput.Close() } catch { }
+-        [void]$process.WaitForExit(3000)
++        $processExitConfirmed=$process.WaitForExit(3000)
++        if ($productActivation -and $productReleaseConfirmed -and $processExitConfirmed -and -not (Get-LCValue $evidence 'transfer_error') -and $productActivation.session.state -ceq 'TerminalPendingTransfer') {
++            try { Publish-ProductSession $productActivation $resultFile }
++            catch { Write-Host ('Product session remains recovery-closed: '+$_.Exception.Message) }
++        }
+         $process.Dispose()
+     }
+     Write-Host ('Resultat gesichert: ' + $resultFile)
+@@ -1173,6 +1211,7 @@ try {
+         if ($evidence.token_summary.missing_count) { Write-Host ('Bekannte Teilsumme: ' + (Format-TokenUsage $evidence.token_summary.known_partial) + '; unbekannte Aufgaben: ' + $evidence.token_summary.missing_count) }
+     }
+     } finally {
++        if ($productActivation) { Exit-ProductLock $productActivation.owner; $productActivation=$null }
+         if ($job.role -ceq 'koordinator') { [void](Read-Host 'Koordinator-Konsole bleibt offen. Nur auf Benutzerwunsch mit Enter schließen') }
+         elseif ($job.keep_window_open) { [void](Read-Host 'Zum Schließen Enter drücken') }
+         else { Start-Sleep -Seconds 2; if((Test-Path -LiteralPath $resultFile) -and [AgentTerminalWindow]::IsWindow($handle) -and [AgentTerminalWindow]::Title($handle) -ceq $title -and [AgentTerminalWindow]::GetProp($handle,('AgentOrganizationTask.'+$job.task_id)) -eq [IntPtr][int]$PID){[void][AgentTerminalWindow]::PostMessage($handle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)} }

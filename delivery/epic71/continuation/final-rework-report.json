@@ -1,0 +1,311 @@
+{
+    "recipient":  "teamleiter_agent_ressources",
+    "role":  "agent_ressources_optimierer",
+    "workItemId":  "epic71-final-delta-rework",
+    "parentWorkItemId":  "epic71-source-delivery",
+    "asOf":  "2026-10-13T08:26:10.7982021Z",
+    "state":  "implemented_for_independent_review",
+    "sourceBinding":  {
+                          "originalWorktree":  "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/implementation",
+                          "branch":  "feature/epic71-product-management-20261013",
+                          "head":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+                          "originalBase":  "907cbc71f10729beaff9ea3634644ff4043d3791",
+                          "pinnedLatestDevelop":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                          "localDevelopRef":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                          "freshFetchPerformed":  false,
+                          "localDevelopRefName":  "refs/heads/develop",
+                          "localOriginDevelopRef":  "50191757d0e8bb9bed956d89c42afbac5ef0674d",
+                          "observedAtUTC":  "2026-10-13T08:26:10.7982021Z"
+                      },
+    "evidenceKind":  "content_diff_references_sha256_only",
+    "independentIndexReview":  "Pass_supplied_source_scope",
+    "indexTeamLeaderDecision":  "accepted_source_scope",
+    "independentIntegrationReview":  "Rework_D1_D3",
+    "newIndependentQa":  "pending_review",
+    "parentAcceptance":  "pending_review",
+    "overallEpicAcceptance":  "not_granted",
+    "groundMapping":  null,
+    "ownTokenUsage":  null,
+    "children":  [
+
+                 ],
+    "corrections":  [
+                        {
+                            "id":  "D1",
+                            "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                            "finding":  "PM resume thread total is cumulative, not current-task own usage",
+                            "change":  "Only explicit PM thread/start receipt retains fresh-thread measurement. PM resume or unproven freshness ignores cumulative notifications, keeps token_usage=null, usage_finalized=false through flush/finally, and publishes honest usage_source. ACK metadata distinguishes PM freshness uncertainty.",
+                            "references":  [
+                                               "Start-DelegatedCodexTask.ps1:872-888",
+                                               "Start-DelegatedCodexTask.ps1:1065-1094",
+                                               "Start-DelegatedCodexTask.ps1:1167",
+                                               "Start-DelegatedCodexTask.ps1:1193-1194"
+                                           ],
+                            "boundary":  "No current-turn measurement or baseline/delta invented. Fresh-thread counter assignment, thread/turn matching and final ledger getter retained. No PR112 comparison. No ProductManagement code/contract change."
+                        },
+                        {
+                            "id":  "D2",
+                            "change":  "Complete current sourceBinding/binding supplements historical null packaging metadata; snapshot files retained byte-for-byte",
+                            "evidence":  [
+                                             "final-rework-report.json",
+                                             "final-rework-manifest.json"
+                                         ]
+                        },
+                        {
+                            "id":  "D3",
+                            "change":  "README/current continuation adopt supplied index Pass and own limited team leader acceptance; integration stays Rework with new independent QA pending. Formal acceptance/runtime/tests not added as issue blockers.",
+                            "evidence":  [
+                                             "delivery/epic71/README.md",
+                                             "delivery/epic71/continuation/criteria.json",
+                                             "delivery/epic71/continuation/issue-completion-proposal.md",
+                                             "delivery/epic71/continuation/issue-completion-proposal.json"
+                                         ]
+                        }
+                    ],
+    "sources":  [
+                    "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/final-delta-review.json",
+                    "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/finalization-coordination.json",
+                    "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.md",
+                    "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/index-review-continuation.json"
+                ],
+    "changes":  [
+                    {
+                        "path":  "scripts/delegation/Start-DelegatedCodexTask.ps1",
+                        "beforePath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\scripts\\delegation\\Start-DelegatedCodexTask.ps1",
+                        "beforeSha256":  "b2c22fc57f617c7a6afb9b06707037e26895ecba9da10aa65929b7f23c8aa274",
+                        "afterSha256":  "b2a56df541545c2ed1955588e79e93a7bff9c213c1135495ce410e3a4ae54dac",
+                        "beforeBytes":  124039,
+                        "afterBytes":  125067
+                    },
+                    {
+                        "path":  "delivery/epic71/README.md",
+                        "beforePath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\README.md",
+                        "beforeSha256":  "b71771e42d7ff80eac8292fde8ecfe15778d1130cfb3f992f91088c7ecfd7045",
+                        "afterSha256":  "89c1c83276d7282d688ebbe4640087fb49da9fbb661d293993a94f99fd4cf9c9",
+                        "beforeBytes":  5545,
+                        "afterBytes":  6465
+                    },
+                    {
+                        "path":  "delivery/epic71/continuation/criteria.json",
+                        "beforePath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\criteria.json",
+                        "beforeSha256":  "c273fd13c2d74ca52790e55bb74b0dee771e130288631acc45e2ee6727a0258b",
+                        "afterSha256":  "a54c5e70582a8b45196f1dbea9e2240da5ab49ef13973c39609e38fc9a049488",
+                        "beforeBytes":  8361,
+                        "afterBytes":  9446
+                    },
+                    {
+                        "path":  "delivery/epic71/continuation/issue-completion-proposal.json",
+                        "beforePath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.json",
+                        "beforeSha256":  "b51f25f42efaab3f6db0e261ad1bb647b5b3bf00b5e9ef532b8807ef1ca96a77",
+                        "afterSha256":  "882d20b3161ed6ecc7dd7a59998b212acaecc1c0c0b27616d52a558c30f3a945",
+                        "beforeBytes":  2885,
+                        "afterBytes":  3749
+                    },
+                    {
+                        "path":  "delivery/epic71/continuation/issue-completion-proposal.md",
+                        "beforePath":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\epic71-ar-package\\final-rework-before\\delivery\\epic71\\continuation\\issue-completion-proposal.md",
+                        "beforeSha256":  "97bf5a87efb25c145f81182eeda3c9d4d5f28f37ef42b84cacb60eb3e899f4dc",
+                        "afterSha256":  "c95b23fddea8e1c2dc5de0778ce803cca8b46eb7dd5c0e85fa517b7a24e9eeb4",
+                        "beforeBytes":  3688,
+                        "afterBytes":  2178
+                    }
+                ],
+    "preservedArtifacts":  [
+                               {
+                                   "path":  "../delivery-packaging-report.md",
+                                   "beforeSha256":  "84bdb6dfbdc1c2349adb8e2c6a5f21782e5c4797ddd57d4ec41fdecaaf5a9511",
+                                   "afterSha256":  "84bdb6dfbdc1c2349adb8e2c6a5f21782e5c4797ddd57d4ec41fdecaaf5a9511",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "../delivery-packaging-report.json",
+                                   "beforeSha256":  "0548f4a01e5000036364f539c426972c06490ee3dc1a573d3fb1739dfcb0b343",
+                                   "afterSha256":  "0548f4a01e5000036364f539c426972c06490ee3dc1a573d3fb1739dfcb0b343",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "../delivery-packaging-manifest.json",
+                                   "beforeSha256":  "2249eb46627e3298e9c33a26eb4685b01770e778fd8d2aab8c30cca911995d9e",
+                                   "afterSha256":  "2249eb46627e3298e9c33a26eb4685b01770e778fd8d2aab8c30cca911995d9e",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "../final-delta-review.json",
+                                   "beforeSha256":  "1128c15c48c511a215e4c3812fe0fad785bb89357154d530c56e2601407856a9",
+                                   "afterSha256":  "1128c15c48c511a215e4c3812fe0fad785bb89357154d530c56e2601407856a9",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "../finalization-coordination.json",
+                                   "beforeSha256":  "042409b5ac68f190ffec5d849a81433c556fc6ad0fb94366d80e2b0cd2bc9898",
+                                   "afterSha256":  "cbb2012b9b89ce3b4857991a2a75a05a5f0854f0cae3ad44e3fb78970bdf865c",
+                                   "unchanged":  false
+                               },
+                               {
+                                   "path":  "../index-review-continuation.md",
+                                   "beforeSha256":  "6e53da80fabe7378b0d974a0e1c1f1779239997363963b5fb00c463c545d12b3",
+                                   "afterSha256":  "6e53da80fabe7378b0d974a0e1c1f1779239997363963b5fb00c463c545d12b3",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "../index-review-continuation.json",
+                                   "beforeSha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                   "afterSha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "docs/contracts/PRODUCTMANAGEMENT.md",
+                                   "beforeSha256":  "15c9736cc78d4615b90d95ab1210b46fc8bc40a8bdc83253f602978e8ca11bef",
+                                   "afterSha256":  "15c9736cc78d4615b90d95ab1210b46fc8bc40a8bdc83253f602978e8ca11bef",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "scripts/productmanagement/ProductManagement.psm1",
+                                   "beforeSha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                                   "afterSha256":  "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/contract-rework-manifest.json",
+                                   "beforeSha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                   "afterSha256":  "79b650fc488348227bfb7ec177203352739109f0ca68812e9ab151ba8f245a7d",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/contract-rework-report.json",
+                                   "beforeSha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                   "afterSha256":  "d77888e0fcdb69d81d19a1d1c03a67ab969d860e1e1bf513576d2aa6d73b8fe5",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/contract-rework-report.md",
+                                   "beforeSha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                   "afterSha256":  "c9d681dadfe47ea5271c19331cde15681dbdf7e7c0381e1969a429db79f72e21",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/contract-rework.diff",
+                                   "beforeSha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                   "afterSha256":  "e347fb28113cff9ac6288a40004d778e06d3b39b8033bf8cbaa323b749ab472a",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/develop-completion-manifest.json",
+                                   "beforeSha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                   "afterSha256":  "d4a96483043ee595b38b9b5b5b7e81da3cb215dfbe1f51bd6bbba3348702a65f",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/develop-completion-report.json",
+                                   "beforeSha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                   "afterSha256":  "df03a34c576b14d3881d6d270980d5b9c7b53309ebf690f3dd4c8f4858aacb5e",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/develop-completion-report.md",
+                                   "beforeSha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                   "afterSha256":  "98cb5ad710fd0c4dc843109cac86d65f9d1b78bb94482b0a6148570c8c15ddd2",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/develop-completion.diff",
+                                   "beforeSha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                   "afterSha256":  "8ec3fa9e0c08c40fd74c11ad73d540eb4beae9afd9641846087ce4c5db1fb312",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/index-completion-manifest.json",
+                                   "beforeSha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                   "afterSha256":  "1b44d706ca2eb4ea3a8edf8cbe0f1d9e666f04d94b4dffd56d19993cecaa1371",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/index-completion-report.json",
+                                   "beforeSha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                   "afterSha256":  "2c31a574fefa30dfe2491c5ba405e27a5fc47755d940c098522d730b6822dfad",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/index-completion-report.md",
+                                   "beforeSha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                   "afterSha256":  "f2954830e43118e50ea2a2729bc2dc74442af83a54c64b8218300d7121e7642e",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/index-completion.diff",
+                                   "beforeSha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                   "afterSha256":  "4f443852dde8ead9b40ebf9f42738c39f37e22abe06ffc2b71b266f8ae497970",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/qa-completion-review.json",
+                                   "beforeSha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                   "afterSha256":  "fbdfa0b67fc7721960ca1a7654da0415426290f2249b440716ea68bd8ec056c2",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/qa-completion-review.md",
+                                   "beforeSha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                   "afterSha256":  "fc2d35e6b8ba8ac1050df5c90fde6fbdf61248f3c3208781c3a7a63209866a5c",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/qa-contract-final-review.json",
+                                   "beforeSha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                   "afterSha256":  "97a4ea8a94ee7625e46a578d85217e3ef7e0481ae4c46bd1c0ee70488e59edab",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/qa-contract-final-review.md",
+                                   "beforeSha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                   "afterSha256":  "68c793c3c02be4eda3a794175ce2c78e3c38c064cb517d186dab0f10891b30a8",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/retry-observation.json",
+                                   "beforeSha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                   "afterSha256":  "2dffa18bd6472ba0ea1b6d4aaf2a0265c8abd9deda6b6e4e6b99bdd89e546d8f",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/retry-observation.md",
+                                   "beforeSha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                   "afterSha256":  "bc77bcfd873156ba51e7d708b20bd86bc0cc989cbadff8df5116bf6fdcd54373",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/retry-thread-read.md",
+                                   "beforeSha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                   "afterSha256":  "e0eec46e05724b1f48f60e16a4e492938b84098b6ccc4d7db1419b34e93912fd",
+                                   "unchanged":  true
+                               },
+                               {
+                                   "path":  "delivery/epic71/continuation/task-result-summary.json",
+                                   "beforeSha256":  "7e15d86ca76f8525affc60c6c36752afd36a8917dfa03ec9dd6ed932e3ce9d12",
+                                   "afterSha256":  "7e15d86ca76f8525affc60c6c36752afd36a8917dfa03ec9dd6ed932e3ce9d12",
+                                   "unchanged":  true
+                               }
+                           ],
+    "limits":  [
+                   "No tests, parser test runs, validators, product runtime, native/browser probes, Actions, imports, fixtures, global installation, delegation or Git/Issue writes.",
+                   "JSON handling only for assigned delivery metadata editing and serialization, not product source validation.",
+                   "No organization indices loaded, no routing, no whole review or PR112 comparison.",
+                   "Original package reports/manifests and prior continuation review/report/manifest/diff/task snapshots remain historical; current status takes precedence only in assigned current documents and this supplement.",
+                   "R4 envelope hash contract unchanged; PM implementation hashed only for preservation, not read or edited.",
+                   "Current content flow indicates conservative unknown semantics; no actual resumed/fresh runner executed and no current functional proof.",
+                   "Preservation hashes distinguish externally changed finalization-coordination.json from byte-unchanged historical snapshots. This task did not write the coordination file."
+               ],
+    "open":  [
+                 "New independent D1-D3 QA and own source-delivery parent acceptance pending, not granted by optimizer.",
+                 "Ground mapping unknown; no paths invented.",
+                 "Actual original issue criteria unavailable in supplied evidence; no issue mutation or whole-issue completion inferred."
+             ],
+    "prohibitedActionsExecuted":  false,
+    "environmentNote":  "Python was unavailable; attempted editing command did not execute. Edits and readback performed with PowerShell only, no installation.",
+    "externalConcurrentChange":  {
+                                     "path":  "../finalization-coordination.json",
+                                     "writtenByThisTask":  false,
+                                     "readback":  "Current file adds handed-off work item and QA adoption; accepted_source_scope and retain_accepted decisions remain present. External change preserved.",
+                                     "observedAtUTC":  "2026-10-13T08:26:58.5358952Z"
+                                 }
+}

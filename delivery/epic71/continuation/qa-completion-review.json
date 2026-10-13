@@ -1,0 +1,545 @@
+{
+  "schemaVersion": "1.0",
+  "workItemId": "epic71-independent-review",
+  "role": "agent_ressources_qualitaetspruefung",
+  "recipient": "teamleiter_agent_ressources",
+  "reviewedAt": "2026-10-13T07:14:37Z",
+  "status": "targeted_content_review_rework_required",
+  "summary": {
+    "Pass": [
+      "QA71-01",
+      "QA71-02",
+      "QA71-03"
+    ],
+    "Rework": [
+      "QA71-04"
+    ],
+    "implementationCorrections": "Alle vier ursprünglichen Codebefunde im begrenzten Inhaltsreview geschlossen; ein konkreter Vertragsrestdefekt in R4.",
+    "remainingDefectCount": 1
+  },
+  "worktree": "C:/Users/Tom-OliverMarek/AppData/Local/Temp/epic71-ar-package/implementation",
+  "branchFromManifest": "feature/epic71-product-management-20261013",
+  "baseFromManifest": "907cbc71f10729beaff9ea3634644ff4043d3791",
+  "gitStateIndependentlyQueried": false,
+  "evidenceKind": "content_diff_references_only",
+  "runtimeEvidence": false,
+  "parentAcceptance": null,
+  "scope": {
+    "primaryFiles": [
+      "scripts/productmanagement/ProductManagement.psm1",
+      "scripts/productmanagement/Get-ProductRecovery.ps1",
+      "scripts/productmanagement/New-ProductFeature.ps1",
+      "docs/contracts/PRODUCTMANAGEMENT.md"
+    ],
+    "excluded": [
+      "Organisationsindex-Inhalt/Indexreview",
+      "Produktquellenownership des ungeklärten Index-Retry",
+      "Bestands-/Architekturkampagne",
+      "Installation/Aktivierung/Runtime/native/Browser",
+      "Quell- und Gitmutation"
+    ],
+    "ownedOutputFiles": [
+      "qa-completion-review.md",
+      "qa-completion-review.json"
+    ],
+    "reservedResultWritten": false
+  },
+  "preservedPredecessor": {
+    "taskId": "17af4a3e51674d4185df3876151fa344",
+    "terminalOutcome": "failed",
+    "error": null,
+    "windowClosed": true,
+    "source": {
+      "path": "../qa-resumed-result.json",
+      "sha256": "da117467484db9512df467b23b12f2afbda044cd374c61f2174db451dd9f84cb",
+      "lines": [
+        19,
+        22,
+        76
+      ]
+    },
+    "eventReference": "qa-resumed-result.json.events.jsonl: letzte Ereigniszeile kind=terminal, outcome=failed, at=2026-10-13T07:02:59.3676463Z",
+    "cause": "unknown_not_inferred",
+    "acceptanceDerived": false,
+    "reuse": "qa-review.md/json als Originalbefunde; qa-final/qa-resumed Public-/Ereignissidefiles gezielt für erhaltene Quellenlesung genutzt. Kein abgeschlossener Pass-Review aus Kommandoausgaben abgeleitet."
+  },
+  "findings": [
+    {
+      "id": "QA71-01",
+      "alias": "R1",
+      "originalPriority": "P1",
+      "verdict": "Pass",
+      "implementationVerdict": "Pass",
+      "scope": "Solutionverzeichnis vor Session-, Memory- und Recoverylock.",
+      "evidence": "Initialize-ProductDirectory bindet absolutes DataDirectory und SHA256-Solutionschlüssel, prüft vorhandene Verzeichnislinie vor/nach Anlage auf Dateien/Reparsepoints. Session, Save und Recovery rufen Vorbereitung vor Lock auf. Generische FileStream(CreateNew)-Lockprimitive bleibt zuständig.",
+      "sources": [
+        {
+          "path": "scripts/productmanagement/ProductManagement.psm1",
+          "sha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+          "lines": [
+            53,
+            59,
+            62,
+            64,
+            69,
+            73,
+            158,
+            160,
+            237,
+            238
+          ]
+        },
+        {
+          "path": "scripts/productmanagement/Get-ProductRecovery.ps1",
+          "sha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+          "lines": [
+            22,
+            26
+          ]
+        },
+        {
+          "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+          "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+          "lines": [
+            21
+          ]
+        },
+        {
+          "path": "scripts/workitems/WorkItemStore.psm1",
+          "sha256": "6262e2f5b6c46a26186fa3a0685bc7ef48545a09f02b09db6bc4e3d2c6020a2e",
+          "lines": [
+            233
+          ]
+        }
+      ],
+      "residualDefects": [],
+      "boundaries": [
+        "Externe nebenläufige Dateisystemmanipulation nicht ausgeschlossen. Keine erfolgreiche Erstaktivierung oder Racefreiheit bewiesen.",
+        "Nur Inhalt, Lieferdiff und Referenzen. Kein aktueller Funktionsnachweis; keine Ausführung oder Elternabnahme."
+      ]
+    },
+    {
+      "id": "QA71-02",
+      "alias": "R2",
+      "originalPriority": "P2",
+      "verdict": "Pass",
+      "implementationVerdict": "Pass",
+      "scope": "Recovery-Kindzuordnung über vollständigen autoritativen Snapshot.",
+      "evidence": "StorePath/ExpectedRevision verpflichtend. Reader liefert Snapshot; Existenz, Revision und genau ein Zielitem geprüft. Alle items gehen an Get-ProductBinding, der vollständige parentId-Linien, fehlende Vorfahren, doppelte Items in der Linie, Zyklen und widersprechende Solutiontreffer prüft. Vorschlag enthält StorePath, Revision und vollständiges Dokument, bleibt blocked_pending_owner_review.",
+      "sources": [
+        {
+          "path": "scripts/productmanagement/Get-ProductRecovery.ps1",
+          "sha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+          "lines": [
+            11,
+            12,
+            17,
+            18,
+            19,
+            20,
+            34
+          ]
+        },
+        {
+          "path": "scripts/productmanagement/ProductManagement.psm1",
+          "sha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+          "lines": [
+            32,
+            35,
+            37,
+            39,
+            42,
+            48
+          ]
+        },
+        {
+          "path": "scripts/workitems/Get-WorkItems.ps1",
+          "sha256": "2bc7c5a1444f9e2892e5276d3be5f47644d9dab74e692d2f6ce66d45dd0288d2",
+          "lines": [
+            1,
+            10
+          ]
+        },
+        {
+          "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+          "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+          "lines": [
+            31,
+            33
+          ]
+        }
+      ],
+      "residualDefects": [],
+      "boundaries": [
+        "Snapshot ist Beobachtungsstand, keine Sperre späterer Storeänderungen. Kein Threadneubau/Ownerfreigabe/Providerfunktion bewiesen.",
+        "Nur Inhalt, Lieferdiff und Referenzen. Kein aktueller Funktionsnachweis; keine Ausführung oder Elternabnahme."
+      ]
+    },
+    {
+      "id": "QA71-03",
+      "alias": "R3",
+      "originalPriority": "P2",
+      "verdict": "Pass",
+      "implementationVerdict": "Pass",
+      "scope": "Feature sofort planbar und separat terminierter Outcome-Review.",
+      "evidence": "Getrennte freie IDs; beide Geschwister unter bestätigtem Solution/PM-Elternpfad mit gemeinsamer Spezifikation. Feature dueAt=null und dependency vom angenommenen Strategiereview. OutcomeReview dueAt=ReviewDueAt mit dependency vom Feature. Zwei bestehende Writeraufrufe verkettet mit featureWrite.Revision. Zweiter Fehler wirft ProductOutcomeReviewPublicationIncomplete mit IDs und Revision statt Gesamterfolg. Bestehender Planner wartet auf dueAt und accepted Dependencies.",
+      "sources": [
+        {
+          "path": "scripts/productmanagement/New-ProductFeature.ps1",
+          "sha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+          "lines": [
+            13,
+            26,
+            32,
+            34,
+            42,
+            45,
+            48,
+            50,
+            53,
+            55,
+            60,
+            61,
+            62
+          ]
+        },
+        {
+          "path": "scripts/coordinator/CoordinatorPlanning.psm1",
+          "sha256": "028854b1a4855b729dfb20ac7800446c2355d15bd061e01d8bed47f63531214e",
+          "lines": [
+            44,
+            51,
+            53,
+            76
+          ]
+        },
+        {
+          "path": "scripts/workitems/New-WorkItem.ps1",
+          "sha256": "4671e2fe54f76e6c5acddb457b8d4f2f4dec56eb446198d8b6b1ae50e0d25f76",
+          "lines": [
+            5,
+            12
+          ]
+        },
+        {
+          "path": "scripts/workitems/WorkItemStore.psm1",
+          "sha256": "6262e2f5b6c46a26186fa3a0685bc7ef48545a09f02b09db6bc4e3d2c6020a2e",
+          "lines": [
+            515,
+            517,
+            529
+          ]
+        },
+        {
+          "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+          "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+          "lines": [
+            53,
+            55
+          ]
+        }
+      ],
+      "residualDefects": [],
+      "boundaries": [
+        "Nicht atomare Teilpublikation möglich: Feature kann ohne OutcomeReview bestehen. Vertrag verlangt Auflösung durch bestehenden Writer; Wiederholung desselben Gesamtaufrufs wegen IDkonflikt gesperrt. Dokumentierte Funktionsgrenze, kein weiterer belegter Defekt der Termintrennung.",
+        "Planbarkeit hängt von Elternstatus und angenommenen Dependencies ab. Bestehender Planner sperrt abgeschlossene/angenommene Eltern. Reminder/Dispatch/CAS/Outbox nicht ausgeführt.",
+        "Nur Inhalt, Lieferdiff und Referenzen. Kein aktueller Funktionsnachweis; keine Ausführung oder Elternabnahme."
+      ]
+    },
+    {
+      "id": "QA71-04",
+      "alias": "R4",
+      "originalPriority": "P2",
+      "verdict": "Rework",
+      "implementationVerdict": "Pass",
+      "contractVerdict": "Rework",
+      "scope": "Solution-/PM-/Konfigurationsbindung der Reviewautorität samt konsistentem Produktvertrag.",
+      "evidence": "Envelope enthält kind, solutionId, pmIdentity, configuration.path/hash und decision. Save hasht Get-LCBytes des Umschlags; gemeinsamer Helper prüft aktuelles akzeptiertes Review und echte Elternlinie. Feature prüft Umschlagart, Identitäten, exakte Konfigurationsreferenz, erneut gebildeten Hash und denselben Helper. Ursprünglicher fehlender Scopevergleich im Code geschlossen.",
+      "sources": [
+        {
+          "path": "scripts/productmanagement/ProductManagement.psm1",
+          "sha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+          "lines": [
+            78,
+            79,
+            82,
+            83,
+            84,
+            85,
+            87,
+            228,
+            229,
+            233,
+            234,
+            235,
+            260
+          ]
+        },
+        {
+          "path": "scripts/productmanagement/New-ProductFeature.ps1",
+          "sha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+          "lines": [
+            36,
+            38,
+            39
+          ]
+        },
+        {
+          "path": "scripts/coordinator/Lifecycle.Persistence.ps1",
+          "sha256": "8c75f5981e852e0a984ea74ff5270303102a7354f0f624179f7c7572e5860085",
+          "lines": [
+            10,
+            11,
+            20,
+            22
+          ]
+        },
+        {
+          "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+          "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+          "lines": [
+            37,
+            45
+          ]
+        }
+      ],
+      "residualDefects": [
+        {
+          "id": "QA71-04-contract-hash",
+          "priority": "P2",
+          "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+          "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+          "line": 37,
+          "conflictingReferences": [
+            "docs/contracts/PRODUCTMANAGEMENT.md:45",
+            "scripts/productmanagement/ProductManagement.psm1:228",
+            "scripts/productmanagement/ProductManagement.psm1:229",
+            "scripts/productmanagement/ProductManagement.psm1:234",
+            "scripts/productmanagement/New-ProductFeature.ps1:38",
+            "scripts/productmanagement/New-ProductFeature.ps1:39"
+          ],
+          "trigger": "Reviewer bildet Ergebnisbeleg nach Vertragszeile 37.",
+          "defect": "Zeile 37 verlangt weiterhin product-decision-sha256:<SHA256(kompaktes UTF8 JSON der Decision)>; Zeile 45 und Code verlangen den vollständigen product-decision-envelope-v1-Umschlag. Reiner Decision-Hash genügt ausdrücklich nicht mehr.",
+          "impact": "Ein nach Zeile 37 erstellter Reviewbeleg erfüllt die neue Bindung nicht und wird quellseitig als ProductDecisionExactAcceptedReviewMissing zurückgewiesen, sofern die verschiedenen Hashes nicht zufällig identisch wären. Widersprüchlicher fachlicher Freigabevertrag.",
+          "minimalRework": "Zeile 37 auf denselben Get-ProductDecisionEnvelope/Get-LCBytes-Umschlaghash wie Zeile 45 umstellen oder eindeutig auf normative Umschlagdefinition verweisen. Keine Rückkehr zum ungebundenen Decision-Hash. Autorisierten Quellenowner Liefermanifest/Diff erneuern lassen; anschließend nur Vertrag und neue Hashbindung unabhängig zurücklesen.",
+          "runtimeReproduced": false
+        }
+      ],
+      "boundaries": [
+        "Keine erfolgreiche Annahme/Featureanlage oder installierte Reviewfunktion bewiesen. Reviewsnapshot bindet Beobachtung, keine atomare Store-/Memorytransaktion.",
+        "Nur Inhalt, Lieferdiff und Referenzen. Kein aktueller Funktionsnachweis; keine Ausführung oder Elternabnahme."
+      ]
+    }
+  ],
+  "sourceBindings": [
+    {
+      "path": "scripts/productmanagement/ProductManagement.psm1",
+      "sha256": "e2976cd2cde52e7915ba3afc0f018d474509fdebd7f1c09da5f5e456472ab820",
+      "readMode": "full_content"
+    },
+    {
+      "path": "scripts/productmanagement/Get-ProductRecovery.ps1",
+      "sha256": "da36414fa85d4ab3dede8c9329f16144744a67e29034bc8e07cf0f9f364cf193",
+      "readMode": "full_content"
+    },
+    {
+      "path": "scripts/productmanagement/New-ProductFeature.ps1",
+      "sha256": "0f272b52b2f2ac6f6f7bfc198c1f0779d0aea0125478b30a21511ad2275df25c",
+      "readMode": "full_content"
+    },
+    {
+      "path": "docs/contracts/PRODUCTMANAGEMENT.md",
+      "sha256": "2a1e54ab5c67903f3eaa32934838f0de2affc07d2fb23991d28abfc1ad817b2b",
+      "readMode": "full_content"
+    },
+    {
+      "path": "scripts/coordinator/CoordinatorPlanning.psm1",
+      "sha256": "028854b1a4855b729dfb20ac7800446c2355d15bd061e01d8bed47f63531214e",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "scripts/coordinator/Lifecycle.Persistence.ps1",
+      "sha256": "8c75f5981e852e0a984ea74ff5270303102a7354f0f624179f7c7572e5860085",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "scripts/workitems/WorkItemStore.psm1",
+      "sha256": "6262e2f5b6c46a26186fa3a0685bc7ef48545a09f02b09db6bc4e3d2c6020a2e",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "scripts/workitems/New-WorkItem.ps1",
+      "sha256": "4671e2fe54f76e6c5acddb457b8d4f2f4dec56eb446198d8b6b1ae50e0d25f76",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "scripts/workitems/Get-WorkItems.ps1",
+      "sha256": "2bc7c5a1444f9e2892e5276d3be5f47644d9dab74e692d2f6ce66d45dd0288d2",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "scripts/productmanagement/Save-ProductDecision.ps1",
+      "sha256": "b4f1038fb715079653527895189aac306ea29dbbbcae9e863bf3fa17beb5998c",
+      "readMode": "targeted_reference_content"
+    },
+    {
+      "path": "teams/produktmanagement/agenten.json",
+      "sha256": "cf760cee5c675d50029815517b5701625299a9b0fdc8b12656ae29485b9464df",
+      "readMode": "name_and_hash_only"
+    }
+  ],
+  "artifactBindings": [
+    {
+      "path": "rework-report.md",
+      "sha256": "88c6f4da34641a99a8805b91514e0ee9f27951febb7d42cdb648f67296853b6b",
+      "readCoverage": "content_or_manifest_references"
+    },
+    {
+      "path": "rework-manifest.json",
+      "sha256": "a8858ea5111e1ad2632ce8c43667a0a13747a7d9051a9db9925346bf99da7239",
+      "readCoverage": "content_or_manifest_references"
+    },
+    {
+      "path": "implementation-result.json",
+      "sha256": "a788b8898446bf5d9bd01340fe2a23e6e3821a735b996f8f1ccc20095a9abcf5",
+      "readCoverage": "four_primary_hash_entries"
+    },
+    {
+      "path": "implementation.diff",
+      "sha256": "258143f8c5ee55377bba6ba706d8b98077363621069956e9d13b717febf93cd1",
+      "readCoverage": "four_primary_file_sections"
+    },
+    {
+      "path": "implementation.pre-rework.diff",
+      "sha256": "50b981aa0474a564d4af2be0288dcf6dff54e78c2b2e43dadfe95d8e1c08f053",
+      "readCoverage": "four_primary_file_sections"
+    },
+    {
+      "path": "qa-review.md",
+      "sha256": "266f6b664553f7196434285feb9e78214d776694c12af69256204162d92d9eb2",
+      "readCoverage": "content_or_manifest_references"
+    },
+    {
+      "path": "qa-review.json",
+      "sha256": "176d891477bdcac676cfe41ee96cdab4a455fb8553513dcc5464beb8069414d7",
+      "readCoverage": "targeted_findings_and_header"
+    },
+    {
+      "path": "qa-resumed-result.json",
+      "sha256": "da117467484db9512df467b23b12f2afbda044cd374c61f2174db451dd9f84cb",
+      "readCoverage": "content_or_manifest_references"
+    },
+    {
+      "path": "qa-final-result.json.events.jsonl",
+      "sha256": "d0b7dd2ea84368298b74d311077fd782253622593ceb440a19430c930ef97a09",
+      "readCoverage": "targeted_tail_and_search"
+    },
+    {
+      "path": "qa-final-result.json.public.txt",
+      "sha256": "965ce747b109de79627fbb6717800069f0f4d6797217035033c1fd4db94ee881",
+      "readCoverage": "targeted_search_and_tail"
+    },
+    {
+      "path": "qa-resumed-result.json.events.jsonl",
+      "sha256": "08b23a9a7e3d07c95e235506c6ed25c61ec2f181563452b9bf4ac55d71919338",
+      "readCoverage": "targeted_tail_and_search"
+    },
+    {
+      "path": "qa-resumed-result.json.public.txt",
+      "sha256": "d6803025f95078f1dde119f7747cb0faf5636860be5f4a67ce2a640efcb3d0d6",
+      "readCoverage": "targeted_search_and_tail"
+    }
+  ],
+  "manifestReadback": {
+    "fourPrimaryHashesMatchReworkManifest": true,
+    "fourPrimaryHashesMatchImplementationManifest": true,
+    "targetedReferenceHashesMatchReworkManifest": [
+      "scripts/coordinator/CoordinatorPlanning.psm1",
+      "scripts/coordinator/Lifecycle.Persistence.ps1",
+      "scripts/workitems/WorkItemStore.psm1"
+    ],
+    "indexHashMatchesReworkManifest": true,
+    "wholePackageReview": false
+  },
+  "diffReadback": {
+    "current": "implementation.diff",
+    "previous": "implementation.pre-rework.diff",
+    "fourFullAdditionSectionsMatchCurrentContent": true,
+    "comparison": "Textzeilen eigener Diffabschnitte und aktueller Quellen nach Vereinheitlichung der Zeilenenden; keine Quellparser oder ausführbare Proben.",
+    "contractResidualAlsoInDeliveryDiff": {
+      "lineOldHash": 2636,
+      "lineEnvelopeHash": 2644
+    }
+  },
+  "drift": {
+    "method": "Elf Quellen einschließlich ausschließlich per Hash erfasstem Index vor Berichtserstellung erneut per SHA256 gelesen.",
+    "observed": [],
+    "observedCount": 0,
+    "indexRetryStatus": "unresolved_not_investigated",
+    "indexOwnership": "excluded",
+    "indexSemanticReview": false,
+    "snapshotLimit": "Keine Dateisystemsperre; spätere fremde Änderungen verlangen erneuten Hashabgleich."
+  },
+  "openSeparate": [
+    {
+      "category": "Owner",
+      "status": "open",
+      "detail": "Verbindliche Solution-/PM-/Owneridentitäten, Originalquellen und Zugriff; keine eigenen neuen Zuordnungen."
+    },
+    {
+      "category": "Provider",
+      "status": "open",
+      "detail": "Installierte API-/History-/Completion-/Restartunterstützung und autorisierte Registryfreigabe; historische InstalledContract-Belege sind kein aktueller Nachweis."
+    },
+    {
+      "category": "Produkt",
+      "status": "open",
+      "detail": "Reale Strategie-/PO-/Handoff-/Outcomeabnahme und Messwerte."
+    },
+    {
+      "category": "Ground",
+      "status": "open",
+      "detail": "Echte Identität, Originalquellen und Zugriff bleiben offen."
+    },
+    {
+      "category": "Laufzeit",
+      "status": "open",
+      "detail": "Erstaktivierung, Fortsetzung, Recovery, Reminder/Outbox/CAS und Teilpublikationsauflösung nicht ausgeführt."
+    },
+    {
+      "category": "Index",
+      "status": "open",
+      "detail": "Retry ungeklärt; Index nur Name/Hash, keine Inhaltsladung oder semantische Referenz-/Rollen-/Integrationsabnahme."
+    },
+    {
+      "category": "Elternabnahme",
+      "status": "open",
+      "detail": "Eigene Elternabnahme und externe Abnahmegrenzen bleiben getrennt."
+    }
+  ],
+  "prohibitionsObserved": {
+    "testsExecuted": false,
+    "testsCreated": false,
+    "sourceParserRuns": false,
+    "validatorsExecuted": false,
+    "moduleImports": false,
+    "runtimeProbes": false,
+    "nativeProbes": false,
+    "browserProbes": false,
+    "fixturesCreated": false,
+    "activation": false,
+    "installation": false,
+    "sourceMutation": false,
+    "gitMutation": false,
+    "organizationIndexLoaded": false,
+    "delegation": false,
+    "foreignFilesWritten": false
+  },
+  "accounting": {
+    "ownTokenUsage": null,
+    "unknownReason": "Keine gemessene Eigenverbrauchsquelle im zugewiesenen Scope.",
+    "subtasks": [],
+    "predecessorTokensChargedAsOwn": false
+  },
+  "memory": "MEMORY.md-Quick-Pass ohne Treffer; keine Memoryfakten verwendet."
+}
