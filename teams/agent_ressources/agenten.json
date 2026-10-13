@@ -25,7 +25,7 @@
                    {
                        "agent_id":  "agent_ressources_optimierer",
                        "name":  "Optimierer",
-                       "description":  "Setzt beauftragte Organisationsänderungen um und belegt Konsistenz.",
+                       "description":  "Setzt freigegebene Organisationsänderungen samt gebundenem persönlichem Rollenabgleich um und belegt Konsistenz.",
                        "role_file":  "agent_ressources_optimierer.toml"
                    }
                ]

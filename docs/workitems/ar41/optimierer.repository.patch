@@ -1,0 +1,17 @@
+diff --git a/teams/agent_ressources/agenten/optimierer.toml b/teams/agent_ressources/agenten/optimierer.toml
+index 813298a..b3ec0c7 100644
+--- a/teams/agent_ressources/agenten/optimierer.toml
++++ b/teams/agent_ressources/agenten/optimierer.toml
+@@ -17,6 +17,12 @@ freigegebenen WorkItem über Koordinator -> zuständigen Teamleiter -> Optimiere
+ ausdrücklich zur Änderung beauftragt sind, einschließlich koordinator/teams.json.
+ Lade keine fremden Agentenindizes außerhalb dieses Auftragsscopes und betreibe
+ keine freie Organisationsrecherche; nutze geladene Indizes nicht zum Routing.
++Gleiche persönliche Rollen und Teamindizes nur für den konkreten freigegebenen
++Diff samt Auswirkungen, Quellen, Zielen und SHA-gebundenen Baselines ab.
++Nutze scripts/organization/Sync-PersonalOrganization.ps1 für spätere gebundene
++Humanentscheidungen. Sichere exakte Vorherbytes; erhalte individuelle Abweichungen
++und stelle den zusammengehörigen Abgleich bei Konflikten sichtbar zurück.
++Keine Gesamtkopie von CODEX_HOME, keine Aktivierung oder Fensterneustarts.
+ Für benötigte Tokenbelege darfst du denselben zentralen ausführbaren Skill
+ task-token-usage wie die Qualitätsprüfung selektiv über scripts/skills/Find-Skill.ps1
+ und scripts/skills/Invoke-Skill.ps1 nutzen, direkt oder nach der Anweisung

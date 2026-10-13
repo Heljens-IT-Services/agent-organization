@@ -1,0 +1,42 @@
+{
+    "workItem":  "AR-41-PERSONAL-SYNC",
+    "nativeWorkItemId":  null,
+    "executionId":  null,
+    "atUtc":  "2026-10-13T08:55:11.1846967Z",
+    "authorization":  "Original autorisierter Teamleiterauftrag: Erstentwicklung und passende gezielte persoenliche Dateimutationen; keine synthetische Humanantwort.",
+    "proposalSha256":  "fcae7337743748b1b1bfaba2bb372a5553813d4c7bbfbc579e754acda29ccca8",
+    "method":  "Direct authorized file writes; production sync entry point not executed",
+    "entries":  [
+                    {
+                        "source":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-ar41-personal-sync-20261013\\worktree\\teams\\agent_ressources\\agenten\\optimierer.toml",
+                        "target":  "C:\\Users\\Tom-OliverMarek\\.codex\\agents\\agent_ressources_optimierer.toml",
+                        "backup":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-ar41-personal-sync-20261013\\evidence\\optimierer.before",
+                        "beforeSha256":  "bc06ee710f44920130bf20911b709c064f4fead418f0b9a24c9816e1101e8c33",
+                        "sourceSha256":  "00d914d17c63b65a932fe5b9d4d8e1e87dc4113289743a01a6e829e06fdf5a9d",
+                        "afterSha256":  "00d914d17c63b65a932fe5b9d4d8e1e87dc4113289743a01a6e829e06fdf5a9d",
+                        "state":  "applied",
+                        "sourceTargetByteEqual":  true
+                    },
+                    {
+                        "source":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-ar41-personal-sync-20261013\\worktree\\teams\\agent_ressources\\agenten.json",
+                        "target":  "C:\\Users\\Tom-OliverMarek\\.codex\\agents\\agent_ressources\\agenten.json",
+                        "backup":  "C:\\Users\\Tom-OliverMarek\\AppData\\Local\\Temp\\agent-org-ar41-personal-sync-20261013\\evidence\\agenten.before",
+                        "beforeSha256":  "b5b6a6f1cadea7f3b36ae271d4198b703177d15f06b24bace95571bc439629a4",
+                        "sourceSha256":  "777e474f61309509ca48de06fdba9dc2fe534f607f02ffd0ac18a34e39161243",
+                        "afterSha256":  "777e474f61309509ca48de06fdba9dc2fe534f607f02ffd0ac18a34e39161243",
+                        "state":  "applied",
+                        "sourceTargetByteEqual":  true
+                    }
+                ],
+    "deferredIndividualDifferences":  [
+
+                                      ],
+    "excludedUninspectedTargets":  "All targets outside the exact two proposal entries, including historical optimizer alias",
+    "functionalEvidence":  false,
+    "acceptance":  null,
+    "ownTokenUsage":  null,
+    "childTasks":  [
+
+                   ],
+    "initialAttempt":  "Hash read through a second handle conflicted with own write lock; aborted before mutations; final readback uses the held handle."
+}
