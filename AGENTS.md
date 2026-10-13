@@ -16,8 +16,8 @@ Aufträge laufen über den Koordinator.
 
 Empfindliche Organisationsstrukturen (Organisationsdateien, Rollenregeln,
 Indizes und zugehörige Verträge) werden ausschließlich im Auftragspfad
-Koordinator -> zuständiger Teamleiter -> Optimierer geändert. Dafür sind ein
-abgegrenztes WorkItem und vorherige menschliche Freigabe erforderlich. Der
+Koordinator -> zuständiger Teamleiter -> Optimierer geändert. Dafür ist ein
+abgegrenztes WorkItem erforderlich. Der
 Optimierer im bestehenden Team Agent Ressources liefert Konsistenz-, Referenz-
 und Funktionsnachweise an seinen Teamleiter; unabhängige Prüfung und eigene
 Elternabnahme bleiben getrennt. Der Koordinator gibt Ziele und Kriterien vor,
