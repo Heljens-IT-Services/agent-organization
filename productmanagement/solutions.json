@@ -1,7 +1,56 @@
 {
     "schemaVersion":  "1.0",
     "solutions":  [
-
+        {
+            "solutionId":  "heljos",
+            "pmIdentity":  "heljos-pm",
+            "ownerId":  "teamleiter_produktmanagement",
+            "workspaceRoot":  "C:/Users/Tom-OliverMarek/source/repos/heljos",
+            "workItemIds":  [
+                                "heljos-product"
+                            ],
+            "activationDocumentIds":  [
+                                          "heljos-concept",
+                                          "heljos-mvp",
+                                          "heljos-project",
+                                          "heljos-appserver-adr"
+                                      ],
+            "activationDecisionIds":  [
+        
+                                      ],
+            "documents":  [
+                              {
+                                  "id":  "heljos-readme",
+                                  "kind":  "source",
+                                  "path":  "C:/Users/Tom-OliverMarek/source/repos/heljos/README.md",
+                                  "hash":  "d248185727f36b584f9954e7f8b24fe610c508779b977b701418018c8ce3cc4a"
+                              },
+                              {
+                                  "id":  "heljos-project",
+                                  "kind":  "source",
+                                  "path":  "C:/Users/Tom-OliverMarek/source/repos/heljos/PROJECT.md",
+                                  "hash":  "a78765f035ffa38698c5ae734527a85e149488799cf136037f303555c43e0f20"
+                              },
+                              {
+                                  "id":  "heljos-concept",
+                                  "kind":  "source",
+                                  "path":  "C:/Users/Tom-OliverMarek/source/repos/heljos/docs/konzept/produktkonzept-ki-mitarbeiter-plattform.md",
+                                  "hash":  "ed26da741f14045c1132cf2e74ea32484d304e6ea952dd0e3a2def719c264826"
+                              },
+                              {
+                                  "id":  "heljos-mvp",
+                                  "kind":  "source",
+                                  "path":  "C:/Users/Tom-OliverMarek/source/repos/heljos/docs/konzept/konzept-mvp.md",
+                                  "hash":  "0925e3356ebb48cadb1dcd39cf5936899ac3ce4b50935ce845d9f38e46be1bb9"
+                              },
+                              {
+                                  "id":  "heljos-appserver-adr",
+                                  "kind":  "source",
+                                  "path":  "C:/Users/Tom-OliverMarek/source/repos/heljos/docs/architecture/adr/0008-codex-app-server-steuerung.md",
+                                  "hash":  "ec83f9fcea6d1d441d7229d9341644b315e3781256d62ecddfb503fd0e2e56b4"
+                              }
+                          ]
+        }
                   ],
     "inventory":  [
                       {
