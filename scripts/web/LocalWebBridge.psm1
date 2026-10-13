@@ -194,17 +194,33 @@ function Get-LocalWebDisplayProjection {
     $readAt = [DateTime]::UtcNow.ToString('o')
     $unknownAttention = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Menschenzuständigkeit bleibt unbekannt.' $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)
     $unknownTeams = New-LocalWebUnavailableProjection 'Keine DisplayProjectionPath-Quelle konfiguriert; Teams bleiben unbekannt.' $readAt
-    if ([string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath) -and
-        [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath) -and
-        [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)) { return [pscustomobject]@{ attentionAssignments = $unknownAttention; teams = $unknownTeams } }
+    $hasList = $null -ne $Configuration.PSObject.Properties['DisplayTeamSourcesBound'] -and [bool]$Configuration.DisplayTeamSourcesBound
+    $hasTeamSourcesProperty = $null -ne $Configuration.PSObject.Properties['DisplayTeamSources']
     try {
+        if (-not $hasList -and $hasTeamSourcesProperty -and $null -ne $Configuration.DisplayTeamSources) { throw [InvalidOperationException]::new('DisplayTeamSourcesConfigurationInvalid') }
+        if (-not $hasList -and [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath) -and
+            [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath) -and
+            [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)) { return [pscustomobject]@{ attentionAssignments = $unknownAttention; teams = $unknownTeams } }
+        $sourceReport = $null
+        $hasSingleSource = -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath) -or -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)
+        if ($hasList -and ($hasSingleSource -or -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath))) { throw 'ProjectionSourceConflict' }
         $hasTeamSource = -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayTeamSourcePath)
         $hasRoleRoot = -not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayRoleRoot)
-        if ($hasTeamSource -or $hasRoleRoot) {
+        if ($hasList -or $hasTeamSource -or $hasRoleRoot) {
             if (-not [string]::IsNullOrWhiteSpace([string]$Configuration.DisplayProjectionPath)) { throw 'ProjectionSourceConflict' }
-            if (-not $hasTeamSource -or -not $hasRoleRoot) { throw 'DisplaySourcePathNotConfigured' }
+            if (-not $hasList -and (-not $hasTeamSource -or -not $hasRoleRoot)) { throw 'DisplaySourcePathNotConfigured' }
             Import-Module (Join-Path $PSScriptRoot 'Anzeigeproducer.psm1') -Force -ErrorAction Stop
-            $projection = New-LocalWebDisplayProjection -StorePath $Configuration.StorePath -TeamSourcePath $Configuration.DisplayTeamSourcePath -RoleRoot $Configuration.DisplayRoleRoot
+            if ($hasList) {
+                try { $projection = New-LocalWebDisplayProjection -StorePath $Configuration.StorePath -TeamSources @($Configuration.DisplayTeamSources) }
+                catch {
+                    $caught = $_
+                    $candidateReport = $caught.Exception.Data['LocalWebDisplaySourceReport']
+                    if ($caught.Exception.Message -cne 'DisplayTeamSourcesIncomplete' -or $null -eq $candidateReport) { throw }
+                    $sourceReport = $candidateReport
+                    $projection = [pscustomobject][ordered]@{ projectionVersion = '1'; storePath = [IO.Path]::GetFullPath($Configuration.StorePath); generatedAt = [DateTime]::UtcNow.ToString('o'); sourceReferences = @($sourceReport.sourceReferences); humans = @(); attentionAssignments = @(); teams = @($sourceReport.teams) }
+                }
+            }
+            else { $projection = New-LocalWebDisplayProjection -StorePath $Configuration.StorePath -TeamSourcePath $Configuration.DisplayTeamSourcePath -RoleRoot $Configuration.DisplayRoleRoot }
             $bytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes((ConvertTo-Json -InputObject $projection -Depth 100 -Compress))
         } else {
             $path = [string]$Configuration.DisplayProjectionPath
@@ -282,10 +298,22 @@ function Get-LocalWebDisplayProjection {
             }
         }
         $assignmentReason = if ($null -eq $Document) { 'Store-Snapshot fehlt; Anforderungen können nicht gebunden werden.' } else { $null }
-        $teamsReason = if ($null -eq $Document) { 'Store-Snapshot fehlt; Teamprojektion kann nicht an dessen Bestand gebunden werden.' } else { $null }
+        $sourceMessage = $null
+        if ($null -ne $sourceReport) {
+            $details = @($sourceReport.errors | ForEach-Object {
+                $path = if ($_.PSObject.Properties['sourcePath']) { [string]$_.sourcePath } else { 'Quelle unbekannt' }
+                $ref = if ($_.PSObject.Properties['sourceReference']) { [string]$_.sourceReference } else { '' }
+                $identity = if ($_.PSObject.Properties['teamId']) { ' teamId=' + [string]$_.teamId } else { '' }
+                $participants = if ($_.PSObject.Properties['sources']) { '; beteiligt: ' + (@($_.sources | ForEach-Object { $_.path + ' (' + $_.sourceReference + ')' }) -join ', ') } else { '' }
+                $positions = if ($_.PSObject.Properties['positions']) { '; Paarpositionen: ' + (@($_.positions) -join ', ') } else { '' }
+                [string]$_.code + ': ' + $path + $identity + $(if ($ref) { ' [' + $ref + ']' }) + $participants + $positions
+            })
+            $sourceMessage = "$($sourceReport.successfulCount) von $($sourceReport.requestedCount) Quellen gelesen; Gesamtliste unvollständig. Fehler: " + ($details -join ' | ')
+        }
+        $teamsReason = if ($null -eq $Document) { 'Store-Snapshot fehlt; Teamprojektion kann nicht an dessen Bestand gebunden werden.' + $(if ($sourceMessage) { ' ' + $sourceMessage }) } else { $sourceMessage }
         return [pscustomobject]@{
             attentionAssignments = [pscustomobject]@{ available = ($null -eq $assignmentReason); reason = $assignmentReason; items = @($attentionItems); projectionRevision = $revision; generatedAt = $generatedAt; readAt = $readAt; sourceReferences = @($sourceReferences) }
-            teams = [pscustomobject]@{ available = ($null -eq $teamsReason); reason = $teamsReason; items = @($teamItems); projectionRevision = $revision; generatedAt = $generatedAt; readAt = $readAt; sourceReferences = @($sourceReferences) }
+            teams = [pscustomobject]@{ available = ($null -ne $Document); reason = $teamsReason; items = @($teamItems); projectionRevision = $revision; generatedAt = $generatedAt; readAt = $readAt; sourceReferences = @($sourceReferences) }
         }
     } catch {
         $reason = switch -Regex ([string]$_.Exception.Message) {
@@ -293,9 +321,22 @@ function Get-LocalWebDisplayProjection {
             'ProjectionStoreBindingMismatch' { 'Display-Projektion gehört nicht exakt zu diesem WorkItem-Store.'; break }
             'ProjectionSourceUnavailable' { 'Konfigurierte Display-Projektion ist nicht lesbar oder verweist auf eine Reparse-Datei.'; break }
             'DisplaySourcePathNotConfigured' { 'Teamquelle und Role-Root müssen beide ausdrücklich konfiguriert sein; Teams bleiben unbekannt.'; break }
+            'DisplayTeamSourcesInvalid' { 'DisplayTeamSources ist leer oder enthält ungültige Quellpaare; Teams bleiben unbekannt.'; break }
+            'DisplayTeamSourcesConfigurationInvalid' { 'DisplayTeamSources liegt ohne gebundenen Listenmodus vor; Teams bleiben unbekannt.'; break }
             'TeamSourceInvalid' { 'Konfigurierte Teamquelle ist ungültig oder enthält widersprüchliche Mitgliedschaftsdaten; Teams bleiben unbekannt.'; break }
             'TeamSourceUnavailable' { 'Konfigurierte Teamquelle ist nicht lesbar oder fehlt; Teams bleiben unbekannt.'; break }
             default { 'Display-Projektion fehlt, ist ungültig oder nicht vollständig quellgebunden; Zuordnungen und Teams bleiben unbekannt.' }
+        }
+        if ($null -ne $sourceReport -and @($sourceReport.errors).Count -gt 0) {
+            $diagnostics = @($sourceReport.errors | ForEach-Object {
+                $path = if ($_.PSObject.Properties['sourcePath']) { [string]$_.sourcePath } else { 'Quelle unbekannt' }
+                $positions = if ($_.PSObject.Properties['positions']) { '; Paarpositionen: ' + (@($_.positions) -join ', ') } else { '' }
+                [string]$_.code + ': ' + $path + $positions
+            }) -join ' | '
+            $reason += ' Konfigurationsdiagnosen: ' + $diagnostics
+        }
+        if ($null -eq $Document -and $null -ne $sourceReport -and @($sourceReport.errors).Count -gt 0) {
+            $reason = 'Store-Snapshot fehlt; Teamprojektion bleibt unavailable. ' + $reason
         }
         return [pscustomobject]@{ attentionAssignments = (New-LocalWebUnavailableProjection $reason $readAt -Items (Get-LocalWebUnassignedAttentionItems $Document)); teams = (New-LocalWebUnavailableProjection $reason $readAt) }
     }

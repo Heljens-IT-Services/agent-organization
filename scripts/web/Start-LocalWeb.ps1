@@ -7,6 +7,7 @@ param(
     [string]$DisplayProjectionPath,
     [string]$DisplayTeamSourcePath,
     [string]$DisplayRoleRoot,
+    [object[]]$DisplayTeamSources,
     [string[]]$SpecificationDirectories = @('docs/specifications', 'specifications', 'specs')
 )
 $ErrorActionPreference = 'Stop'
@@ -34,7 +35,23 @@ if ($DisplayTeamSourcePath -and -not [IO.Path]::IsPathRooted($DisplayTeamSourceP
 if ($DisplayRoleRoot -and -not [IO.Path]::IsPathRooted($DisplayRoleRoot)) { throw 'DisplayRoleRoot muss ausdrücklich als absoluter Pfad angegeben werden.' }
 if ($DisplayTeamSourcePath) { $DisplayTeamSourcePath = [IO.Path]::GetFullPath($DisplayTeamSourcePath) }
 if ($DisplayRoleRoot) { $DisplayRoleRoot = [IO.Path]::GetFullPath($DisplayRoleRoot) }
-$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = $canonicalStorePath; AccountingDirectory = $AccountingDirectory; DisplayProjectionPath = $DisplayProjectionPath; DisplayTeamSourcePath = $DisplayTeamSourcePath; DisplayRoleRoot = $DisplayRoleRoot; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
+$displayTeamSourcesBound = $PSBoundParameters.ContainsKey('DisplayTeamSources')
+if ($displayTeamSourcesBound -and ($PSBoundParameters.ContainsKey('DisplayProjectionPath') -or $PSBoundParameters.ContainsKey('DisplayTeamSourcePath') -or $PSBoundParameters.ContainsKey('DisplayRoleRoot'))) { throw 'ProjectionSourceConflict' }
+$displayTeamSourcesCopy = $null
+if ($displayTeamSourcesBound) {
+    if ($null -eq $DisplayTeamSources -or $DisplayTeamSources.Count -eq 0) { throw 'DisplayTeamSourcesInvalid' }
+    $displayTeamSourcesCopy = @(
+        foreach ($pair in $DisplayTeamSources) {
+            $pairProperties = if ($null -eq $pair) { @() } else { @($pair.PSObject.Properties) }
+            if ($null -eq $pair -or $pairProperties.Count -ne 2 -or -not $pair.PSObject.Properties['teamSourcePath'] -or -not $pair.PSObject.Properties['roleRoot'] -or
+                $pair.teamSourcePath -isnot [string] -or $pair.roleRoot -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($pair.teamSourcePath) -or [string]::IsNullOrWhiteSpace($pair.roleRoot) -or
+                -not [IO.Path]::IsPathRooted($pair.teamSourcePath) -or -not [IO.Path]::IsPathRooted($pair.roleRoot)) { throw 'DisplayTeamSourcesInvalid' }
+            [pscustomobject]@{ teamSourcePath = [IO.Path]::GetFullPath($pair.teamSourcePath); roleRoot = [IO.Path]::GetFullPath($pair.roleRoot) }
+        }
+    )
+}
+$configuration = [pscustomobject]@{ RepositoryRoot = $repository; StorePath = $canonicalStorePath; AccountingDirectory = $AccountingDirectory; DisplayProjectionPath = $DisplayProjectionPath; DisplayTeamSourcePath = $DisplayTeamSourcePath; DisplayRoleRoot = $DisplayRoleRoot; DisplayTeamSources = $displayTeamSourcesCopy; DisplayTeamSourcesBound = $displayTeamSourcesBound; Port = $Port; SpecificationDirectories = $SpecificationDirectories }
 $staticFiles = @{
     '/' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }
     '/index.html' = @{ path = 'web/index.html'; type = 'text/html; charset=utf-8' }
