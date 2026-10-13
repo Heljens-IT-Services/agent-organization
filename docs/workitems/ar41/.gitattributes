@@ -1,0 +1,3 @@
+# Preserve exact bytes of the SHA-bound approval artifacts across Git checkouts.
+*.patch -text
+proposal.json -text

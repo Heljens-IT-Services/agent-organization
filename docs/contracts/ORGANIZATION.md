@@ -46,3 +46,10 @@ Der Teamleiter bestimmt die interne Besetzung und Zusammenarbeit eigenständig.
 Der Optimierer kommuniziert ausschließlich mit teamleiter_agent_ressources,
 erhält fremde Änderungen und liefert Konsistenz-, Referenz- und Funktionsbelege.
 Unabhängige Qualitätsprüfung und dokumentierte eigene Elternabnahme folgen getrennt.
+
+Der gebundene persönliche Rollen-/Indexabgleich erweitert diesen Änderungsweg:
+[Persönlicher Abgleich](PERSONAL-ORGANIZATION-SYNC.md). Er übernimmt die vorhandene
+Human-Proposal-Bindung, ohne Antworten zu erzeugen oder Agenten zu aktivieren.
+Nur tatsächlich geänderte, ausdrücklich beauftragte Quellen und exakt gebundene
+persönliche Baselines gehören in denselben Änderungssatz; individuelle Konflikte
+stellen den zusammengehörigen Abgleich zurück.
