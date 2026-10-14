@@ -1,0 +1,59 @@
+name: Refactor
+description: Interne Bereinigung oder Architekturverbesserung ohne beabsichtigte Verhaltensänderung
+title: "[Refactor]: "
+labels:
+  - refactor
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Was soll intern verbessert werden?
+      placeholder: Beschreibe die beabsichtigte technische Verbesserung.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Warum wird dieses Refactoring benötigt und welches Architekturthema ist betroffen?
+      placeholder: Erläutere aktuelle Probleme, betroffene Module und verwandte Entscheidungen.
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Aufgabe
+      description: Konkrete Refactoring-Schritte.
+      placeholder: |
+        - Schritt 1
+        - Schritt 2
+        - Schritt 3
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Technische Constraints
+      description: Welche Architekturregeln oder Grenzen müssen eingehalten werden?
+      placeholder: Beschreibe die einzuhaltenden Regeln und Grenzen.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Akzeptanzkriterien
+      description: Woran ist erkennbar, dass das Refactoring abgeschlossen ist?
+      placeholder: |
+        - [ ] Das bestehende Verhalten bleibt unverändert, sofern keine Änderung ausdrücklich dokumentiert ist.
+        - [ ] Die angestrebte Struktur ist verbessert.
+        - [ ] Relevante Tests, Builds oder Checks sind weiterhin erfolgreich.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Hinweise
+      description: Betroffene Dateien, Abhängigkeiten, Risiken oder Folgearbeiten.
+    validations:
+      required: false

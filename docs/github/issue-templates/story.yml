@@ -1,0 +1,51 @@
+name: Story
+description: Fachliche User Story oder technische Story innerhalb eines Epics
+title: "[Story]: "
+labels:
+  - story
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Welches fachliche oder technische Ergebnis soll erreicht werden?
+      placeholder: Beschreibe das gewünschte fachliche Nutzerergebnis oder technische Ergebnis.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Zu welchem Epic, Feature, Nutzerfluss oder technischen Arbeitsstrang gehört diese Story?
+      placeholder: Erläutere den Hintergrund und verwandte Issues.
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Aufgabe
+      description: Was muss umgesetzt oder geändert werden?
+      placeholder: |
+        - Schritt 1
+        - Schritt 2
+        - Schritt 3
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Akzeptanzkriterien
+      description: Woran ist erkennbar, dass diese Story abgeschlossen ist?
+      placeholder: |
+        - [ ] Kriterium 1 ist erfüllt
+        - [ ] Kriterium 2 ist erfüllt
+        - [ ] Kriterium 3 ist erfüllt
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Hinweise
+      description: Technische Hinweise, Constraints, Abhängigkeiten oder Grenzen.
+    validations:
+      required: false

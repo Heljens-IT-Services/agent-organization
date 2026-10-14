@@ -1,0 +1,62 @@
+name: Epic
+description: Größere Produkt- oder Architekturinitiative zur Bündelung von Stories und Tasks
+title: "[Epic]: "
+labels:
+  - epic
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Welches übergeordnete Ergebnis soll dieses Epic erreichen?
+      placeholder: Beschreibe das fachliche, technische oder architektonische Ziel.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Warum wird dieses Epic benötigt und welchen Projekt- oder Systembereich betrifft es?
+      placeholder: Erläutere Hintergrund, Motivation, betroffene Module und bereits getroffene Entscheidungen.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Umfang
+      description: Was gehört zu diesem Epic?
+      placeholder: |
+        - Enthaltener Bereich 1
+        - Enthaltener Bereich 2
+        - Enthaltener Bereich 3
+    validations:
+      required: true
+  - type: textarea
+    id: stories
+    attributes:
+      label: Vorgesehene Stories oder Teilbereiche
+      description: Welche Stories oder Arbeitsstränge sind unterhalb dieses Epics vorgesehen?
+      placeholder: |
+        - Story oder Bereich 1
+        - Story oder Bereich 2
+        - Story oder Bereich 3
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Akzeptanzkriterien
+      description: Woran ist erkennbar, dass dieses Epic abgeschlossen ist?
+      placeholder: |
+        - [ ] Die relevanten Stories sind umgesetzt oder ausdrücklich weiter zerlegt.
+        - [ ] Das beabsichtigte fachliche oder architektonische Ergebnis ist erreicht.
+        - [ ] Offene Folgearbeiten sind dokumentiert.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Hinweise
+      description: Abhängigkeiten, Risiken, Constraints oder Links zu verwandten Issues.
+    validations:
+      required: false

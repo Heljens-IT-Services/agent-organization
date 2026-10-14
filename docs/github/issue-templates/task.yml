@@ -1,0 +1,95 @@
+name: Task
+description: Strukturierter technischer Task für die direkte Umsetzung
+title: "[Task]: "
+labels:
+  - task
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Zielzustand
+      description: Welches konkrete Ergebnis soll nach Abschluss vorliegen?
+      placeholder: Beschreibe das erwartete Ergebnis eindeutig und prüfbar.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Welcher fachliche und technische Kontext ist für die Umsetzung erforderlich?
+      placeholder: Beschreibe Hintergrund, relevante Beziehungen und bestehende Randbedingungen.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Welche Änderungen gehören verbindlich zu diesem Task?
+      placeholder: |
+        - Enthaltener Änderungsbereich 1
+        - Enthaltener Änderungsbereich 2
+    validations:
+      required: true
+  - type: textarea
+    id: non_scope
+    attributes:
+      label: Nicht-Scope
+      description: Welche angrenzenden Änderungen sind ausdrücklich ausgeschlossen?
+      placeholder: |
+        - Ausgeschlossener Änderungsbereich 1
+        - Ausgeschlossener Änderungsbereich 2
+    validations:
+      required: true
+  - type: textarea
+    id: affected_areas
+    attributes:
+      label: Betroffene Bereiche und Referenzen
+      description: Welche Dateien, Symbole, Schnittstellen oder Referenzimplementierungen sind bekannt und relevant?
+      placeholder: Benenne bekannte Bereiche und Referenzen oder begründe, warum keine belastbar bekannt sind.
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Umsetzungsrelevante Entscheidungen
+      description: Welche technischen oder architektonischen Entscheidungen sind für die Umsetzung bereits getroffen?
+      placeholder: Halte aufgabenspezifische Entscheidungen und Constraints fest. Globale Regeln nicht duplizieren.
+    validations:
+      required: true
+  - type: textarea
+    id: work_packages
+    attributes:
+      label: Geordnete Arbeitspakete
+      description: Welche direkt ausführbaren Arbeitspakete sind in welcher Reihenfolge umzusetzen?
+      placeholder: |
+        1. Arbeitspaket mit betroffenem Bereich und erwartetem Ergebnis
+        2. Arbeitspaket mit betroffenem Bereich und erwartetem Ergebnis
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Akzeptanzkriterien
+      description: Woran ist eindeutig erkennbar, dass dieser Task abgeschlossen ist?
+      placeholder: |
+        - [ ] Kriterium 1 ist erfüllt
+        - [ ] Kriterium 2 ist erfüllt
+        - [ ] Kriterium 3 ist erfüllt
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verifikation
+      description: Mit welchen reproduzierbaren Builds, Tests, Lints, Scannern oder manuellen Checks wird der Abschluss belegt?
+      placeholder: Liste konkrete Kommandos oder eindeutig beschriebene Prüfschritte auf.
+    validations:
+      required: true
+  - type: textarea
+    id: risks_dependencies_blockers
+    attributes:
+      label: Risiken, Abhängigkeiten und Blocker
+      description: Welche bekannten Risiken, Abhängigkeiten oder Blocker bestehen? Wann muss wegen eines Plan- oder Kontextbruchs zurück in Klärung oder Planung gesprungen werden?
+      placeholder: Benenne bekannte Punkte oder ausdrücklich „Keine“. Wesentliche offene Entscheidungen verhindern Terminalität.
+    validations:
+      required: true

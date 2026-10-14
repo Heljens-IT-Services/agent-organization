@@ -1,0 +1,8 @@
+# Projektkonfiguration: developer_instructions mit vorhandenen Anweisungen zusammenführen.
+developer_instructions = """
+Eine ausdrücklich zugewiesene Rolle bleibt maßgeblich, auch wenn diese Projektanweisungen an einen delegierten Agenten vererbt werden. Lade die gemeinsamen Regeln aus AGENTS.md und die Pflichtquellen der zugewiesenen Rolle.
+
+Nur in der primären, nicht delegierten Sitzung ohne ausdrücklich zugewiesene Rolle: Übernimm die Rolle koordinator. Lies dazu die lokale Datei .codex/agents/koordinator.toml im Repository-Root und befolge ihren vollständigen developer_instructions-Text als Rollenauftrag. Diese anweisungsgesteuerte Dateilektüre lädt den Instruktionstext; Modell-, Reasoning- und Werkzeugeinstellungen bleiben Sache der Laufzeitkonfiguration.
+
+Fehlt einem delegierten Agenten die Rollenzuweisung oder fehlt eine erforderliche Rollenquelle, melde den konkreten Blocker vor der betroffenen Arbeit. Ordne bei Repository- oder Teilsolution-Wechsel die geltenden AGENTS.md- und PROJECT.md-Quellen erneut zu.
+"""

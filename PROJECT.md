@@ -2,42 +2,26 @@
 
 ## Zweck
 
-Versionierte Quelle für eine persönliche Agentenorganisation mit Koordinator,
-Teamleitern und operativen Spezialisten. Dieser Erststand dokumentiert das
-Konzept; er aktiviert keine Agentenorganisation.
+Dieses Repository pflegt die versionierten Agent-, Rollen-, Skill-, Workflow- und Technologie-Regeln, die über GitHub Pages an konsumierende Repositories veröffentlicht werden.
 
 ## Versionsbasis
 
-- Dokumentationsstand: 11. Oktober 2026.
-- Format: Markdown in UTF-8.
-- Zielplattform: Codex mit konfigurierbaren Agenten; konkrete Integration und
-  unterstützte Konfigurationsfelder sind vor der Umsetzung zu prüfen.
-- Aktuelle Sitzung: vier gleichzeitig verfügbare Agentenplätze einschließlich
-  Hauptagent. Dies ist eine Laufzeitbeobachtung, keine dauerhafte Produktgrenze.
+[MUST] Die veröffentlichten Quelldateien liegen unter `docs/`; GitHub Pages veröffentlicht den Inhalt dieses Verzeichnisses aus `main`.
+
+[PRIORITY] Bei Arbeiten an dieser Quellrepository-Version sind `docs/AGENTS.md` und die dort verlinkten Quelldateien maßgeblich. Die online veröffentlichte Fassung kann hinter dem lokalen Arbeitsstand zurückliegen und darf diesen Quellstand nicht überschreiben.
+
+[MUST_IF] Während der Pflege dieses Repositories sind absolute GitHub-Pages-Links auf `https://heljens-it-services.github.io/agent-organization/<pfad>` für die Quelllektüre innerhalb dieses Repositories auf `docs/<pfad>` aufzulösen. Diese lokale Quellauflösung gilt nur für dieses Repository; sie behauptet weder, dass der lokale Rollenstand bereits veröffentlicht ist, noch aktiviert sie Regeln in konsumierenden Repositories.
 
 ## Fachliche Leitplanken
 
-[MUST] Der Benutzer kommuniziert ausschließlich mit dem Koordinator.
-
-[MUST] Der Koordinator delegiert Arbeit an Teamleiter und führt keine operativen
-Aufgaben aus. Teamleiter koordinieren ihren Fachbereich und delegieren die
-operative Arbeit an Spezialisten.
-
-[MUST] Die Teams Softwareentwicklung, Design, Marketing, Controlling und
-Buchhaltung bilden den vorgesehenen Grundbestand.
-
-[MUST] Revisionssicherheit bezeichnet hier versionierte Nachvollziehbarkeit.
-Es wird keine Unveränderbarkeitsgarantie zugesichert.
+[MUST] Regeln und Navigationsindizes müssen innerhalb der veröffentlichten Quelldateien konsistent verlinkt sein; jede Markdown-Datei unter `docs/` muss ausgehend von `docs/AGENTS.md` erreichbar sein.
 
 ## Technische Leitplanken
 
-[MUST] Die geplante Teamhierarchie und Codex-Laufzeitkonfiguration bleiben
-begrifflich getrennt. Eigene Organisationsfelder dürfen nicht als native
-Codex-Konfigurationsschlüssel ausgegeben werden.
+[MUST] Änderungen an veröffentlichten Regeln und Codex-Vorlagen müssen in den Quelldateien unter `docs/` vorgenommen werden.
 
-[MUST] Dieser Erststand bleibt reine Dokumentation. Installation, persönliche
-Konfiguration, Agent-TOMLs, Automatisierung und Aktivierung gehören zu einem
-gesonderten Umsetzungsschritt.
+[MUST] Die veröffentlichte Projektkonfiguration `docs/codex/config.toml` muss inhaltsgleich mit `.codex/config.toml` sein. Die veröffentlichten Codex-Agent-Vorlagen unter `docs/codex/agents/` müssen inhaltsgleich mit den Laufzeitvorlagen unter `.codex/agents/` sein.
 
-[MUST] Änderungen müssen auf den jeweils ausdrücklich zugewiesenen Scope
-begrenzt bleiben; vorhandene fremde Arbeiten dürfen nicht überschrieben werden.
+[MUST] GitHub Pages verteilt die versionierten Dateien direkt aus `docs/`; die Pflege darf keinen separaten Build- oder Generierungsschritt voraussetzen.
+
+[MUST_IF] Nach einem Release oder bei Zweifeln an der Online-Quelle, Erreichbarkeit, Vernetzung oder Aktualität muss der Agent den Workflow [Online-Publikation prüfen](https://heljens-it-services.github.io/agent-organization/workflows/online-publikation-pruefen.md) verwenden.
