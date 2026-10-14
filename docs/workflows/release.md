@@ -44,7 +44,7 @@ Den freigegebenen Stand von `develop` mit `/release` kontrolliert über einen Pu
 
 ## Rücksprungregeln
 
-Ein Pull Request darf bei `no-checks-required` fortgesetzt werden, wenn keine erforderlichen Checks konfiguriert sind und keine Checks für den unveränderten Head berichtet werden. Das Fehlen eines tatsächlich konfigurierten erforderlichen Checks bleibt ein Blocker.
+Ein Pull Request darf bei `no-checks-required` fortgesetzt werden, wenn der Status nach [PR Checks Beobachten](https://heljens-it-services.github.io/agent-organization/skills/github_pr-checks-observation.md) für den unveränderten Head belegt ist. Bei ausdrücklich nachgewiesener Tarifgrenze gilt dessen Ersatzpfad mit verfügbaren Quellen, lokalen Pflichtprüfungen, unabhängiger Verifikation und offengelegter Sichtbarkeitsgrenze. Bekannte fehlende Pflichtchecks, unklare API-/Berechtigungsfehler und GitHubs serverseitige Merge-Ablehnung bleiben Blocker.
 
 ## Rollenübergaben
 

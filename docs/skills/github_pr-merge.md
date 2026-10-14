@@ -19,14 +19,16 @@ Einen freigegebenen Pull Request mit der konfigurierten Merge-Methode zusammenf�
 6. Bei `spending-limit-blocked` ausdrücklich fragen, ob der konkrete Pull Request trotz der benannten Checks und Risiken mit dem geprüften Head-Commit gemergt werden soll.
 7. Ohne eindeutige Bestätigung oder bei verändertem Head-Commit stoppen; für einen neuen Head-Commit erneut prüfen und fragen.
 8. Bei allen anderen nicht erfolgreichen oder fehlenden erforderlichen Checks stoppen.
-9. Bei erfolgreichen Checks oder nach der zusätzlichen Bestätigung nur mit der bestimmten normalen Merge-Methode und ohne administrative Umgehung mergen oder in eine erforderliche Merge Queue einreihen.
+9. Bei erfolgreichen Checks, zulässigem `no-checks-required` oder nach der zusätzlichen Bestätigung nur mit der bestimmten normalen Merge-Methode und ohne administrative Umgehung mergen oder in eine erforderliche Merge Queue einreihen.
 10. Wenn GitHub den Merge wegen Schutzregeln oder fehlender Rechte ablehnt, den Blocker melden.
 11. Wenn GitHub eine Merge Queue verlangt, deren erforderliche Checks und Pull-Request-Zustand bis zu einem terminalen Ergebnis beobachten.
 12. Zustand erneut lesen und nur `MERGED` mit Merge-Zeitpunkt und Merge-Commit als Erfolg bewerten.
 
 ## Check-Ausnahme
 
-Der Status `no-checks-required` ist merge-zulässig, wenn für den unveränderten Head nachweislich keine erforderlichen Checks konfiguriert sind und keine Checks berichtet werden. Nur tatsächlich konfigurierte, aber fehlende oder nicht erfolgreiche erforderliche Checks blockieren den Merge; administrative Umgehungen bleiben unzulässig.
+Der Status `no-checks-required` ist merge-zulässig, wenn er für den unveränderten Head nach [PR Checks Beobachten](https://heljens-it-services.github.io/agent-organization/skills/github_pr-checks-observation.md) belegt ist. Dessen Tarif-Ersatzpfad gilt auch hier: Ein ausdrücklich belegtes `plan-feature-unavailable` ist eine offengelegte Sichtbarkeitsgrenze, kein fehlgeschlagener Check und keine allgemeine Ausnahme für API-Fehler. Lokale Pflichtprüfungen und die vom Workflow verlangte unabhängige Verifikation bleiben erforderlich; sie ersetzen keine bekannten GitHub-Pflichtchecks.
+
+Vor dem Merge Head, Zielbranch und übrige Gates erneut lesen. Nur den normalen, auf den geprüften Head gebundenen Merge ausführen; eine serverseitige Ablehnung wegen Schutzregeln, Reviews, Checks oder Rechten bleibt ein Blocker. Keine Schutz-/Berechtigungseinstellungen ändern und keinen administrativen Bypass verwenden.
 
 ## Kommandos
 
