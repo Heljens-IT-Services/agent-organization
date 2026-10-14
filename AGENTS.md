@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Einstieg vor der Rollenpflicht
+
+[MUST_IF] In einer primären, nicht delegierten Codex-Sitzung ohne ausdrückliche Rolle oder mit Rolle `koordinator` führe zuerst den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/codex/SETUP.md) aus: fehlende lokale Projekt- und Agent-TOMLs prüfen, herunterladen und speichern; vorhandene Konfiguration gezielt zusammenführen und lokale Einstellungen erhalten. Dieser begrenzte Bootstrap löst die Einrichtung vor der Rollenpflicht und erlaubt keine weitere Facharbeit oder Veröffentlichung.
+
+[MUST_IF] Nur wenn dieser primären Sitzung keine Rolle ausdrücklich zugewiesen ist, starte anschließend `koordinator` durch Lesen der lokalen Koordinator-Instruktionen gemäß Projekteinstieg. Eine ausdrückliche Rolle bleibt maßgeblich. Delegierte Agenten ohne Rolle melden die Kontextlücke; Spezialisten starten weder allgemein den Bootstrap noch den Koordinator. Infrastruktur darf die Einrichtung mit ausdrücklichem Setup-Auftrag ausführen.
+
 ## Gemeinsame Regeln
 
 Diese Regeln gelten für alle Agenten. Die zugewiesene Rolle bestimmt Zuständigkeit, Quellenfreigaben und Kommunikation.

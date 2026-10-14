@@ -43,16 +43,15 @@ Für die Pflege gelten folgende Konventionen:
 
 ## Verwendung in Projekten
 
-Für Codex werden die Vorlagen lokal in das konsumierende Repository übernommen:
+Für Codex genügt als regelbasierter Einstieg eine lokale Root-`AGENTS.md`, die die veröffentlichten [gemeinsamen Regeln](https://heljens-it-services.github.io/agent-organization/AGENTS.md) laden lässt. Projektregeln in vorhandenen Dateien bleiben erhalten. Eine eigene Root-`PROJECT.md` und bei eigenständigen Teilsolutions deren lokale `PROJECT.md` müssen den Projektkontext bereitstellen.
 
-1. [Projektkonfiguration](https://heljens-it-services.github.io/agent-organization/codex/config.toml) als `.codex/config.toml` und die Agent-TOMLs aus `docs/codex/agents/` als `.codex/agents/*.toml` kopieren. Eine vorhandene Konfiguration samt `developer_instructions` gezielt zusammenführen und ihre übrigen Einstellungen erhalten.
-2. Die gemeinsamen [AGENTS.md-Regeln](https://heljens-it-services.github.io/agent-organization/AGENTS.md) über die lokale Root-`AGENTS.md` laden lassen. Eine vorhandene `AGENTS.md` um diesen Einstieg ergänzen und ihre Projektregeln erhalten.
-3. Eine eigene Root-`PROJECT.md` und bei eigenständigen Teilsolutions deren lokale `PROJECT.md` mit Versionsbasis und projektspezifischen Regeln bereitstellen.
-4. Das Projekt in Codex als vertrauenswürdig freigeben, damit seine `.codex/config.toml` geladen wird. Die eingesetzte Codex-Version muss die automatische Erkennung eigenständiger Agent-TOMLs unter `.codex/agents/` unterstützen.
+Die primäre Sitzung führt vor der Rollenpflicht den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/codex/SETUP.md) aus. Sie lädt fehlende `.codex/config.toml` und `.codex/agents/*.toml` aus den kanonischen veröffentlichten Quellen herunter und speichert sie lokal. Vorhandene Projektanweisungen werden gezielt zusammengeführt; lokale Einstellungen und abweichende Agent-Dateien bleiben erhalten, Konflikte werden gemeldet. Ein reiner Leseauftrag oder fehlende Schreibrechte erlauben keine Einrichtung.
+
+Die Einrichtung ist ein instruktionsgesteuerter Dateiabgleich, kein automatischer URL-Import durch Codex. Projektvertrauen gibt der Nutzer frei. Neue Konfigurationsdateien werden beim passenden nächsten Sitzungs- beziehungsweise Agentenstart geladen; die eingesetzte Codex-Version muss eigenständige Agent-TOMLs unterstützen. Tatsächliche Rollenverfügbarkeit wird vor der Delegation geprüft.
 
 Aktuelle Codex-Versionen erkennen eigenständige Agent-TOMLs automatisch; siehe [Custom Agents](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents) und die [Konfigurationsreferenz](https://learn.chatgpt.com/docs/config-file/config-reference) für `developer_instructions`.
 
-Die Projektkonfiguration weist ausschließlich der primären, nicht delegierten Sitzung ohne ausdrückliche Rollenzuweisung die Rolle `koordinator` zu. Sie lässt die lokale `.codex/agents/koordinator.toml` lesen und deren `developer_instructions` befolgen. Eine ausdrücklich zugewiesene Spezialistenrolle bleibt auch bei geerbten Projektanweisungen erhalten. Fehlende Rollenzuweisungen oder Pflichtquellen werden als konkrete Blocker gemeldet.
+Der gemeinsame Einstieg und die Projektkonfiguration weisen ausschließlich der primären, nicht delegierten Sitzung ohne ausdrückliche Rollenzuweisung die Rolle `koordinator` zu. Diese Sitzung liest die lokale `.codex/agents/koordinator.toml` und befolgt deren `developer_instructions`. Eine ausdrücklich zugewiesene Spezialistenrolle bleibt auch bei geerbten Projektanweisungen erhalten. Fehlende Rollenzuweisungen oder Pflichtquellen werden als konkrete Blocker gemeldet.
 
 Dieses Lesen ist ein instruktionsgesteuerter Rollenstart. Codex importiert dabei weder eine entfernte Markdown-Datei noch die TOML-Datei als Konfiguration. Insbesondere übernimmt die primäre Sitzung dadurch keine Modell-, Reasoning- oder Werkzeugeinstellungen aus der Koordinator-TOML. Solche Einstellungen wirken, wenn Codex die jeweilige Agent-Datei als Laufzeitkonfiguration lädt; die Rollen-Markdown-Dateien regeln Zuständigkeiten und Quellen.
 

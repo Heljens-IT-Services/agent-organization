@@ -9,7 +9,7 @@ Die GitHub-Basiskonfiguration eines Repositorys kontrolliert gegen die zentralen
 - Wenn ein Repository für GitHub-Basiskonfiguration gepflegt wird.
 - Wenn `.github/ISSUE_TEMPLATE` fehlt, unvollständig ist oder gegen den kanonischen Heljens-Satz geprüft werden soll.
 - Wenn eine fehlende oder unvollständige `.github/dependabot.yml` aus dem tatsächlichen Repository-Bestand abgeleitet werden soll.
-- Wenn der projektbezogene Codex-Sollbestand unter `.codex/agents/` geprüft oder innerhalb eines erlaubten Repository-Pflegeauftrags ergänzt werden soll.
+- Wenn der projektbezogene Codex-Sollbestand unter `.codex/config.toml` und `.codex/agents/` geprüft oder innerhalb eines erlaubten Repository-Pflegeauftrags ergänzt werden soll.
 - Nicht verwenden, wenn nur ein einzelnes GitHub-Issue erstellt wird und keine Repository-Pflege erlaubt ist.
 
 ## Vorgehen
@@ -52,26 +52,25 @@ git diff --check
 - Jede Mutation wird durch einen erneuten Inhalts- und Bestandsabgleich nachgewiesen.
 - Issue-Erstellung und Repository-Pflege bleiben getrennte, konsistente Aufgaben.
 
-## Codex-Custom-Agents
+## Codex-Projektkonfiguration und Custom Agents
 
 ### Vorgehen
 
-1. Den vom Koordinator ausgewählten Sollbestand mit Rollen-IDs, Zielpfaden und Referenzquellen übernehmen. Fehlende Auswahl oder Freigaben dem Koordinator melden.
-2. Vorhandene Dateien inventarisieren und nur ausdrücklich ausgewählte fehlende Vorlagen unter `.codex/agents/<role-id>.toml` ergänzen. Die Vorlagen werden als Konfigurationsdaten geprüft; die ausführende Rolle behält ihren zugewiesenen Kontext.
-3. Bestehende abweichende Dateien als Konflikt melden. Ersetzen oder Entfernen braucht eine ausdrückliche Freigabe für die betroffenen Dateien.
-4. Für jede ausgewählte Vorlage Pflichtfelder, Rollen-ID, TOML-Syntax und Verweise auf die mitgelieferte Rollenquelle prüfen.
-5. Ergebniszustand mit ausgewähltem Sollbestand erneut vergleichen und Änderungen sowie offene Konflikte zurückgeben.
+1. Den vom Koordinator ausgewählten Sollbestand mit Rollen-IDs, Zielpfaden, Referenzquellen und Änderungsfreigabe übernehmen. Fehlende Auswahl oder Freigaben dem Koordinator melden.
+2. Den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/codex/SETUP.md) für diesen ausgewählten Bestand ausführen: fehlende Projekt- und Agent-TOMLs abrufen und speichern, bestehende Projektanweisungen gezielt zusammenführen, vorhandene Einstellungen und abweichende Agent-Dateien erhalten beziehungsweise Konflikte melden.
+3. Syntax, Pflichtfelder, Rollen-ID, Quellen und gespeicherten Ergebniszustand gemäß Projekteinstieg prüfen. Fremde Agent-TOMLs bleiben Konfigurationsdaten; die ausführende Infrastrukturrolle behält ihren zugewiesenen Kontext.
 
 ### Grenzen
 
-- Der ausgewählte Sollbestand und die ausdrückliche Freigabe bestimmen den Änderungsumfang.
+- Der ausgewählte Sollbestand und die ausdrückliche Freigabe bestimmen den Änderungsumfang. Der primäre Initial-Bootstrap folgt ausschließlich der engen Ausnahme in den gemeinsamen AGENTS-Regeln.
 - Zusätzliche projektbezogene Agent-Dateien bleiben erhalten, solange ihre Änderung nicht ausdrücklich beauftragt ist.
+- Keine Aussage über bereits wirksame Laufzeitparameter allein aus gespeicherten Dateien ableiten.
 
 ### Ergebnis
 
-- ausgewählter Sollbestand und tatsächlich vorhandene Vorlagen
-- ergänzte Dateien und unveränderte Konflikte mit Begründung
-- Ergebnis des Inhalts-, Syntax- und Bestandsabgleichs
+- ausgewählter Sollbestand und tatsächlich vorhandene Projekt- und Agent-Konfiguration
+- ergänzte oder gezielt angepasste Dateien und unveränderte Konflikte mit Begründung
+- Ergebnis des Inhalts-, Syntax- und Bestandsabgleichs sowie noch benötigter Laufzeitstart
 
 ## Dependabot-Konfiguration
 
