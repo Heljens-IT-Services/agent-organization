@@ -55,13 +55,13 @@ flowchart TD
 
 Diese Datei ist die verbindliche Rollenquelle für `coordinator`.
 
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
+| Pfad | Geltung | Zweck |
 |---|---|---|
-| `docs/roles/coordinator/COORDINATOR.md` | Pflichtlektüre für die zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/coordinator/COORDINATOR.md](https://heljens-it-services.github.io/agent-organization/roles/coordinator/COORDINATOR.md) |
-| `docs/AGENTS.md` | Pflichtlektüre für gemeinsame Regeln, Quellenstand und Projektkontext. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
-| `docs/roles/ROLES.md` | Kein Pflicht-Lookup für operative Spezialisten; der Koordinator nutzt den Index ausschließlich für Routing-Metadaten. | [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) |
-| Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/COMMANDS.md` | Command-Syntax und eindeutiges Routing. | [COMMANDS.md](https://heljens-it-services.github.io/agent-organization/COMMANDS.md) |
+| [COORDINATOR.md](https://heljens-it-services.github.io/agent-organization/roles/coordinator/COORDINATOR.md) | Pflichtlektüre für die zugewiesene Rolle | Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. |
+| [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) | Pflichtlektüre | Gemeinsame Regeln, Quellenstand und Projektkontext. |
+| [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Lookup bei Rollenauswahl oder unklarer Zuständigkeit | Verfügbare Rollen und Zuständigkeiten nachschlagen. |
+| Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen | Repository- und Teilsolution-Regeln; siehe `Projektkontext und Vorrang`. |
+| [COMMANDS.md](https://heljens-it-services.github.io/agent-organization/COMMANDS.md) | Lookup, wenn der Nutzer einen dokumentierten Command auslöst | Syntax und Vorgehen des Commands nachschlagen. |
 
 [MUST] Verwende die direkt freigegebenen Quellen entsprechend ihrem Zweck. Gesamtkataloge liefern Routing-Metadaten; operative Fachquellen werden von Spezialisten geladen.
 
