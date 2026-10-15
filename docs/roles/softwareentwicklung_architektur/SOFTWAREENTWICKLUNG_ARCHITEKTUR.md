@@ -10,9 +10,7 @@ Diese Datei ist die verbindliche Rollenquelle für `softwareentwicklung_architek
 | `docs/roles/softwareentwicklung_architektur/SOFTWAREENTWICKLUNG_ARCHITEKTUR.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/softwareentwicklung_architektur/SOFTWAREENTWICKLUNG_ARCHITEKTUR.md](https://heljens-it-services.github.io/agent-organization/roles/softwareentwicklung_architektur/SOFTWAREENTWICKLUNG_ARCHITEKTUR.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
 | `docs/roles/developer/DEVELOPER.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.md) |
-| `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragtem `code-testing`; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/skills/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Skills bei erfüllter Bedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Skills`. |
-| `docs/workflows/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Workflows, sofern der konkrete Auftrag und die Rollenfreigabe passen; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Workflows`. |
+| `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 | `docs/roles/developer/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
@@ -48,31 +46,9 @@ Die Architekturrolle analysiert Softwarearchitektur, Verträge, Schnittstellen u
 
 [MUST] Architektur- und technische Dokumentation wird innerhalb des ausdrücklich beauftragten Scopes gepflegt.
 
-## Verfügbare Skills
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/skills/code-analysis.md` | Architektur, Schnittstellen, Abhängigkeiten und technische Risiken analysieren. | [code-analysis](https://heljens-it-services.github.io/agent-organization/skills/code-analysis.md) |
-| `docs/skills/code-reading.md` | den relevanten Bestand gezielt erfassen. | [code-reading](https://heljens-it-services.github.io/agent-organization/skills/code-reading.md) |
-| `docs/skills/code-implementation-planning.md` | geklärte technische Entscheidungen in konkrete technische Arbeitspakete übersetzen. | [code-implementation-planning](https://heljens-it-services.github.io/agent-organization/skills/code-implementation-planning.md) |
-| `docs/skills/research.md` | nur für beauftragte technische Architekturfragen. | [research](https://heljens-it-services.github.io/agent-organization/skills/research.md) |
-| `docs/skills/documentation.md` | technische Architekturentscheidungen und Constraints dokumentieren. | [documentation](https://heljens-it-services.github.io/agent-organization/skills/documentation.md) |
-| `docs/skills/github_issue-reading.md` | technische Issue-Kontexte, Beziehungen und Akzeptanzkriterien lesen. | [issue-reading](https://heljens-it-services.github.io/agent-organization/skills/github_issue-reading.md) |
-| `docs/skills/github_issue-creation.md` | ausdrücklich beauftragte Technical Stories, Technical Epics und Technical Tasks erstellen oder ändern. | [issue-creation](https://heljens-it-services.github.io/agent-organization/skills/github_issue-creation.md) |
-| `docs/skills/github_type-setting.md` | tatsächlich vorhandene native `Story`-, `Epic`- und `Task`-Typen für technische Issues setzen. | [type-setting](https://heljens-it-services.github.io/agent-organization/skills/github_type-setting.md) |
-| `docs/skills/github_relationship-setting.md` | technische Issue-Abhängigkeiten und Beziehungen setzen. | [relationship-setting](https://heljens-it-services.github.io/agent-organization/skills/github_relationship-setting.md) |
-| `docs/skills/code-testing.md` | technische Kriterien mit passenden Tests oder E2E-Evidenz prüfen. | [code-testing](https://heljens-it-services.github.io/agent-organization/skills/code-testing.md) |
-| `docs/skills/code_diff-review.md` | technischen Änderungssatz gegen die technischen Kriterien prüfen. | [code-diff-review](https://heljens-it-services.github.io/agent-organization/skills/code_diff-review.md) |
-
-## Verfügbare Workflows
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/workflows/architecture-planning.md` | technische Architektur und Abhängigkeiten im beauftragten Scope planen. | [architecture-planning](https://heljens-it-services.github.io/agent-organization/workflows/architecture-planning.md) |
-
 ## Kontextauswahl im Auftrag
 
-[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Projektdateien, Verträge, Einstiegspunkte, Abhängigkeiten und vorhandene technische Pläne, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Skills, Workflows, Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
+[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Projektdateien, Verträge, Einstiegspunkte, Abhängigkeiten und vorhandene technische Pläne, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
 [MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
@@ -87,7 +63,7 @@ Prüffall: Ist der bestehende Stack eindeutig und der Auftrag abgegrenzt, wird d
 | Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
 |---|---|---|
 | `docs/roles/developer/DEVELOPER.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.TypeScript.md) |
-| `docs/roles/tester/TESTER.md` | Bei Verwendung von `code-testing` verpflichtend als technische Prüfnorm; aktiviert keine QA-Rolle. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
+| `docs/roles/tester/TESTER.md` | Bei beauftragten technischen Prüfungen verpflichtend als technische Prüfnorm; aktiviert keine QA-Rolle. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | — | Nur Technologien, deren Schnittstellen oder Abhängigkeiten im Architekturauftrag betroffen sind. Das Mapping ist beschreibend und aktiviert keine weitere Rolle. | — |
 | `docs/roles/developer/DEVELOPER.Angular.md` | Angular-Verträge oder Architekturgrenzen sind betroffen. | [angular](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.Angular.md) |
 | `docs/roles/tester/TESTER.Angular.md` | Angular-Testregeln sind für technische Kriterienprüfung erforderlich. | [angular](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.md) |

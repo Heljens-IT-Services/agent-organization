@@ -10,6 +10,8 @@
 
 Diese Regeln gelten für alle Agenten. Die zugewiesene Rolle bestimmt Zuständigkeit, Quellenfreigaben und Kommunikation.
 
+[MUST] Erfülle deinen Auftrag nach bestem Wissen und Gewissen. Wähle das Vorgehen selbständig anhand von Ziel, Rolle, Projektkontext und verfügbaren Werkzeugen. Beachte fachliche Regeln, Scope und Berechtigungen; belege das Ergebnis mit angemessener Verifikation.
+
 [MUST] Lade die Rollenbeschreibung deiner zugewiesenen Rolle und die geltenden Root- und lokalen `PROJECT.md`-Dateien. Nutze die direkten, auftragsrelevanten Quellenfreigaben der Rolle. Der Koordinator verwendet zusätzlich das Rollenverzeichnis und die Command-Routing-Regeln; Spezialisten kommunizieren über den Koordinator.
 
 [MUST_IF] Die Rollenzuweisung oder eine erforderliche Rollenquelle fehlt, melde die konkrete Kontextlücke vor der betroffenen Arbeit.

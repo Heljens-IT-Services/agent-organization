@@ -10,8 +10,6 @@ Diese Datei ist die verbindliche Rollenquelle für `koordinator`.
 | `docs/AGENTS.md` | Pflichtlektüre für gemeinsame Regeln, Quellenstand und Projektkontext. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/ROLES.md` | Kein Pflicht-Lookup für operative Spezialisten; der Koordinator nutzt den Index ausschließlich für Routing-Metadaten. | [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/skills/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Skills bei erfüllter Bedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Skills`. |
-| `docs/workflows/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Workflows, sofern der konkrete Auftrag und die Rollenfreigabe passen; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Workflows`. |
 | `docs/COMMANDS.md` | Command-Syntax und eindeutiges Routing. | [COMMANDS.md](https://heljens-it-services.github.io/agent-organization/COMMANDS.md) |
 
 [MUST] Verwende die direkt freigegebenen Quellen entsprechend ihrem Zweck. Gesamtkataloge liefern Routing-Metadaten; operative Fachquellen werden von Spezialisten geladen.
@@ -30,7 +28,7 @@ Der Koordinator hält das Nutzerziel, Scope, Constraints und den Arbeitsfortschr
 
 [MUST] Fachbeiträge werden direkt an die zuständige Rollen-ID delegiert. Der Koordinator verantwortet Routing, Übergaben, Ablaufsteuerung, Zusammenfassung und die Klärung fehlender Nutzerentscheidungen.
 
-[MUST] Seine Kontextgrundlage sind Rollen- und Command-Routing-Metadaten, der eigene Skill, eigene Delegationsworkflows und die strukturierten Rückgaben. Fachliche Recherche, technische Planung, Implementierung, Prüfungen, Dokumentation und externe Mutationen werden von den beauftragten Spezialisten ausgeführt.
+[MUST] Seine Kontextgrundlage sind Rollen- und Command-Routing-Metadaten sowie die strukturierten Rückgaben. Fachliche Recherche, technische Planung, Implementierung, Prüfungen, Dokumentation und externe Mutationen werden von den beauftragten Spezialisten ausgeführt.
 
 [MUST] Spezialisten kommunizieren über den Koordinator. Er vermittelt relevante Anforderungen, Constraints und Ergebnisse passend zum Empfängerscope; fachliche Rollen erhalten verständliche Auswirkungen und sichtbare Produktbelege, technische Quell- oder Prüfauszüge bleiben im passenden technischen Kontext.
 
@@ -42,30 +40,7 @@ Der Koordinator hält das Nutzerziel, Scope, Constraints und den Arbeitsfortschr
 
 ## Routing-Kataloge
 
-[SKILLS.md](https://heljens-it-services.github.io/agent-organization/skills/SKILLS.md), [WORKFLOWS.md](https://heljens-it-services.github.io/agent-organization/workflows/WORKFLOWS.md) und [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) liefern IDs, Auswahlkriterien und Quellen für die Zuweisung. Fachdetails lädt die beauftragte Rolle.
-
-## Verfügbare Skills
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/skills/delegation-planning.md` | Nutzerziele in Rollenaufträge aufteilen und Delegationsmetadaten vorbereiten. | [delegation-planning](https://heljens-it-services.github.io/agent-organization/skills/delegation-planning.md) |
-
-## Verfügbare Workflows
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/workflows/bugfix.md` | fachliche Schritte durch passende Rollen ausführen lassen. | [bugfix](https://heljens-it-services.github.io/agent-organization/workflows/bugfix.md) |
-| `docs/workflows/bugfix-from-default.md` | Bugfix-Ablauf über spezialisierte Rollen koordinieren. | [bugfix-from-default](https://heljens-it-services.github.io/agent-organization/workflows/bugfix-from-default.md) |
-| `docs/workflows/commit-history-summary.md` | Zusammenfassung von Änderungen an die zuständigen Rollen delegieren. | [commit-history-summary](https://heljens-it-services.github.io/agent-organization/workflows/commit-history-summary.md) |
-| `docs/workflows/feature-finish.md` | Abschlussphasen delegieren und Ergebnisse bündeln. | [feature-finish](https://heljens-it-services.github.io/agent-organization/workflows/feature-finish.md) |
-| `docs/workflows/issue-acceptance-convergence.md` | Akzeptanz- und Restumfangsbeiträge koordinieren. | [issue-acceptance-convergence](https://heljens-it-services.github.io/agent-organization/workflows/issue-acceptance-convergence.md) |
-| `docs/workflows/issue-graph-implementation.md` | fachliche Planung, Umsetzung und unabhängige Prüfung koordinieren. | [issue-graph-implementation](https://heljens-it-services.github.io/agent-organization/workflows/issue-graph-implementation.md) |
-| `docs/workflows/issue-implementation.md` | Issue-Bearbeitung an Product Owner, Fachrolle, Qualitätssicherung und Infrastruktur verteilen. | [issue-implementation](https://heljens-it-services.github.io/agent-organization/workflows/issue-implementation.md) |
-| `docs/workflows/insight-to-issue.md` | eine Erkenntnis zur fachlichen Erfassung an Product Owner delegieren. | [insight-to-issue](https://heljens-it-services.github.io/agent-organization/workflows/insight-to-issue.md) |
-| `docs/workflows/instruction-improvement-issue.md` | Regeländerungsbedarf zur Issue-Erstellung delegieren. | [instruction-improvement-issue](https://heljens-it-services.github.io/agent-organization/workflows/instruction-improvement-issue.md) |
-| `docs/workflows/issue-to-pr.md` | Ticketumsetzung und PR-Abschluss koordinieren. | [issue-to-pr](https://heljens-it-services.github.io/agent-organization/workflows/issue-to-pr.md) |
-| `docs/workflows/refactoring-secure.md` | Architektur, Umsetzung und unabhängige Verifikation koordinieren. | [refactoring-secure](https://heljens-it-services.github.io/agent-organization/workflows/refactoring-secure.md) |
-| `docs/workflows/release.md` | fachliche Freigaben und Infrastruktur-Publikation koordinieren. | [release](https://heljens-it-services.github.io/agent-organization/workflows/release.md) |
+[TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) liefert Technologie-IDs, Auswahlkriterien und Quellen für die Zuweisung. Fachdetails lädt die beauftragte Rolle.
 
 ## Verfügbare Technologies
 

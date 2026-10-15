@@ -8,7 +8,7 @@ Dieses kompakte Verzeichnis ist die Routing-Grundlage des Koordinators. Es besch
 
 [MUST] Der Koordinator nimmt Nutzeraufträge an, weist jeden Fachbeitrag direkt einer Rollen-ID zu und führt Ergebnisse zusammen. Ein Spezialist arbeitet in seiner zugewiesenen Rolle und kommuniziert ausschließlich mit dem Koordinator.
 
-[MUST] Der Koordinator kennt das Rollenverzeichnis sowie die [Command-Regeln](https://heljens-it-services.github.io/agent-organization/COMMANDS.md), [Skill-Routing-Metadaten](https://heljens-it-services.github.io/agent-organization/skills/SKILLS.md) und [Workflow-Routing-Metadaten](https://heljens-it-services.github.io/agent-organization/workflows/WORKFLOWS.md). Spezialisten laden ihre eigene Rollenbeschreibung, Root-PROJECT.md und die lokale PROJECT.md der betroffenen Teilsolution und die dort direkt freigegebenen, auftragsrelevanten Quellen.
+[MUST] Der Koordinator kennt das Rollenverzeichnis sowie die [Command-Regeln](https://heljens-it-services.github.io/agent-organization/COMMANDS.md). Spezialisten laden ihre eigene Rollenbeschreibung, Root-PROJECT.md und die lokale PROJECT.md der betroffenen Teilsolution und die dort direkt freigegebenen, auftragsrelevanten Quellen.
 
 [MUST] Aufträge enthalten Ziel, Scope, Nicht-Scope, Kontext, Entscheidungen, Constraints, Dateien oder Artefakte sowie erwartetes Ergebnis und Belege. Rückgaben enthalten Ergebnis, tatsächliche Verifikation, Abweichungen, Blocker und offene Punkte.
 
@@ -49,4 +49,4 @@ Der Koordinator ordnet diese getrennten Rückgaben dem Nutzerziel zu. Ein geeign
 
 Die [Codex-Vorlagen](https://heljens-it-services.github.io/agent-organization/codex/agents/koordinator.toml) konfigurieren Rollenname, Modellparameter und Instruktionen. Kanonische Fachregeln stehen in den Rollen-Markdown-Dateien. Kontextgrenzen und Routing sind Arbeitsanweisungen; die tatsächliche Werkzeugverfügbarkeit, Berechtigungen und Ausführung stellt der Host bereit.
 
-[MUST] Schreibaufträge im selben Worktree werden sequenziell oder nachweislich konfliktfrei vergeben. Externe Mutationen und Veröffentlichungen erfolgen im ausdrücklich freigegebenen Workflow mit anschließendem Read-back.
+[MUST] Schreibaufträge im selben Worktree werden sequenziell oder nachweislich konfliktfrei vergeben. Externe Mutationen und Veröffentlichungen erfolgen im ausdrücklich freigegebenen Umfang mit anschließendem Read-back.

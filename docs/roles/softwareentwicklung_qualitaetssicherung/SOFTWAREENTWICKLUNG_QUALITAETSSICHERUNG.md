@@ -11,8 +11,6 @@ Diese Datei ist die verbindliche Rollenquelle für `softwareentwicklung_qualitae
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
 | `docs/roles/tester/TESTER.md` | Stets verpflichtende gemeinsame technische Prüfnormen für Qualitätssicherung. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | `docs/roles/developer/DEVELOPER.md` | Pflichtlektüre vor Implementierung oder Pflege von Testcode im ausdrücklich zugewiesenen QA-Scope; keine Freigabe für Produktivcodeänderungen. | [DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.md) |
-| `docs/skills/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Skills bei erfüllter Bedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Skills`. |
-| `docs/workflows/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Workflows, sofern der konkrete Auftrag und die Rollenfreigabe passen; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Workflows`. |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
@@ -43,29 +41,9 @@ Die Qualitätssicherung prüft unabhängig beauftragte Regressionen, Testabdecku
 
 [MUST] QA- und Testdokumentation wird im beauftragten Umfang gepflegt. Ausgeführte, ausgelassene oder fehlgeschlagene Checks, Belege, Testlücken und Blocker bleiben erkennbar.
 
-## Verfügbare Skills
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/skills/code-analysis.md` | Änderungsumfang und relevantes Verhalten einordnen. | [code-analysis](https://heljens-it-services.github.io/agent-organization/skills/code-analysis.md) |
-| `docs/skills/code_diff-review.md` | Änderungssatz auf Scope und testrelevante Risiken prüfen. | [code-diff-review](https://heljens-it-services.github.io/agent-organization/skills/code_diff-review.md) |
-| `docs/skills/code-reading.md` | betroffene Implementierung und Referenzen gezielt lesen. | [code-reading](https://heljens-it-services.github.io/agent-organization/skills/code-reading.md) |
-| `docs/skills/code-testing.md` | deterministische, isolierte Verifikation planen und ausführen. | [code-testing](https://heljens-it-services.github.io/agent-organization/skills/code-testing.md) |
-| `docs/skills/code-implementation.md` | ausdrücklich beauftragte technische Testautomatisierung implementieren und pflegen. | [code-implementation](https://heljens-it-services.github.io/agent-organization/skills/code-implementation.md) |
-| `docs/skills/github_pr-checks-observation.md` | erforderliche Checks bis zum terminalen Ergebnis beobachten. | [pr-checks-observation](https://heljens-it-services.github.io/agent-organization/skills/github_pr-checks-observation.md) |
-| `docs/skills/documentation.md` | Testergebnisse und erkannte Verifikationslücken dokumentieren. | [documentation](https://heljens-it-services.github.io/agent-organization/skills/documentation.md) |
-| `docs/skills/research.md` | Kontext für beauftragte read-only Veröffentlichungskontrollen recherchieren. | [research](https://heljens-it-services.github.io/agent-organization/skills/research.md) |
-
-## Verfügbare Workflows
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/workflows/specialist-verification.md` | Akzeptanzkriterien unabhängig prüfen und Belege zurückgeben. | [specialist-verification](https://heljens-it-services.github.io/agent-organization/workflows/specialist-verification.md) |
-| `docs/workflows/online-publikation-pruefen.md` | veröffentlichte Agent Organization read-only auf Quelle, Erreichbarkeit, Vernetzung und Inhalt prüfen. | [online-publikation-pruefen](https://heljens-it-services.github.io/agent-organization/workflows/online-publikation-pruefen.md) |
-
 ## Kontextauswahl im Auftrag
 
-[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Testkonfiguration, Projektmanifeste, vorhandene Test-Suites und den beauftragten Änderungsscope, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Skills, Workflows, Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
+[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Testkonfiguration, Projektmanifeste, vorhandene Test-Suites und den beauftragten Änderungsscope, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
 [MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 

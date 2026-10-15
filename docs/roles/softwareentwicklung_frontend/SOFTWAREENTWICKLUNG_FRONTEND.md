@@ -10,9 +10,7 @@ Diese Datei ist die verbindliche Rollenquelle für `softwareentwicklung_frontend
 | `docs/roles/softwareentwicklung_frontend/SOFTWAREENTWICKLUNG_FRONTEND.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/softwareentwicklung_frontend/SOFTWAREENTWICKLUNG_FRONTEND.md](https://heljens-it-services.github.io/agent-organization/roles/softwareentwicklung_frontend/SOFTWAREENTWICKLUNG_FRONTEND.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
 | `docs/roles/developer/DEVELOPER.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.md) |
-| `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragtem `code-testing`; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/skills/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Skills bei erfüllter Bedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Skills`. |
-| `docs/workflows/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Workflows, sofern der konkrete Auftrag und die Rollenfreigabe passen; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Workflows`. |
+| `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | `docs/roles/developer/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
@@ -46,27 +44,9 @@ Die Frontendrolle implementiert und prüft beauftragte Benutzeroberflächen, Int
 
 [MUST] Passende Frontend-Dokumentation wird gepflegt, soweit sie zum Auftrag gehört.
 
-## Verfügbare Skills
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/skills/code-testing.md` | lokale technische Verifikation eigener Änderungen. | [code-testing](https://heljens-it-services.github.io/agent-organization/skills/code-testing.md) |
-| `docs/skills/code-analysis.md` | Frontend-Verhalten und Risiken analysieren. | [code-analysis](https://heljens-it-services.github.io/agent-organization/skills/code-analysis.md) |
-| `docs/skills/code-reading.md` | relevanten UI-Code und Verträge lesen. | [code-reading](https://heljens-it-services.github.io/agent-organization/skills/code-reading.md) |
-| `docs/skills/code-implementation.md` | beauftragte Frontend-Änderungen umsetzen. | [code-implementation](https://heljens-it-services.github.io/agent-organization/skills/code-implementation.md) |
-| `docs/skills/code_refactoring.md` | Verhalten erhaltend strukturieren. | [code-refactoring](https://heljens-it-services.github.io/agent-organization/skills/code_refactoring.md) |
-| `docs/skills/code-minimization.md` | unnötige Änderungsteile evidenzbasiert reduzieren. | [code-minimization](https://heljens-it-services.github.io/agent-organization/skills/code-minimization.md) |
-| `docs/skills/documentation.md` | Frontend-Verhalten und technische Entscheidungen dokumentieren. | [documentation](https://heljens-it-services.github.io/agent-organization/skills/documentation.md) |
-
-## Verfügbare Workflows
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/workflows/specialist-implementation.md` | beauftragte Frontend-Änderungen im Scope umsetzen. | [specialist-implementation](https://heljens-it-services.github.io/agent-organization/workflows/specialist-implementation.md) |
-
 ## Kontextauswahl im Auftrag
 
-[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus `package.json`, `angular.json`, betroffene UI-Dateien und vorhandene Tests, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Skills, Workflows, Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
+[MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus `package.json`, `angular.json`, betroffene UI-Dateien und vorhandene Tests, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
 [MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 

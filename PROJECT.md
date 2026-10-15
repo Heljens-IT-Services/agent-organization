@@ -2,7 +2,7 @@
 
 ## Zweck
 
-Dieses Repository pflegt die versionierten Agent-, Rollen-, Skill-, Workflow- und Technologie-Regeln, die über GitHub Pages an konsumierende Repositories veröffentlicht werden.
+Dieses Repository pflegt die versionierten Agent-, Rollen- und Technologie-Regeln, die über GitHub Pages an konsumierende Repositories veröffentlicht werden.
 
 ## Versionsbasis
 
@@ -24,4 +24,4 @@ Dieses Repository pflegt die versionierten Agent-, Rollen-, Skill-, Workflow- un
 
 [MUST] GitHub Pages verteilt die versionierten Dateien direkt aus `docs/`; die Pflege darf keinen separaten Build- oder Generierungsschritt voraussetzen.
 
-[MUST_IF] Nach einem Release oder bei Zweifeln an der Online-Quelle, Erreichbarkeit, Vernetzung oder Aktualität muss der Agent den Workflow [Online-Publikation prüfen](https://heljens-it-services.github.io/agent-organization/workflows/online-publikation-pruefen.md) verwenden.
+[MUST_IF] Nach einer Veröffentlichung oder bei Zweifeln an der Online-Fassung prüft die Qualitätssicherung Quelle, Erreichbarkeit, Verlinkung und Inhaltsgleichheit mit dem veröffentlichten Commit.

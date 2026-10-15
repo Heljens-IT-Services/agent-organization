@@ -1,6 +1,6 @@
 # agent-organization
 
-`agent-organization` pflegt die gemeinsamen Regeln, Rollen, Skills, Workflows und Codex-Vorlagen von Heljens IT Services für die Verwendung in Projekt-Repositories.
+`agent-organization` pflegt die gemeinsamen Regeln, Rollen, Technologien, Commands und Codex-Vorlagen von Heljens IT Services für die Verwendung in Projekt-Repositories.
 
 [GitHub Pages](https://heljens-it-services.github.io/agent-organization/) veröffentlicht die Dateien direkt aus `docs/` auf `main` unter festen URLs. Konsumierende Projekte verwenden diese veröffentlichte Fassung; Änderungen auf einem Feature-Branch werden erst nach der Veröffentlichung verfügbar.
 
@@ -12,8 +12,6 @@
 | `docs/roles/ROLES.md` | [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Kompaktes Rollenverzeichnis für den Koordinator. |
 | `docs/roles/developer/DEVELOPER.md` | [DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.md) | Allgemeine technologieübergreifende Entwicklungsregeln. |
 | `docs/roles/developer/DEVELOPER.*.md` | [Developer-Rollen](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Technologiespezifische Entwicklungsregeln. |
-| `docs/skills/SKILLS.md` | [SKILLS.md](https://heljens-it-services.github.io/agent-organization/skills/SKILLS.md) | Lookup-Datei für atomare Agenten-Skills. |
-| `docs/workflows/WORKFLOWS.md` | [WORKFLOWS.md](https://heljens-it-services.github.io/agent-organization/workflows/WORKFLOWS.md) | Lookup-Datei für Workflows. |
 
 ## Pflege
 
@@ -21,25 +19,9 @@ Regeln werden direkt unter `docs/` bearbeitet. Codex-Konfiguration und Agent-Vor
 
 Die Regeln verwenden dazu Marker wie `MUST`, `MUST_IF`, `MUST_NOT`, `ALLOW`, `ALLOW_IF`, `SHOULD`, `OPTIONAL` und `PRIORITY`, damit die normative Bedeutung jeder Anweisung möglichst eindeutig bleibt.
 
-### Skills und Workflows pflegen
+Agenten wählen ihr Vorgehen nach bestem Wissen und Gewissen aus Ziel, Rolle und Projektkontext. Fachliche Regeln, Technologiequellen und erforderliche Berechtigungen bilden den Rahmen. Commands benennen Ziele und zuständige Rollen.
 
-Skills bilden einzelne, klar abgegrenzte Fähigkeiten ab. Sie führen benötigte Vor- oder Nacharbeit nicht stillschweigend aus. Workflows kombinieren Skills in einer festgelegten Reihenfolge und definieren Bedingungen sowie Rücksprünge, ohne Skill-Regeln zu duplizieren, abzuschwächen oder zu überschreiben.
-
-| Dateityp | Verbindliche Abschnitte | Bedingte Abschnitte |
-|---|---|---|
-| Skill | `Zweck`, `Verwenden`, `Vorgehen`, `Grenzen`, `Output`, `Qualitaetskriterien` | `Kommandos`, wenn konkrete Tool- oder CLI-Aufrufe relevant sind; `Artefakt`, wenn Dateien entstehen. |
-| Workflow | `Ziel`, `Verwenden`, `Verwendete Skills`, `Ablauf`, `Ruecksprungregeln`, `Endergebnis` | `Verwendete Workflows` bei Orchestrierung weiterer Workflows; `Grenzen` bei besonderen Stop- oder Verbotsregeln. |
-
-`Zweck` beziehungsweise `Ziel` beschreibt den Nutzen in ein bis zwei Sätzen. `Verwenden` grenzt Trigger und Nicht-Trigger ab; `Vorgehen` beziehungsweise `Ablauf` ordnet die Schritte. `Grenzen` benennt erlaubte und verbotene Aktionen, `Output` beziehungsweise `Endergebnis` den Abschlusszustand und `Qualitaetskriterien` kurze, prüfbare Regeln. Ein `Artefakt` legt Pfad, Namensschema, Inhalt und Stil fest.
-
-Zusätzliche fachliche Steuerungsabschnitte wie `Reifekriterien`, `Schnittkriterien`, `Entscheidungskriterien` oder `Priorisierung` sind erlaubt, wenn sie konkrete Entscheidungen prüfbar machen.
-
-Für die Pflege gelten folgende Konventionen:
-
-- Skill-Dateinamen beschreiben den fachlichen Scope; die Präfixe `code_` und `github_` kennzeichnen den jeweiligen Kontext.
-- Command-IDs verwenden Kleinbuchstaben und Bindestriche. Bestehende Unterstrich-Konventionen in Dateinamen dürfen erhalten bleiben.
-- Referenzierte Skills müssen vollständig aufgeführt und befolgt werden; ihre Grenzen gelten auch für extern wirksame Workflow-Schritte. Fehlt ein benötigter Skill, wird der Workflow nachgeschärft oder die Abweichung begründet. Bei blockierten Schritten gilt die Rücksprungregel oder der Blocker wird gemeldet.
-- Formulierungen bleiben knapp und operativ, bevorzugen Listen und vermeiden allgemeine Agentenphilosophien.
+Formulierungen bleiben knapp und konkret.
 
 ## Verwendung in Projekten
 

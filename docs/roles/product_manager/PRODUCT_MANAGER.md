@@ -9,8 +9,6 @@ Diese Datei ist die verbindliche Rollenquelle für `product_manager`.
 | Geltende `AGENTS.md` und veröffentlichte gemeinsame Einstiegsregeln | Pflichtlektüre für alle Rollen; im Quellrepository zusätzlich `docs/AGENTS.md` gemäß `PROJECT.md`. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/product_manager/PRODUCT_MANAGER.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/product_manager/PRODUCT_MANAGER.md](https://heljens-it-services.github.io/agent-organization/roles/product_manager/PRODUCT_MANAGER.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/skills/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Skills bei erfüllter Bedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Skills`. |
-| `docs/workflows/` (Herkunftspfad) | Nur die unten tabellarisch aufgeführten Workflows, sofern der konkrete Auftrag und die Rollenfreigabe passen; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Workflows`. |
 | — | Keine Technologiepfade freigegeben. | — |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Rollen- und Gesamtkataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
@@ -45,24 +43,9 @@ Der Product Manager erarbeitet im beauftragten Produkt- oder Solution-Scope Visi
 
 ## Kontextauswahl im Auftrag
 
-[MUST] Erschließe Produkt- und Nutzerbelege, Strategieunterlagen, Outcomes und freigegebene konzeptuelle Constraints innerhalb des Auftrags selbständig. Wähle die hier freigegebenen Skills und Workflows nach dem tatsächlichen Bedarf. Übernimm vorhandene belastbare Entscheidungen; zusätzliche Klärung erfolgt nur für relevante Lücken über den Koordinator.
+[MUST] Erschließe Produkt- und Nutzerbelege, Strategieunterlagen, Outcomes und freigegebene konzeptuelle Constraints innerhalb des Auftrags selbständig. Übernimm vorhandene belastbare Entscheidungen; zusätzliche Klärung erfolgt nur für relevante Lücken über den Koordinator.
 
 [MUST] Technische Constraints werden im freigegebenen fachlichen Teilkontext verwendet. Benötigter technischer Detailkontext oder eine Technologieentscheidung wird dem Koordinator gemeldet. Die Wahl passender eigener Quellen bleibt Aufgabe dieser Rolle.
-
-## Verfügbare Skills
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| `docs/skills/requirements-clarification.md` | Ziel, strategischen Scope und offene Entscheidungen anhand übergebenen Kontexts klären. | [requirements-clarification](https://heljens-it-services.github.io/agent-organization/skills/requirements-clarification.md) |
-| `docs/skills/brainstorming.md` | strategische Optionen und Alternativen strukturieren. | [brainstorming](https://heljens-it-services.github.io/agent-organization/skills/brainstorming.md) |
-| `docs/skills/research.md` | beauftragte Produkt-, Markt- und Nutzerbelege recherchieren. | [research](https://heljens-it-services.github.io/agent-organization/skills/research.md) |
-| `docs/skills/documentation.md` | beauftragte Strategie- und Roadmap-Ergebnisse dokumentieren. | [documentation](https://heljens-it-services.github.io/agent-organization/skills/documentation.md) |
-
-## Verfügbare Workflows
-
-| Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
-|---|---|---|
-| — | Keine Workflows zugewiesen. Strategische Beiträge werden innerhalb des ausdrücklich zugewiesenen Auftrags erarbeitet und über den Koordinator an die operative Produktplanung übergeben. | — |
 
 ## Verfügbare Technologies
 
