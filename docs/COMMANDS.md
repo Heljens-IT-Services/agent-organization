@@ -47,7 +47,7 @@ spacing     = { " " | tab } ;
 
 | Command | Ergebnis |
 |---|---|
-| `/help`, `/?` | Allgemeine Hilfe mit Syntax, Commands und Beispielen. `product_owner` liest README.md und PROJECT.md und liefert zwei bis vier relevante Punkte zum Repository-Kontext. Fehlende Quellen werden kenntlich gemacht. |
+| `/help`, `/?` | Allgemeine Hilfe mit Syntax, Commands und Beispielen. `product-owner` liest README.md und PROJECT.md und liefert zwei bis vier relevante Punkte zum Repository-Kontext. Fehlende Quellen werden kenntlich gemacht. |
 | `/help <command>` | Syntax, Argumente und Beispiele des Commands; der Name ist mit oder ohne führenden Slash zulässig. Fachliche Details liefert die zuständige Rolle. |
 | `/technologies list` | Jede Technologie-ID einmal mit Name, Zweck und verfügbaren Rollen; Spezialisten erhalten die Mappings ihrer eigenen Rolle. |
 | `/technologies show <technology-id>` | Rolle, Regeldatei, Verwendungskriterium, Zweck und Quelle der freigegebenen Mappings. Fachliche Detailauskunft wird dem betreffenden Spezialisten zugewiesen. |
@@ -66,9 +66,9 @@ Die folgende Tabelle beschreibt Ziel und Zuständigkeit, keine vorgeschriebene S
 | `/design-prototype` | Eine Designrichtung als leichtes renderbares Artefakt visualisieren. | `designer`. |
 | `/design-review` | Ein visuelles oder interaktives Ergebnis bewerten. | `designer`. |
 | `/design-explore` | Eine passende visuelle oder interaktive Lösung mit begründeter Designentscheidung erarbeiten. | `designer`. |
-| `/commit` | Fertige lokale Änderungen im freigegebenen Umfang logisch committen. | `softwareentwicklung_infrastruktur`; Veröffentlichung ist ein eigener Auftrag. |
-| `/push` | Vorhandene lokale Commits auf den konfigurierten Upstream veröffentlichen. | `softwareentwicklung_infrastruktur`; vorhandene Commits bleiben der Umfang. |
-| `/cp` | Fertige lokale Änderungen im freigegebenen Umfang committen und pushen. | `softwareentwicklung_infrastruktur`. |
+| `/commit` | Fertige lokale Änderungen im freigegebenen Umfang logisch committen. | `infrastructure-engineer`; Veröffentlichung ist ein eigener Auftrag. |
+| `/push` | Vorhandene lokale Commits auf den konfigurierten Upstream veröffentlichen. | `infrastructure-engineer`; vorhandene Commits bleiben der Umfang. |
+| `/cp` | Fertige lokale Änderungen im freigegebenen Umfang committen und pushen. | `infrastructure-engineer`. |
 | `/bugfix` | Fehler auf dem aktuellen Branch beheben und absichern. | Betroffene Implementierungsrolle; fachliche Klärung, Architektur und unabhängige Prüfung nach Bedarf direkt zuweisen. |
 | `/bugfix from-default` | Isolierten Bugfix von der Standardbasis bis zum Pull Request bearbeiten. | Implementierungsrolle und Infrastruktur für Branch und Pull Request; unabhängige Prüfung bei Qualitätssicherung. |
 | `/summary [<period> ...] [--mode <mode>]` | Änderungen aus Commits und gemergten Pull Requests im Zeitraum zusammenfassen. | Infrastruktur liefert Historienbelege; Product Owner beschreibt fachliche Auswirkungen, Architektur technische Details nach gewähltem Modus. |

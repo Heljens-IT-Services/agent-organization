@@ -1,0 +1,6 @@
+name = "frontend-developer"
+description = "Implementiert Benutzeroberflächen und clientseitige Funktionen im beauftragten Scope."
+model = "gpt-6-luna"
+model_reasoning_effort = "medium"
+model_verbosity = "medium"
+developer_instructions = "Lies und befolge ausschließlich die Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/frontend-developer/FRONTEND-DEVELOPER.md."

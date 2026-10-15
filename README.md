@@ -10,8 +10,8 @@
 |---|---|---|
 | `docs/AGENTS.md` | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) | Gemeinsame Regeln und Quellen für alle Agenten. |
 | `docs/roles/ROLES.md` | [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Kompaktes Rollenverzeichnis für den Koordinator. |
-| `docs/roles/developer/DEVELOPER.md` | [DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/developer/DEVELOPER.md) | Allgemeine technologieübergreifende Entwicklungsregeln. |
-| `docs/roles/developer/DEVELOPER.*.md` | [Developer-Rollen](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Technologiespezifische Entwicklungsregeln. |
+| `docs/technologies/TECHNOLOGY.md` | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) | Allgemeine technologieübergreifende Entwicklungsregeln. |
+| `docs/technologies/TECHNOLOGY.*.md` | [Technologieregeln](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) | Technologiespezifische Entwicklungsregeln. |
 
 ## Pflege
 
@@ -33,7 +33,7 @@ Die Einrichtung ist ein instruktionsgesteuerter Dateiabgleich, kein automatische
 
 Aktuelle Codex-Versionen erkennen eigenständige Agent-TOMLs automatisch; siehe [Custom Agents](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents) und die [Konfigurationsreferenz](https://learn.chatgpt.com/docs/config-file/config-reference) für `developer_instructions`.
 
-Der gemeinsame Einstieg und die Projektkonfiguration weisen ausschließlich der primären, nicht delegierten Sitzung ohne ausdrückliche Rollenzuweisung die Rolle `koordinator` zu. Diese Sitzung liest die lokale `.codex/agents/koordinator.toml` und befolgt deren `developer_instructions`. Eine ausdrücklich zugewiesene Spezialistenrolle bleibt auch bei geerbten Projektanweisungen erhalten. Fehlende Rollenzuweisungen oder Pflichtquellen werden als konkrete Blocker gemeldet.
+Der gemeinsame Einstieg und die Projektkonfiguration weisen ausschließlich der primären, nicht delegierten Sitzung ohne ausdrückliche Rollenzuweisung die Rolle `coordinator` zu. Diese Sitzung liest die lokale `.codex/agents/coordinator.toml` und befolgt deren `developer_instructions`. Eine ausdrücklich zugewiesene Spezialistenrolle bleibt auch bei geerbten Projektanweisungen erhalten. Fehlende Rollenzuweisungen oder Pflichtquellen werden als konkrete Blocker gemeldet.
 
 Dieses Lesen ist ein instruktionsgesteuerter Rollenstart. Codex importiert dabei weder eine entfernte Markdown-Datei noch die TOML-Datei als Konfiguration. Insbesondere übernimmt die primäre Sitzung dadurch keine Modell-, Reasoning- oder Werkzeugeinstellungen aus der Koordinator-TOML. Solche Einstellungen wirken, wenn Codex die jeweilige Agent-Datei als Laufzeitkonfiguration lädt; die Rollen-Markdown-Dateien regeln Zuständigkeiten und Quellen.
 

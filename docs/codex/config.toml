@@ -1,10 +1,7 @@
-# Projektkonfiguration: nur den markierten Einstieg mit vorhandenen Anweisungen zusammenführen.
+
 developer_instructions = """
-BEGIN agent-organization bootstrap
-Eine ausdrücklich zugewiesene Rolle bleibt maßgeblich, auch wenn diese Projektanweisungen an einen delegierten Agenten vererbt werden. Lade die geltenden AGENTS.md-Regeln einschließlich der gemeinsamen Einstiegsregeln unter https://heljens-it-services.github.io/agent-organization/AGENTS.md und beachte den dort geregelten Codex-Projekteinstieg vor der Rollenpflicht. Im Quellrepository agent-organization gilt dafür die lokale Quellauflösung aus PROJECT.md.
 
-Nur in der primären, nicht delegierten Sitzung ohne ausdrücklich zugewiesene Rolle: Nach dem begrenzten lokalen Bootstrap übernimm die Rolle koordinator. Lies dazu die lokale Datei .codex/agents/koordinator.toml im Repository-Root und befolge ihren vollständigen developer_instructions-Text als Rollenauftrag. Diese anweisungsgesteuerte Dateilektüre lädt den Instruktionstext; Modell-, Reasoning- und Werkzeugeinstellungen bleiben Sache der Laufzeitkonfiguration und werden nicht rückwirkend übernommen.
-
-Explizite Spezialisten führen keinen allgemeinen Bootstrap aus; nur ein ausdrücklicher Infrastruktur-Setup-Auftrag erlaubt dessen abgegrenzte Dateipflege. Fehlt einem delegierten Agenten die Rollenzuweisung oder fehlt eine für seinen Auftrag erforderliche Rollenquelle, melde den konkreten Blocker vor der betroffenen Arbeit. Ordne bei Repository- oder Teilsolution-Wechsel die geltenden AGENTS.md- und PROJECT.md-Quellen erneut zu.
-END agent-organization bootstrap
 """
+
+[agents]
+max_concurrent_threads_per_session = 6

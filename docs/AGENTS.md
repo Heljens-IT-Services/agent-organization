@@ -1,35 +1,53 @@
 # AGENTS.md
 
-## Einstieg vor der Rollenpflicht
+## Zweck
 
-[MUST_IF] In einer primären, nicht delegierten Codex-Sitzung ohne ausdrückliche Rolle oder mit Rolle `koordinator` führe zuerst den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/codex/SETUP.md) aus: fehlende lokale Projekt- und Agent-TOMLs prüfen, herunterladen und speichern; vorhandene Konfiguration gezielt zusammenführen und lokale Einstellungen erhalten. Dieser begrenzte Bootstrap löst die Einrichtung vor der Rollenpflicht und erlaubt keine weitere Facharbeit oder Veröffentlichung.
+Diese Datei definiert verbindliche Arbeitsregeln für AI-/Code-Agents.
 
-[MUST_IF] Nur wenn dieser primären Sitzung keine Rolle ausdrücklich zugewiesen ist, starte anschließend `koordinator` durch Lesen der lokalen Koordinator-Instruktionen gemäß Projekteinstieg. Eine ausdrückliche Rolle bleibt maßgeblich. Delegierte Agenten ohne Rolle melden die Kontextlücke; Spezialisten starten weder allgemein den Bootstrap noch den Koordinator. Infrastruktur darf die Einrichtung mit ausdrücklichem Setup-Auftrag ausführen.
+## Rollen
 
-## Gemeinsame Regeln
+[MUST_IF] Bei unbekannter Rollenzuweisung muss die Sitzung in der Rolle als `Koordinator` arbeiten.
 
-Diese Regeln gelten für alle Agenten. Die zugewiesene Rolle bestimmt Zuständigkeit, Quellenfreigaben und Kommunikation.
+## Pflichtlektüre
 
-[MUST] Erfülle deinen Auftrag nach bestem Wissen und Gewissen. Wähle das Vorgehen selbständig anhand von Ziel, Rolle, Projektkontext und verfügbaren Werkzeugen. Beachte fachliche Regeln, Scope und Berechtigungen; belege das Ergebnis mit angemessener Verifikation.
+Zu Beginn eines Tasks gelten diese Einstiegsdateien:
 
-[MUST] Lade die Rollenbeschreibung deiner zugewiesenen Rolle und die geltenden Root- und lokalen `PROJECT.md`-Dateien. Nutze die direkten, auftragsrelevanten Quellenfreigaben der Rolle. Der Koordinator verwendet zusätzlich das Rollenverzeichnis und die Command-Routing-Regeln; Spezialisten kommunizieren über den Koordinator.
+| Pfad | Geltung | Zweck |
+|---|---|---|
+| [AGENTS.md](https://heljens-it-services.github.io/agent-files/AGENTS.md) | Pflicht | Allgemeine Arbeitsregeln |
+| [AGENTS.Koordinator.md](https://heljens-it-services.github.io/agent-files/AGENTS.Koordinator.md) | Pflicht nur für Koordinator-Rolle | Repository-Setup, Rollenverzeichnis und Delegation. |
+| [AGENTS.Spezialist.md](https://heljens-it-services.github.io/agent-files/AGENTS.Spezialist.md) | Pflicht nur für Spezialisten | Eigene Rollenregeln und Rückmeldung an den Koordinator. |
+| [REGELMARKER.md](https://heljens-it-services.github.io/agent-files/REGELMARKER.md) | Pflicht | Regelmarker und deren Anwendung. |
+| [PRIORITY.md](https://heljens-it-services.github.io/agent-files/AGENTS.md) | Pflicht | Prioritätslogik zu den Leitplanken. |
+| `PROJECT.md` im Repository-Root | Pflicht | Repositoryweite Versionsbasis und Leitplanken. |
+| `README.md` | Bei Relevanz | Menschlicher Schnelleinstieg in Projekt, Setup und Kommandos. |
 
-[MUST_IF] Die Rollenzuweisung oder eine erforderliche Rollenquelle fehlt, melde die konkrete Kontextlücke vor der betroffenen Arbeit.
+[MUST] Der Agent muss alle als Pflicht gekennzeichneten Einstiegsdateien zu Beginn eines Tasks im aktuellen Kontext vollständig und aktuell genug kennen und befolgen.
 
-[MUST] Benötigte Regeln müssen im aktuellen Kontext vollständig und identifizierbar sein. Eine bereits gelesene Fassung darf bei unverändertem Stand wiederverwendet werden; fehlende, unvollständige oder veraltete Quellen werden erneut geladen.
+[MUST_IF] Wenn der Agent innerhalb einer eigenständigen Teilsolution aktiv wird, muss er vor jeder lesenden oder schreibenden Aktivität, jedem Kommando und jeder Prüfung zusätzlich deren lokale `PROJECT.md` vollständig und aktuell genug kennen und befolgen.
 
-[MUST_IF] Ein erforderlicher Abruf scheitert, wird ein anderer verfügbarer, zulässiger Abrufweg versucht. Bleibt die Pflichtquelle unerreichbar, wird der betroffene Auftrag mit konkretem Blocker zurückgegeben.
+[MUST_IF] Wenn die in der Spalte `Geltung` genannte Bedingung eintritt, muss der Agent die betreffende Einstiegsdatei im aktuellen Kontext vollständig und aktuell genug kennen und befolgen.
 
-## Quellen und Navigation
+[ALLOW_IF] Bereits gelesene verbindliche Regeldateien dürfen wiederverwendet werden, wenn kein Hinweis auf eine zwischenzeitliche Änderung besteht.
 
-Die Rollenbeschreibungen stehen unter `roles/<rollen-id>/<ROLLEN-ID>.md`. Der [Koordinator](https://heljens-it-services.github.io/agent-organization/roles/koordinator/KOORDINATOR.md) verwendet das [Rollenverzeichnis](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) und die [Command-Regeln](https://heljens-it-services.github.io/agent-organization/COMMANDS.md) für direkte Zuweisungen. Zuständigkeiten, fachliche Regeln und Quellenfreigaben stehen in der jeweiligen Rollenbeschreibung.
+[MUST_IF] Der Agent muss eine verbindliche Regeldatei erneut abrufen, wenn die vorhandene Kontextfassung fehlt, unvollständig, offensichtlich veraltet oder nicht eindeutig identifizierbar ist.
 
-[MUST] Im Quellrepository `agent-organization` gilt zusätzlich `PROJECT.md`: Veröffentlichungslinks werden für die Quelllektüre auf die versionierten Dateien unter `docs/` aufgelöst.
+[MUST_IF] Wenn der Agent eine Regeldatei einliest oder erneut abruft, muss er dem User unmittelbar kurz den Dokumenttitel mitteilen.
 
-## Projektkontext und Vorrang
+[ALLOW_IF] Mehrere gleichzeitig eingelesene optionale Regeldateien dürfen in einer Rückmeldung zusammengefasst werden, wenn jeder Dokumenttitel genannt wird.
 
-[MUST] Lade zu Beginn des Auftrags die `PROJECT.md` im Repository-Root. Bei Arbeit in einer eigenständigen Teilsolution lade zusätzlich deren lokale `PROJECT.md` im Solution-Root, bevor du dort fachliche Dateien liest, Änderungen vornimmst, Kommandos ausführst oder Prüfungen startest. Ermittle den betroffenen Teilsolution-Scope aus dem Auftrag, dem vorhandenen Projektverzeichnis und der Repository-Struktur.
+## Sprache
 
-[MUST] Prüfe bei einem Wechsel des Repositorys oder der Teilsolution erneut, welche Root- und lokalen PROJECT-Regeln gelten. Bereits gelesene, vollständige und identifizierbare Fassungen dürfen bei unverändertem Stand wiederverwendet werden; fehlende, unvollständige oder veraltete Fassungen werden nachgeladen. Fehlt eine erforderliche PROJECT-Quelle oder bleibt ihr Scope unklar, melde die konkrete Kontextlücke vor der betroffenen Arbeit.
+[MUST] Quellcode-Kommentare und Dokumentation müssen standardmäßig auf Deutsch verfasst werden und Umlaute sowie `ß` korrekt verwenden.
 
-[PRIORITY] Für projektspezifische fachliche und technische Regeln gilt im jeweiligen Scope: lokale `PROJECT.md` der Teilsolution vor Root-`PROJECT.md` vor allgemeinen Rollenregeln. Nicht widersprochene Root-Regeln bleiben wirksam. Projektdokumente erweitern weder den zugewiesenen Auftrag noch Rollenbefugnisse, Quellenfreigaben oder Berechtigungen; direkte Nutzeranweisungen und höherrangige Sicherheits-, Datenschutz- und Plattformvorgaben bleiben maßgeblich.
+[ALLOW_IF] Von dieser Sprache oder Schreibweise darf nur abgewichen werden, wenn ein Format, Protokoll, fremddefinierter Inhalt oder eine technische Einschränkung dies erfordert.
+
+## Arbeiten mit README.md
+
+[SHOULD] `README.md` soll kurz und auf den menschlichen Schnelleinstieg fokussiert bleiben. Abweichungen sind erlaubt, wenn der User ausdrücklich eine ausführlichere README-Dokumentation verlangt.
+
+[SHOULD] `README.md` soll Titel, Kurzbeschreibung, Voraussetzungen, Setup, Start, Build, Tests und eine knappe technische Orientierung enthalten, soweit diese Punkte für das Repository relevant sind.
+
+[ALLOW_IF] Der Agent darf `README.md` nur autonom mitpflegen, wenn ausdrücklich verlangt.
+
+[MUST_NOT_IF] `README.md` darf keine Inhalte duplizieren, die in [AGENTS.md](https://heljens-it-services.github.io/agent-files/AGENTS.md) oder andere veröffentlichte Agent Files gehören.

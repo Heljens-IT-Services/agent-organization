@@ -11,7 +11,7 @@ Diese Dateien werden unverändert nach `.github/ISSUE_TEMPLATE/` übernommen:
 
 ## Story- und Epic-Owner
 
-Die vorhandenen nativen Issue-Types `Story` und `Epic` werden sowohl für fachliche als auch für technische Inhalte verwendet. `product_owner` verantwortet User Stories, User Epics und fachliche Akzeptanzkriterien; `softwareentwicklung_architektur` verantwortet Technical Stories, Technical Epics und technische Akzeptanzkriterien. Owner, Kriterien und Belege müssen im Issue klar erkennbar sein. Daraus entstehen keine neuen nativen Type-IDs.
+Die vorhandenen nativen Issue-Types `Story` und `Epic` werden sowohl für fachliche als auch für technische Inhalte verwendet. `product-owner` verantwortet User Stories, User Epics und fachliche Akzeptanzkriterien; `software-architect` verantwortet Technical Stories, Technical Epics und technische Akzeptanzkriterien. Owner, Kriterien und Belege müssen im Issue klar erkennbar sein. Daraus entstehen keine neuen nativen Type-IDs.
 
 ## Task-Issue-Vertrag
 

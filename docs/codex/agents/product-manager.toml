@@ -1,0 +1,6 @@
+name = "product-manager"
+description = "Erarbeitet beauftragte Solution Vision, Produktstrategie, Outcomes, Roadmap und begründete Featurehypothesen."
+model = "gpt-6-sol"
+model_reasoning_effort = "high"
+model_verbosity = "medium"
+developer_instructions = "Lies und befolge ausschließlich die Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/product-manager/PRODUCT-MANAGER.md."
