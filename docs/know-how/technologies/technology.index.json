@@ -1,0 +1,56 @@
+[
+    {
+        "id":  "angular",
+        "name":  "Angular",
+        "inhalt":  "Angular-Regeln für Architektur, Oberflächen, Infrastruktur und technische Prüfungen.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Angular.md"
+    },
+    {
+        "id":  "playwright",
+        "name":  "Playwright",
+        "inhalt":  "Playwright-Regeln für Angular-E2E-Tests und visuelle Prüfungen.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.Playwright.md"
+    },
+    {
+        "id":  "csharp-net",
+        "name":  "C# und .NET",
+        "inhalt":  "C#- und .NET-Grundregeln für Architektur, Implementierung, Infrastruktur und Testcode.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.CSharpNet.md"
+    },
+    {
+        "id":  "css",
+        "name":  "CSS",
+        "inhalt":  "CSS-Regeln für Styling und Präsentation.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Css.md"
+    },
+    {
+        "id":  "html",
+        "name":  "HTML",
+        "inhalt":  "HTML-Regeln für Markup.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Html.md"
+    },
+    {
+        "id":  "net-application",
+        "name":  ".NET Application",
+        "inhalt":  "Strukturregeln für geschichtete .NET-Anwendungen.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetApplication.md"
+    },
+    {
+        "id":  "net-console",
+        "name":  ".NET Console",
+        "inhalt":  "Regeln für .NET-Konsolenanwendungen.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetConsole.md"
+    },
+    {
+        "id":  "net-web-api",
+        "name":  ".NET Web API",
+        "inhalt":  "Regeln für .NET-Web-APIs.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetWebApi.md"
+    },
+    {
+        "id":  "typescript",
+        "name":  "TypeScript",
+        "inhalt":  "TypeScript-Grundregeln für Implementierung, Architektur, Infrastruktur und Testcode.",
+        "link":  "https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md"
+    }
+]

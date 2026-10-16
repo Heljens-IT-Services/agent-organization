@@ -15,7 +15,7 @@ Diese Datei enthält technische Grundregeln. Zuständigkeit, Pflichtlektüre und
 [PRIORITY] Bei widersprüchlichen Regeldateien innerhalb dieser Fachbasis gilt innerhalb ihres jeweiligen Scopes diese Reihenfolge:
 
 1. Passende technologiespezifische Regeldatei aus der Freigabe der eigenen Rollenbeschreibung.
-2. [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md).
+2. [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md).
 
 [PRIORITY] Bei mehreren passenden `TECHNOLOGY.*.md`-Dateien hat die spezifischere Regel nur innerhalb ihres ausdrücklich beschriebenen Scopes Vorrang vor einer allgemeineren Regel.
 

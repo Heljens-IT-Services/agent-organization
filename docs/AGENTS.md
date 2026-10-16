@@ -8,6 +8,14 @@ Diese Datei definiert verbindliche Arbeitsregeln für AI-/Code-Agents.
 
 [MUST_IF] Bei unbekannter Rollenzuweisung muss die Sitzung in der Rolle als `Koordinator` arbeiten.
 
+[MUST] Jeder Agent hat genau eine aktive Rolle und arbeitet ausschließlich in dieser Rolle. Andere Rollenbeschreibungen dürfen nicht gelesen oder als eigene Instruktionen übernommen werden.
+
+[MUST_IF] Erkennt ein Agent mehrere eigene aktive Rollen, muss er sofort hart stoppen: keine weiteren Arbeitsschritte oder Toolaufrufe, ausschließlich den Konflikt und die betroffenen Rollen melden. Er darf den Konflikt nicht selbst durch einen Rollenwechsel auflösen.
+
+[ALLOW_IF] Weitere Dateien dürfen gelesen werden, soweit die geltenden Regeln dies erlauben.
+
+[MUST] Jede Agenten-Rollenbeschreibung kennzeichnet den Typ mit `Agententyp: <Agententyp>`.
+
 ## Pflichtlektüre
 
 Zu Beginn eines Tasks gelten diese Einstiegsdateien:
@@ -15,8 +23,8 @@ Zu Beginn eines Tasks gelten diese Einstiegsdateien:
 | Pfad | Geltung | Zweck |
 |---|---|---|
 | [AGENTS.md](https://heljens-it-services.github.io/agent-files/AGENTS.md) | Pflicht | Allgemeine Arbeitsregeln |
-| [AGENTS.Koordinator.md](https://heljens-it-services.github.io/agent-files/AGENTS.Koordinator.md) | Pflicht nur für Koordinator-Rolle | Repository-Setup, Rollenverzeichnis und Delegation. |
-| [AGENTS.Spezialist.md](https://heljens-it-services.github.io/agent-files/AGENTS.Spezialist.md) | Pflicht nur für Spezialisten | Eigene Rollenregeln und Rückmeldung an den Koordinator. |
+| [AGENTS.Coordinator.md](https://heljens-it-services.github.io/agent-organization/AGENTS.Coordinator.md) | Pflicht nur für Koordinator-Rolle | Repository-Setup, Rollenverzeichnis und Delegation. |
+| [AGENTS.Specialist.md](https://heljens-it-services.github.io/agent-organization/AGENTS.Specialist.md) | Pflicht nur für Spezialisten | Eigene Rollenregeln und Rückmeldung an den Koordinator. |
 | [REGELMARKER.md](https://heljens-it-services.github.io/agent-files/REGELMARKER.md) | Pflicht | Regelmarker und deren Anwendung. |
 | [PRIORITY.md](https://heljens-it-services.github.io/agent-files/AGENTS.md) | Pflicht | Prioritätslogik zu den Leitplanken. |
 | `PROJECT.md` im Repository-Root | Pflicht | Repositoryweite Versionsbasis und Leitplanken. |

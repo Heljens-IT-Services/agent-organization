@@ -1,5 +1,7 @@
 # INFRASTRUCTURE-ENGINEER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Die Infrastrukturrolle bearbeitet beauftragte CI-, Deployment-, Laufzeit-, Konfigurations- und Repository-Lifecycle-Aufgaben. Dazu gehören ausdrücklich freigegebene Branch-, Commit-, Push-, Pull-Request-, Merge- und Veröffentlichungsschritte.
@@ -32,7 +34,7 @@ Die Infrastrukturrolle bearbeitet beauftragte CI-, Deployment-, Laufzeit-, Konfi
 
 [MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Build-/Deployment-Dateien, Projektmanifeste, Hostkonfiguration und CI, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
-[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
+[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
 [MUST] Bestehende Projekttechnologie zu erkennen und ihren Kontext zu laden ist Teil des Auftrags. Eine neue Technologie, ein Stackwechsel oder eine neue Abhängigkeit ist eine gesonderte technische Entscheidung und bleibt an Scope, Projektvorgaben und erforderliche Freigaben gebunden. Fehlende erforderliche Regeln oder Entscheidungen werden konkret an den Koordinator gemeldet.
 
@@ -51,9 +53,9 @@ Diese Datei ist die verbindliche Rollenquelle für `infrastructure-engineer`.
 | Geltende `AGENTS.md` und veröffentlichte gemeinsame Einstiegsregeln | Pflichtlektüre für alle Rollen; im Quellrepository zusätzlich `docs/AGENTS.md` gemäß `PROJECT.md`. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/infrastructure-engineer/INFRASTRUCTURE-ENGINEER.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/infrastructure-engineer/INFRASTRUCTURE-ENGINEER.md](https://heljens-it-services.github.io/agent-organization/roles/infrastructure-engineer/INFRASTRUCTURE-ENGINEER.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) |
+| `docs/know-how/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) |
 | `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
+| `docs/know-how/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
 
@@ -61,13 +63,13 @@ Diese Datei ist die verbindliche Rollenquelle für `infrastructure-engineer`.
 
 | Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
 |---|---|---|
-| `docs/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.TypeScript.md) |
-| `docs/technologies/TECHNOLOGY.Angular.md` | nur wenn Angular-Projektsetup, Build oder Laufzeit betroffen ist. | [angular](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.Angular.md) |
-| `docs/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenem .NET-Build, Deployment oder Laufzeit. | [csharp-net](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.CSharpNet.md) |
-| `docs/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendung. | [net-application](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetApplication.md) |
-| `docs/technologies/TECHNOLOGY.NetConsole.md` | nur wenn Build oder Laufzeit einer .NET-Konsolenanwendung betroffen ist. | [net-console](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetConsole.md) |
-| `docs/technologies/TECHNOLOGY.NetWebApi.md` | nur wenn Deployment oder Laufzeit einer .NET-Web-API betroffen ist. | [net-web-api](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetWebApi.md) |
-| `docs/TECHNOLOGIES.md` | Nur Inventar und Navigation; keine operative Pflichtlektüre oder zusätzliche Ressourcenfreigabe. Es gelten die direkten Quellen dieser Rollenbeschreibung. | [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) |
+| `docs/know-how/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md) |
+| `docs/know-how/technologies/TECHNOLOGY.Angular.md` | nur wenn Angular-Projektsetup, Build oder Laufzeit betroffen ist. | [angular](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Angular.md) |
+| `docs/know-how/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenem .NET-Build, Deployment oder Laufzeit. | [csharp-net](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.CSharpNet.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendung. | [net-application](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetApplication.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetConsole.md` | nur wenn Build oder Laufzeit einer .NET-Konsolenanwendung betroffen ist. | [net-console](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetConsole.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetWebApi.md` | nur wenn Deployment oder Laufzeit einer .NET-Web-API betroffen ist. | [net-web-api](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetWebApi.md) |
+| `docs/know-how/technologies/technology.index.json` | Nur Inventar und Navigation; keine operative Pflichtlektüre oder zusätzliche Ressourcenfreigabe. Es gelten die direkten Quellen dieser Rollenbeschreibung. | [technology.index.json](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) |
 
 
 ### Angular-Qualitätskonfiguration
@@ -76,16 +78,16 @@ Die folgenden Referenzen werden bei betroffenem Angular-Setup, fehlender oder ge
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [prettier.json](https://heljens-it-services.github.io/agent-organization/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [prettier.json](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
 
 ### Vertrags- und Konfigurationsreferenzen
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen; bei Infrastruktur nur innerhalb beauftragter Template-Pflege. |
-| [DEPENDABOT.md](https://heljens-it-services.github.io/agent-organization/github/DEPENDABOT.md) | Bei ausdrücklich beauftragter Dependabot-Konfiguration. |
+| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/setup/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen; bei Infrastruktur nur innerhalb beauftragter Template-Pflege. |
+| [DEPENDABOT.md](https://heljens-it-services.github.io/agent-organization/setup/github/DEPENDABOT.md) | Bei ausdrücklich beauftragter Dependabot-Konfiguration. |
 
 ## Zusammenarbeit
 

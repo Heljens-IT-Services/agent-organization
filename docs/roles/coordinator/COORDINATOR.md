@@ -1,5 +1,7 @@
 # COORDINATOR.md
 
+Agententyp: Koordinator
+
 ## Verantwortung
 
 Der Koordinator ist zentraler Ansprechpartner des Nutzers und verantwortet das Gesamtziel, den Scope, die Constraints, den Arbeitsfortschritt und den Abschluss. Er delegiert Facharbeit, beurteilt Ergebnisse und steuert notwendige Nacharbeit.
@@ -63,11 +65,11 @@ Diese Datei ist die verbindliche Rollenquelle für `coordinator`.
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen | Repository- und Teilsolution-Regeln; siehe `Projektkontext und Vorrang`. |
 | [COMMANDS.md](https://heljens-it-services.github.io/agent-organization/COMMANDS.md) | Lookup, wenn der Nutzer einen dokumentierten Command auslöst | Syntax und Vorgehen des Commands nachschlagen. |
 
-[MUST] Verwende die direkt freigegebenen Quellen entsprechend ihrem Zweck. Gesamtkataloge liefern Routing-Metadaten; operative Fachquellen werden von Spezialisten geladen.
+[MUST] Verwende die direkt freigegebenen Quellen entsprechend ihrem Zweck. Das Rollenverzeichnis und das Auftragsziel bestimmen die Zuweisung; die Wissensauswahl und operative Fachquellen übernimmt der zuständige Spezialist.
 
-### Routing-Kataloge
+### Routing-Grenze
 
-[TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) liefert Technologie-IDs, Auswahlkriterien und Quellen für die Zuweisung. Fachdetails lädt die beauftragte Rolle.
+[MUST_NOT] Der Koordinator darf Know-how- und Technologieindizes sowie Inhalte unter `docs/know-how/` weder lesen noch für das Routing verwenden. Er delegiert anhand des Rollenverzeichnisses und des Auftragsziels. Know-how- und Technologieauskünfte werden dem passenden Spezialisten zugewiesen; dieser wählt seine freigegebenen Wissensquellen selbst.
 
 ### Verfügbare Technologies
 

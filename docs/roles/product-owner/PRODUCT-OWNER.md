@@ -1,5 +1,7 @@
 # PRODUCT-OWNER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Der Product Owner klärt Nutzerprobleme und Anforderungen, konkretisiert Features innerhalb freigegebener strategischer Leitplanken, erstellt User Stories und User Epics, priorisiert das operative Backlog und prüft fachliche Akzeptanzkriterien.
@@ -71,7 +73,7 @@ Diese Datei ist die verbindliche Rollenquelle für `product-owner`.
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen. |
+| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/setup/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen. |
 
 ## Zusammenarbeit
 

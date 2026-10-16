@@ -1,5 +1,7 @@
 # FRONTEND-DEVELOPER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Die Frontendrolle implementiert und prüft beauftragte Benutzeroberflächen, Interaktionen und clientseitige Funktionen anhand bestehender Anforderungen, Design-Handoffs, Verträge und Projektkonventionen.
@@ -34,7 +36,7 @@ Die Frontendrolle implementiert und prüft beauftragte Benutzeroberflächen, Int
 
 [MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus `package.json`, `angular.json`, betroffene UI-Dateien und vorhandene Tests, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
-[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
+[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
 [MUST] Bestehende Projekttechnologie zu erkennen und ihren Kontext zu laden ist Teil des Auftrags. Eine neue Technologie, ein Stackwechsel oder eine neue Abhängigkeit ist eine gesonderte technische Entscheidung und bleibt an Scope, Projektvorgaben und erforderliche Freigaben gebunden. Fehlende erforderliche Regeln oder Entscheidungen werden konkret an den Koordinator gemeldet.
 
@@ -53,9 +55,9 @@ Diese Datei ist die verbindliche Rollenquelle für `frontend-developer`.
 | Geltende `AGENTS.md` und veröffentlichte gemeinsame Einstiegsregeln | Pflichtlektüre für alle Rollen; im Quellrepository zusätzlich `docs/AGENTS.md` gemäß `PROJECT.md`. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/frontend-developer/FRONTEND-DEVELOPER.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/frontend-developer/FRONTEND-DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/frontend-developer/FRONTEND-DEVELOPER.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) |
+| `docs/know-how/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) |
 | `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
+| `docs/know-how/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
@@ -64,10 +66,10 @@ Diese Datei ist die verbindliche Rollenquelle für `frontend-developer`.
 
 | Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
 |---|---|---|
-| `docs/technologies/TECHNOLOGY.Angular.md` | Angular-Oberfläche oder clientseitiges Verhalten ist betroffen. | [angular](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.Angular.md) |
-| `docs/technologies/TECHNOLOGY.Css.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem Styling. | [css](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.Css.md) |
-| `docs/technologies/TECHNOLOGY.Html.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem Markup. | [html](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.Html.md) |
-| `docs/technologies/TECHNOLOGY.TypeScript.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem TypeScript-Code. | [typescript](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.TypeScript.md) |
+| `docs/know-how/technologies/TECHNOLOGY.Angular.md` | Angular-Oberfläche oder clientseitiges Verhalten ist betroffen. | [angular](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Angular.md) |
+| `docs/know-how/technologies/TECHNOLOGY.Css.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem Styling. | [css](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Css.md) |
+| `docs/know-how/technologies/TECHNOLOGY.Html.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem Markup. | [html](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Html.md) |
+| `docs/know-how/technologies/TECHNOLOGY.TypeScript.md` | Voraussetzung bei Angular-Oberflächen sowie bei betroffenem TypeScript-Code. | [typescript](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md) |
 | `docs/roles/tester/TESTER.Angular.md` | Angular-Testregeln für die lokale Verifikation eigener Änderungen. | [angular](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.md) |
 | `docs/roles/tester/TESTER.Angular.Playwright.md` | Playwright-E2E-Regeln für die lokale Verifikation eigener Änderungen. | [playwright](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.Playwright.md) |
 
@@ -78,9 +80,9 @@ Die folgenden Referenzen werden bei betroffenem Angular-Setup, fehlender oder ge
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [prettier.json](https://heljens-it-services.github.io/agent-organization/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [prettier.json](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
 
 ## Zusammenarbeit
 

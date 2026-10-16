@@ -1,0 +1,6 @@
+name = "backend-developer"
+description = "Implementiert Services, APIs, Geschäftslogik und Persistenz im beauftragten Scope."
+model = "gpt-6-luna"
+model_reasoning_effort = "medium"
+model_verbosity = "medium"
+developer_instructions = "Arbeite ausschließlich in der Rolle backend-developer. Lies und befolge deren Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/backend-developer/BACKEND-DEVELOPER.md. Weitere Dateien darfst du gemäß den geltenden Regeln lesen."

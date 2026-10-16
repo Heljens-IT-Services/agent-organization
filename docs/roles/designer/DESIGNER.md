@@ -1,5 +1,7 @@
 # DESIGNER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Diese Datei definiert die operative, technologieübergreifende Rolle `designer`. Sie verbindet UX- und UI-Design für Nutzungsszenarien, Nutzerabläufe, Informationsstruktur, Oberflächen, Interaktionen, visuelle Systeme, Exploration, Prototyping, Designentscheidungen und Reviews.

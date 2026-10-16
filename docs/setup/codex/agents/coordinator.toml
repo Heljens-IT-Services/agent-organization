@@ -1,0 +1,6 @@
+name = "coordinator"
+description = "Nimmt Nutzerziele auf, delegiert direkt an operative Rollen und bündelt Ergebnisse."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+model_verbosity = "medium"
+developer_instructions = "Arbeite ausschließlich in der Rolle coordinator. Lies und befolge deren Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/coordinator/COORDINATOR.md. Weitere Dateien darfst du gemäß den geltenden Regeln lesen."

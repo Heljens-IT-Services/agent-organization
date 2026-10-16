@@ -1,5 +1,7 @@
 # BACKEND-DEVELOPER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Die Backendrolle implementiert und prüft beauftragte Services, APIs, Geschäftslogik und Persistenz anhand bestehender Anforderungen, Verträge und Projektkonventionen.
@@ -34,7 +36,7 @@ Die Backendrolle implementiert und prüft beauftragte Services, APIs, Geschäfts
 
 [MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Projektdateien wie `*.csproj`, Solution-/Hoststruktur, API-Verträge und vorhandene Tests, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
-[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
+[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
 [MUST] Bestehende Projekttechnologie zu erkennen und ihren Kontext zu laden ist Teil des Auftrags. Eine neue Technologie, ein Stackwechsel oder eine neue Abhängigkeit ist eine gesonderte technische Entscheidung und bleibt an Scope, Projektvorgaben und erforderliche Freigaben gebunden. Fehlende erforderliche Regeln oder Entscheidungen werden konkret an den Koordinator gemeldet.
 
@@ -53,9 +55,9 @@ Diese Datei ist die verbindliche Rollenquelle für `backend-developer`.
 | Geltende `AGENTS.md` und veröffentlichte gemeinsame Einstiegsregeln | Pflichtlektüre für alle Rollen; im Quellrepository zusätzlich `docs/AGENTS.md` gemäß `PROJECT.md`. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/backend-developer/BACKEND-DEVELOPER.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/backend-developer/BACKEND-DEVELOPER.md](https://heljens-it-services.github.io/agent-organization/roles/backend-developer/BACKEND-DEVELOPER.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) |
+| `docs/know-how/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) |
 | `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
+| `docs/know-how/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
 
@@ -63,11 +65,11 @@ Diese Datei ist die verbindliche Rollenquelle für `backend-developer`.
 
 | Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
 |---|---|---|
-| `docs/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.TypeScript.md) |
-| `docs/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenem C#/.NET-Code oder Verträgen. | [csharp-net](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.CSharpNet.md) |
-| `docs/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendung. | [net-application](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetApplication.md) |
-| `docs/technologies/TECHNOLOGY.NetConsole.md` | .NET-Konsolenanwendung ist betroffen. | [net-console](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetConsole.md) |
-| `docs/technologies/TECHNOLOGY.NetWebApi.md` | .NET-Web-API ist betroffen. | [net-web-api](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetWebApi.md) |
+| `docs/know-how/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md) |
+| `docs/know-how/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenem C#/.NET-Code oder Verträgen. | [csharp-net](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.CSharpNet.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendung. | [net-application](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetApplication.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetConsole.md` | .NET-Konsolenanwendung ist betroffen. | [net-console](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetConsole.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetWebApi.md` | .NET-Web-API ist betroffen. | [net-web-api](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetWebApi.md) |
 
 ## Zusammenarbeit
 

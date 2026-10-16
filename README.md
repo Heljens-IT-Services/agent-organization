@@ -1,6 +1,6 @@
 # agent-organization
 
-`agent-organization` pflegt die gemeinsamen Regeln, Rollen, Technologien, Commands und Codex-Vorlagen von Heljens IT Services für die Verwendung in Projekt-Repositories.
+`agent-organization` pflegt die gemeinsamen Regeln, Rollen, Know-how, Commands und Codex-Vorlagen von Heljens IT Services für die Verwendung in Projekt-Repositories.
 
 [GitHub Pages](https://heljens-it-services.github.io/agent-organization/) veröffentlicht die Dateien direkt aus `docs/` auf `main` unter festen URLs. Konsumierende Projekte verwenden diese veröffentlichte Fassung; Änderungen auf einem Feature-Branch werden erst nach der Veröffentlichung verfügbar.
 
@@ -10,12 +10,15 @@
 |---|---|---|
 | `docs/AGENTS.md` | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) | Gemeinsame Regeln und Quellen für alle Agenten. |
 | `docs/roles/ROLES.md` | [ROLES.md](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) | Kompaktes Rollenverzeichnis für den Koordinator. |
-| `docs/technologies/TECHNOLOGY.md` | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) | Allgemeine technologieübergreifende Entwicklungsregeln. |
-| `docs/technologies/TECHNOLOGY.*.md` | [Technologieregeln](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) | Technologiespezifische Entwicklungsregeln. |
+| `docs/SETUP.md` | [Setup](https://heljens-it-services.github.io/agent-organization/SETUP.md) | Einrichtung und Vorlagen unter `docs/setup/`. |
+| `docs/know-how/know-how.index.json` | [Know-how](https://heljens-it-services.github.io/agent-organization/know-how/know-how.index.json) | Einstieg in die Wissensbereiche für Agenten. |
+| `docs/know-how/technologies/technology.index.json` | [Technologieindex](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) | Technologie-IDs, Quellen und Verwendungskriterien. |
+| `docs/know-how/technologies/TECHNOLOGY.md` | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) | Allgemeine technologieübergreifende Entwicklungsregeln. |
+| `docs/know-how/technologies/TECHNOLOGY.*.md` | [Technologieregeln](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) | Technologiespezifische Entwicklungsregeln. |
 
 ## Pflege
 
-Regeln werden direkt unter `docs/` bearbeitet. Codex-Konfiguration und Agent-Vorlagen werden gemäß `PROJECT.md` in `docs/codex/` und `.codex/` inhaltsgleich gepflegt.
+Regeln werden direkt unter `docs/` bearbeitet. Codex-Konfiguration und Agent-Vorlagen werden gemäß `PROJECT.md` in `docs/setup/codex/` und `.codex/` inhaltsgleich gepflegt.
 
 Die Regeln verwenden dazu Marker wie `MUST`, `MUST_IF`, `MUST_NOT`, `ALLOW`, `ALLOW_IF`, `SHOULD`, `OPTIONAL` und `PRIORITY`, damit die normative Bedeutung jeder Anweisung möglichst eindeutig bleibt.
 
@@ -27,7 +30,7 @@ Formulierungen bleiben knapp und konkret.
 
 Für Codex genügt als regelbasierter Einstieg eine lokale Root-`AGENTS.md`, die die veröffentlichten [gemeinsamen Regeln](https://heljens-it-services.github.io/agent-organization/AGENTS.md) laden lässt. Projektregeln in vorhandenen Dateien bleiben erhalten. Eine eigene Root-`PROJECT.md` und bei eigenständigen Teilsolutions deren lokale `PROJECT.md` müssen den Projektkontext bereitstellen.
 
-Die primäre Sitzung führt vor der Rollenpflicht den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/codex/SETUP.md) aus. Sie lädt fehlende `.codex/config.toml` und `.codex/agents/*.toml` aus den kanonischen veröffentlichten Quellen herunter und speichert sie lokal. Vorhandene Projektanweisungen werden gezielt zusammengeführt; lokale Einstellungen und abweichende Agent-Dateien bleiben erhalten, Konflikte werden gemeldet. Ein reiner Leseauftrag oder fehlende Schreibrechte erlauben keine Einrichtung.
+Die primäre Sitzung führt vor der Rollenpflicht den [Codex-Projekteinstieg](https://heljens-it-services.github.io/agent-organization/SETUP.md) aus. Sie lädt fehlende `.codex/config.toml` und `.codex/agents/*.toml` aus den kanonischen veröffentlichten Quellen herunter und speichert sie lokal. Vorhandene Projektanweisungen werden gezielt zusammengeführt; lokale Einstellungen und abweichende Agent-Dateien bleiben erhalten, Konflikte werden gemeldet. Ein reiner Leseauftrag oder fehlende Schreibrechte erlauben keine Einrichtung.
 
 Die Einrichtung ist ein instruktionsgesteuerter Dateiabgleich, kein automatischer URL-Import durch Codex. Projektvertrauen gibt der Nutzer frei. Neue Konfigurationsdateien werden beim passenden nächsten Sitzungs- beziehungsweise Agentenstart geladen; die eingesetzte Codex-Version muss eigenständige Agent-TOMLs unterstützen. Tatsächliche Rollenverfügbarkeit wird vor der Delegation geprüft.
 

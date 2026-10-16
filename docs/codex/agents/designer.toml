@@ -1,6 +1,0 @@
-name = "designer"
-description = "Entwirft und prüft Nutzungsszenarien, Nutzerabläufe, Oberflächen, Interaktionen und visuelle Systeme."
-model = "gpt-6-luna"
-model_reasoning_effort = "medium"
-model_verbosity = "medium"
-developer_instructions = "Lies und befolge ausschließlich die Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/designer/DESIGNER.md."

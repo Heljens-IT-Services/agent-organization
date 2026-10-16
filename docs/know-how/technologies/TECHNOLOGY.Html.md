@@ -4,7 +4,7 @@ Stand: 2026-07-22
 
 ## Zweck
 
-Diese Datei gilt für HTML und Markup. Zugehörige allgemeine Developer-Regeln werden über [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md), weitere technologiespezifische Regeldateien über [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) aufgelöst.
+Diese Datei gilt für HTML und Markup. Zugehörige allgemeine Developer-Regeln werden über [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md), weitere technologiespezifische Regeldateien über [technology.index.json](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) aufgelöst.
 
 ## HTML und Markup
 

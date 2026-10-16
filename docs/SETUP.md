@@ -2,13 +2,17 @@
 
 ## GitHub-Basiskonfiguration
 
-[MUST_IF] Ein von Heljens gepflegtes Software-Repository GitHub Issue Forms nutzt, muss es den vollständigen [Issue-Template-Satz](https://heljens-it-services.github.io/agent-files/github/ISSUE_TEMPLATES.md) unverändert unter `.github/ISSUE_TEMPLATE` übernehmen.
+[MUST_IF] Ein von Heljens gepflegtes Software-Repository GitHub Issue Forms nutzt, muss es den vollständigen [Issue-Template-Satz](https://heljens-it-services.github.io/agent-organization/setup/github/ISSUE_TEMPLATES.md) unverändert unter `.github/ISSUE_TEMPLATE` übernehmen.
 
-[MUST_IF] Ein von Heljens gepflegtes Software-Repository unterstützte Abhängigkeitsquellen besitzt, muss es `.github/dependabot.yml` gemäß der [Dependabot-Leitplanke](https://heljens-it-services.github.io/agent-files/github/DEPENDABOT.md) pflegen.
+[MUST_IF] Ein von Heljens gepflegtes Software-Repository unterstützte Abhängigkeitsquellen besitzt, muss es `.github/dependabot.yml` gemäß der [Dependabot-Leitplanke](https://heljens-it-services.github.io/agent-organization/setup/github/DEPENDABOT.md) pflegen.
 
 ## Codex Agents
 
-[MUST_IF] Wenn ein Repository die gemeinsamen Heljens-Rollen nutzt, muss es die [Projektkonfiguration](codex/config.toml) unter `.codex/config.toml` und alle [Agent-Vorlagen](roles/ROLES.md) unter `.codex/agents/` mit den dort aufgeführten Dateinamen bereitstellen.
+[MUST_IF] Wenn ein Repository die gemeinsamen Heljens-Rollen nutzt, muss es die [Projektkonfiguration](setup/codex/config.toml) unter `.codex/config.toml` und alle [Agent-Vorlagen](roles/ROLES.md) unter `.codex/agents/` mit den dort aufgeführten Dateinamen bereitstellen.
+
+## Konfigurationsreferenzen
+
+Die Angular-Qualitätsvorlagen liegen unter `setup/config/angular/quality/`: [Prettier](setup/config/angular/quality/prettier.json), [ESLint](setup/config/angular/quality/eslint.config.mjs) und [dependency-cruiser](setup/config/angular/quality/dependency-cruiser.cjs). Ihre Verwendung richtet sich nach den direkten Quellenfreigaben der eigenen Rolle.
 
 ## PROJECT.md
 

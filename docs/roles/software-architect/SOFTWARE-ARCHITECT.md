@@ -1,5 +1,7 @@
 # SOFTWARE-ARCHITECT.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Die Architekturrolle analysiert Softwarearchitektur, Verträge, Schnittstellen und technische Abhängigkeiten im beauftragten Scope. Sie liefert technische Entwürfe, ausführbare Pläne, Entscheidungen, Auswirkungen, Risiken und offene Punkte.
@@ -36,7 +38,7 @@ Die Architekturrolle analysiert Softwarearchitektur, Verträge, Schnittstellen u
 
 [MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Projektdateien, Verträge, Einstiegspunkte, Abhängigkeiten und vorhandene technische Pläne, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
-[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
+[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
 [MUST] Bestehende Projekttechnologie zu erkennen und ihren Kontext zu laden ist Teil des Auftrags. Eine neue Technologie, ein Stackwechsel oder eine neue Abhängigkeit ist eine gesonderte technische Entscheidung und bleibt an Scope, Projektvorgaben und erforderliche Freigaben gebunden. Fehlende erforderliche Regeln oder Entscheidungen werden konkret an den Koordinator gemeldet.
 
@@ -55,10 +57,10 @@ Diese Datei ist die verbindliche Rollenquelle für `software-architect`.
 | Geltende `AGENTS.md` und veröffentlichte gemeinsame Einstiegsregeln | Pflichtlektüre für alle Rollen; im Quellrepository zusätzlich `docs/AGENTS.md` gemäß `PROJECT.md`. | [AGENTS.md](https://heljens-it-services.github.io/agent-organization/AGENTS.md) |
 | `docs/roles/software-architect/SOFTWARE-ARCHITECT.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/software-architect/SOFTWARE-ARCHITECT.md](https://heljens-it-services.github.io/agent-organization/roles/software-architect/SOFTWARE-ARCHITECT.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
-| `docs/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) |
+| `docs/know-how/technologies/TECHNOLOGY.md` | Pflichtlektüre: gemeinsame technische Grundregeln dieser Rolle. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) |
 | `docs/roles/tester/TESTER.md` | Pflichtlektüre bei beauftragten technischen Prüfungen; gemeinsame technische Prüfnormen. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
-| `docs/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
+| `docs/know-how/technologies/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
 
@@ -66,16 +68,16 @@ Diese Datei ist die verbindliche Rollenquelle für `software-architect`.
 
 | Pfad / Quelle | Pflicht / Einsatzbedingung | Veröffentlichungslink |
 |---|---|---|
-| `docs/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.TypeScript.md) |
+| `docs/know-how/technologies/TECHNOLOGY.TypeScript.md` | TypeScript-Code, -Verträge oder Buildskripte im zugewiesenen technischen Scope sind betroffen. | [typescript](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md) |
 | `docs/roles/tester/TESTER.md` | Bei beauftragten technischen Prüfungen verpflichtend als technische Prüfnorm; aktiviert keine QA-Rolle. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
 | — | Nur Technologien, deren Schnittstellen oder Abhängigkeiten im Architekturauftrag betroffen sind. Das Mapping ist beschreibend und aktiviert keine weitere Rolle. | — |
-| `docs/technologies/TECHNOLOGY.Angular.md` | Angular-Verträge oder Architekturgrenzen sind betroffen. | [angular](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.Angular.md) |
+| `docs/know-how/technologies/TECHNOLOGY.Angular.md` | Angular-Verträge oder Architekturgrenzen sind betroffen. | [angular](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.Angular.md) |
 | `docs/roles/tester/TESTER.Angular.md` | Angular-Testregeln sind für technische Kriterienprüfung erforderlich. | [angular](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.md) |
 | `docs/roles/tester/TESTER.Angular.Playwright.md` | Angular-E2E-Regeln sind für eine beauftragte technische Browserprüfung erforderlich. | [playwright](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.Playwright.md) |
-| `docs/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenen C#/.NET-Verträgen oder Abhängigkeiten. | [csharp-net](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.CSharpNet.md) |
-| `docs/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendungsarchitektur. | [net-application](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetApplication.md) |
-| `docs/technologies/TECHNOLOGY.NetConsole.md` | .NET-Konsolen-Einstieg oder Abhängigkeiten sind betroffen. | [net-console](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetConsole.md) |
-| `docs/technologies/TECHNOLOGY.NetWebApi.md` | .NET-Web-API-Verträge oder Architektur sind betroffen. | [net-web-api](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.NetWebApi.md) |
+| `docs/know-how/technologies/TECHNOLOGY.CSharpNet.md` | Voraussetzung für alle .NET-spezifischen Regeln sowie bei betroffenen C#/.NET-Verträgen oder Abhängigkeiten. | [csharp-net](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.CSharpNet.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetApplication.md` | Voraussetzung für .NET-Hostregeln sowie bei betroffener geschichteter Anwendungsarchitektur. | [net-application](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetApplication.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetConsole.md` | .NET-Konsolen-Einstieg oder Abhängigkeiten sind betroffen. | [net-console](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetConsole.md) |
+| `docs/know-how/technologies/TECHNOLOGY.NetWebApi.md` | .NET-Web-API-Verträge oder Architektur sind betroffen. | [net-web-api](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.NetWebApi.md) |
 
 
 ### Angular-Qualitätskonfiguration
@@ -84,15 +86,15 @@ Die folgenden Referenzen werden bei betroffenem Angular-Setup, fehlender oder ge
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [prettier.json](https://heljens-it-services.github.io/agent-organization/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
-| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [prettier.json](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/prettier.json) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [eslint.config.mjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/eslint.config.mjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
+| [dependency-cruiser.cjs](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/dependency-cruiser.cjs) | Referenz für die betroffene Angular-Qualitätskonfiguration. |
 
 ### Vertrags- und Konfigurationsreferenzen
 
 | Direkte Quelle | Einsatz |
 |---|---|
-| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen. |
+| [ISSUE_TEMPLATES.md](https://heljens-it-services.github.io/agent-organization/setup/github/ISSUE_TEMPLATES.md) | Bei beauftragter Issue-Arbeit den kanonischen fachlichen bzw. technischen Vertrag im eigenen Scope prüfen. |
 
 ## Zusammenarbeit
 

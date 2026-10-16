@@ -6,7 +6,7 @@ Commands benennen einen Auftrag oder liefern Orientierung. Der Koordinator weist
 
 ## Grundregeln und Rollenbindung
 
-[MUST] Natürliche Nutzeranfragen werden ebenso anhand ihres Ziels und Scopes zugewiesen. Die [Rollen](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) bestimmen Zuständigkeiten; [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) enthält Technologie-IDs und ihre direkten Quellen.
+[MUST] Natürliche Nutzeranfragen werden ebenso anhand ihres Ziels und Scopes zugewiesen. Der Koordinator bestimmt die Zuständigkeit anhand der [Rollen](https://heljens-it-services.github.io/agent-organization/roles/ROLES.md) und des Auftragsziels. Der beauftragte Spezialist wählt seine Wissensquellen gemäß den direkten Rollenfreigaben selbst.
 
 [MUST] Jeder Nutzercommand wird vom Koordinator entgegengenommen und normalisiert. Spezialisten geben neu eingehende Nutzercommands an ihn zurück; bereits zugewiesene Aufträge bleiben bei ihrer Rolle.
 
@@ -31,7 +31,7 @@ separator   = ( " " | tab ), spacing ;
 spacing     = { " " | tab } ;
 ```
 
-[MUST] Command-Namen, Subcommands und Technologie-IDs werden ohne Beachtung der Groß-/Kleinschreibung aufgelöst und in kanonischer Kleinschreibung ausgegeben. Öffentliche Namen, IDs und Platzhalter sind englisch. Technologie-IDs entsprechen `^[a-z0-9]+(?:-[a-z0-9]+)*$` und sind im Technologieinventar eindeutig.
+[MUST] Command-Namen, Subcommands, Bereichs-IDs und Technologie-IDs werden ohne Beachtung der Groß-/Kleinschreibung aufgelöst und in kanonischer Kleinschreibung ausgegeben. Öffentliche Namen, IDs und Platzhalter sind englisch. Bereichs- und Technologie-IDs entsprechen `^[a-z0-9]+(?:-[a-z0-9]+)*$` und sind im jeweiligen Index eindeutig.
 
 [MUST] Tokens werden durch Leerraum getrennt; doppelte Anführungszeichen erhalten Leerraum innerhalb eines Arguments. Dokumentierte Optionen unterstützen `--name value` und `--name=value`. Unbekannte Optionen, doppelte nicht wiederholbare Optionen, zusätzliche Positionsargumente und offene Anführungszeichen sind ungültig.
 
@@ -49,10 +49,16 @@ spacing     = { " " | tab } ;
 |---|---|
 | `/help`, `/?` | Allgemeine Hilfe mit Syntax, Commands und Beispielen. `product-owner` liest README.md und PROJECT.md und liefert zwei bis vier relevante Punkte zum Repository-Kontext. Fehlende Quellen werden kenntlich gemacht. |
 | `/help <command>` | Syntax, Argumente und Beispiele des Commands; der Name ist mit oder ohne führenden Slash zulässig. Fachliche Details liefert die zuständige Rolle. |
+| `/know-how list` | Bereichs-IDs mit Name, Inhalt und Bereichsindex aus dem Know-how-Index. |
+| `/know-how show <area-id>` | Name, Inhalt und Index des Wissensbereichs; fachliche Detailauskunft bleibt bei der zuständigen Rolle. |
 | `/technologies list` | Jede Technologie-ID einmal mit Name, Zweck und verfügbaren Rollen; Spezialisten erhalten die Mappings ihrer eigenen Rolle. |
 | `/technologies show <technology-id>` | Rolle, Regeldatei, Verwendungskriterium, Zweck und Quelle der freigegebenen Mappings. Fachliche Detailauskunft wird dem betreffenden Spezialisten zugewiesen. |
 
-[MUST] Hilfe und Technologieauskünfte sind reine Auskunft. Die Auswahl einer Technologie ändert weder Rolle noch Verwendungskriterien oder Quellenfreigaben.
+[MUST] Der Koordinator delegiert `/know-how`- und `/technologies`-Auskünfte anhand von Rollenverzeichnis und Auftragsziel an einen passenden Spezialisten. Er lädt dafür weder Indizes noch Inhalte des Know-how-Bereichs. Fehlt eine passende Rolle oder bleibt die Zuständigkeit unklar, meldet er das konkrete Hindernis.
+
+[MUST] Der beauftragte Spezialist löst bei `/technologies list` und `/technologies show <technology-id>` die Technologie über `id` in `technology.index.json` auf. Rollen, zusätzliche Regeldateien und Verwendungskriterien stammen aus den direkten Rollentabellen; `inhalt` dient der Beschreibung, nicht der ID-Auflösung. Er gibt die für seine Rolle freigegebenen Mappings vollständig aus.
+
+[MUST] Hilfe, Know-how- und Technologieauskünfte sind reine Navigation. Sie aktivieren keine Rolle oder Regeldatei und ändern weder Verwendungskriterien noch Quellenfreigaben.
 
 ## Direkte Aufträge
 
@@ -83,15 +89,17 @@ Die folgende Tabelle beschreibt Ziel und Zuständigkeit, keine vorgeschriebene S
 
 ## Hilfe, Fehler und Erweiterung
 
-[MUST] Fehlende Argumente oder Subcommands liefern die erwartete Syntax. Unbekannte Commands und IDs verweisen auf passende gültige Kandidaten, `/help` oder `/technologies list`. Mehrdeutige Ziele werden vor der Ausführung geklärt.
+[MUST] Fehlende Argumente oder Subcommands liefern die erwartete Syntax. Unbekannte Commands und IDs verweisen auf passende gültige Kandidaten, `/help`, `/know-how list` oder `/technologies list`. Mehrdeutige Ziele werden vor der Ausführung geklärt.
 
-[MUST] Command-Syntax und Auftragssemantik werden ausschließlich hier gepflegt; Technologie-IDs und Mappings im Technologieinventar. Neue Commands und Optionen werden vor ihrer Nutzung dokumentiert, global eindeutig und rückwärtskompatibel ergänzt. Hosts verwenden dieselbe dokumentierte Bedeutung. `roles` und `actions` bleiben als Root-Namen reserviert.
+[MUST] Command-Syntax und Auftragssemantik werden ausschließlich hier gepflegt; Bereichs-IDs im Know-how-Index, Technologie-IDs im Technologieindex und rollenbezogene Mappings in den direkten Rollentabellen. Neue Commands und Optionen werden vor ihrer Nutzung dokumentiert, global eindeutig und rückwärtskompatibel ergänzt. Hosts verwenden dieselbe dokumentierte Bedeutung. `roles` und `actions` bleiben als Root-Namen reserviert.
 
 ## Beispiele
 
 ```text
 /help
 /help testing
+/know-how list
+/know-how show technologies
 /technologies list
 /technologies show csharp-net
 /testing e2e

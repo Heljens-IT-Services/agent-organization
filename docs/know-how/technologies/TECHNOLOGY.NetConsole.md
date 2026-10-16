@@ -4,7 +4,7 @@ Stand: 2026-07-22
 
 ## Zweck
 
-Diese Datei gilt für .NET-Konsolenanwendungen. Zugehörige allgemeine und anwendungsbezogene Regeldateien werden über [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) aufgelöst.
+Diese Datei gilt für .NET-Konsolenanwendungen. Zugehörige allgemeine und anwendungsbezogene Regeldateien werden über [technology.index.json](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) aufgelöst.
 
 ## Zielbild
 

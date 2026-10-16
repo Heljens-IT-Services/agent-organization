@@ -4,7 +4,7 @@ Stand: 2026-08-12
 
 ## Zweck
 
-Diese Datei gilt für Angular. Allgemeine Developer-Regeln werden über [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md), weitere technologiespezifische Regeldateien über [TECHNOLOGIES.md](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) aufgelöst.
+Diese Datei gilt für Angular. Allgemeine Developer-Regeln werden über [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md), weitere technologiespezifische Regeldateien über [technology.index.json](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) aufgelöst.
 
 ## Architektur
 
@@ -71,7 +71,7 @@ src/app/
 
 ## Qualitätssicherung
 
-[MUST] Angular-Projekte müssen [Prettier](https://heljens-it-services.github.io/agent-organization/config/angular/quality/prettier.json), [ESLint](https://heljens-it-services.github.io/agent-organization/config/angular/quality/eslint.config.mjs), [dependency-cruiser](https://heljens-it-services.github.io/agent-organization/config/angular/quality/dependency-cruiser.cjs) und Knip verwenden.
+[MUST] Angular-Projekte müssen [Prettier](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/prettier.json), [ESLint](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/eslint.config.mjs), [dependency-cruiser](https://heljens-it-services.github.io/agent-organization/setup/config/angular/quality/dependency-cruiser.cjs) und Knip verwenden.
 
 [MUST_IF] Die Referenzkonfigurationen müssen nur bei Projekt-Setup, fehlender QA-Konfiguration oder Änderungen an der QA-Konfiguration gelesen werden.
 

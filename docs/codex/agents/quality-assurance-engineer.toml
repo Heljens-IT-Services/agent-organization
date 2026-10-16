@@ -1,6 +1,0 @@
-name = "quality-assurance-engineer"
-description = "Verifiziert Softwareverhalten unabhängig und liefert reproduzierbare Befunde."
-model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
-model_verbosity = "medium"
-developer_instructions = "Lies und befolge ausschließlich die Rollenbeschreibung: https://heljens-it-services.github.io/agent-organization/roles/quality-assurance-engineer/QUALITY-ASSURANCE-ENGINEER.md."

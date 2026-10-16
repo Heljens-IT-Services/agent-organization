@@ -1,5 +1,7 @@
 # QUALITY-ASSURANCE-ENGINEER.md
 
+Agententyp: Spezialist
+
 ## Verantwortung
 
 Die Qualitätssicherung prüft unabhängig beauftragte Regressionen, Testabdeckung und technische Gesamtrisiken am aktuellen integrierten Stand. Sie plant und führt passende Unit-, Integrations-, UI-, E2E- und weitere technische Checks aus und liefert reproduzierbare Befunde.
@@ -32,7 +34,7 @@ Die Qualitätssicherung prüft unabhängig beauftragte Regressionen, Testabdecku
 
 [MUST] Ermittle den vorhandenen Technologie- und Prüfkontext selbständig aus Testkonfiguration, Projektmanifeste, vorhandene Test-Suites und den beauftragten Änderungsscope, soweit dies zum Auftrag gehört. Wähle daraus die passenden hier freigegebenen Technologien und Voraussetzungen. Für diese Bestandsaufnahme und das Laden passender Regeln ist keine zusätzliche Zuweisung durch den Koordinator nötig.
 
-[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/TECHNOLOGIES.md) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
+[MUST] Die folgende Technologietabelle ist der direkte Rollenkatalog. Das [Technologieinventar](https://heljens-it-services.github.io/agent-organization/know-how/technologies/technology.index.json) darf ergänzend als Navigation für die eigene Rolle verwendet werden. Lade relevante Voraussetzungen vor spezifischen Ergänzungen; bei Konflikten gilt die spezifischere Regel nur in ihrem Scope.
 
 [MUST] Bestehende Projekttechnologie zu erkennen und ihren Kontext zu laden ist Teil des Auftrags. Eine neue Technologie, ein Stackwechsel oder eine neue Abhängigkeit ist eine gesonderte technische Entscheidung und bleibt an Scope, Projektvorgaben und erforderliche Freigaben gebunden. Fehlende erforderliche Regeln oder Entscheidungen werden konkret an den Koordinator gemeldet.
 
@@ -52,7 +54,7 @@ Diese Datei ist die verbindliche Rollenquelle für `quality-assurance-engineer`.
 | `docs/roles/quality-assurance-engineer/QUALITY-ASSURANCE-ENGINEER.md` | Pflichtlektüre für die ausdrücklich zugewiesene Rolle; Zuständigkeit, Abgrenzung und freigegebene Lookup-Dateien. | [docs/roles/quality-assurance-engineer/QUALITY-ASSURANCE-ENGINEER.md](https://heljens-it-services.github.io/agent-organization/roles/quality-assurance-engineer/QUALITY-ASSURANCE-ENGINEER.md) |
 | Root-`PROJECT.md` und lokale `PROJECT.md` der betroffenen Teilsolution | Pflichtlektüre für den geltenden Projektkontext; bei Scope-Wechsel erneut zuordnen. | Repository-lokale Quellen; siehe `Projektkontext und Vorrang`. |
 | `docs/roles/tester/TESTER.md` | Stets verpflichtende gemeinsame technische Prüfnormen für Qualitätssicherung. | [TESTER.md](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.md) |
-| `docs/technologies/TECHNOLOGY.md` | Pflichtlektüre vor Implementierung oder Pflege von Testcode im ausdrücklich zugewiesenen QA-Scope; keine Freigabe für Produktivcodeänderungen. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.md) |
+| `docs/know-how/technologies/TECHNOLOGY.md` | Pflichtlektüre vor Implementierung oder Pflege von Testcode im ausdrücklich zugewiesenen QA-Scope; keine Freigabe für Produktivcodeänderungen. | [TECHNOLOGY.md](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.md) |
 | `docs/roles/tester/` (Herkunftspfad) | Nur direkt unten tabellarisch aufgeführte Dateien und nur bei deren Einsatzbedingung; keine pauschale Verzeichnislektüre. | Verzeichnis hat keinen eigenen Veröffentlichungslink; siehe Dateilinks in `Verfügbare Technologies`. |
 
 [MUST] Lade die geltenden `AGENTS.md`-Regeln einschließlich der veröffentlichten gemeinsamen Einstiegsregeln, die eigene Rollenbeschreibung und geltende Root- und lokale `PROJECT.md`-Dateien. Weitere Fachquellen werden ausschließlich über die hier direkt freigegebenen Quellen bei erfüllter Einsatzbedingung geladen. Die gemeinsamen Einstiegsregeln geben keine anderen Rollenbeschreibungen frei. Das Rollenverzeichnis und die fachübergreifenden Routing-Kataloge werden vom Koordinator ausgewertet. Verzeichnisse bezeichnen nur Herkunftspfade.
@@ -63,8 +65,8 @@ Diese Datei ist die verbindliche Rollenquelle für `quality-assurance-engineer`.
 |---|---|---|
 | `docs/roles/tester/TESTER.Angular.md` | Voraussetzung für Playwright-Regeln sowie wenn Angular-Verhalten oder Qualitätschecks betroffen sind. | [angular](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.md) |
 | `docs/roles/tester/TESTER.Angular.Playwright.md` | Angular-E2E- oder visuelle Prüfung mit Playwright ist beauftragt. | [playwright](https://heljens-it-services.github.io/agent-organization/roles/tester/TESTER.Angular.Playwright.md) |
-| `docs/technologies/TECHNOLOGY.TypeScript.md` | Pflichtlektüre bei Implementierung oder Pflege von TypeScript-Testcode ausschließlich im ausdrücklich zugewiesenen QA-Code-Scope. | [typescript](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.TypeScript.md) |
-| `docs/technologies/TECHNOLOGY.CSharpNet.md` | Pflichtlektüre bei Implementierung oder Pflege von C#/.NET-Testcode ausschließlich im ausdrücklich zugewiesenen QA-Code-Scope. | [csharp-net](https://heljens-it-services.github.io/agent-organization/technologies/TECHNOLOGY.CSharpNet.md) |
+| `docs/know-how/technologies/TECHNOLOGY.TypeScript.md` | Pflichtlektüre bei Implementierung oder Pflege von TypeScript-Testcode ausschließlich im ausdrücklich zugewiesenen QA-Code-Scope. | [typescript](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.TypeScript.md) |
+| `docs/know-how/technologies/TECHNOLOGY.CSharpNet.md` | Pflichtlektüre bei Implementierung oder Pflege von C#/.NET-Testcode ausschließlich im ausdrücklich zugewiesenen QA-Code-Scope. | [csharp-net](https://heljens-it-services.github.io/agent-organization/know-how/technologies/TECHNOLOGY.CSharpNet.md) |
 
 ## Zusammenarbeit
 
